@@ -66,6 +66,8 @@ import ActivityLog, {
 } from '../global/activity.log.model';
 import { getUserLogin } from '../../context/userContext';
 import { initAsrama, associateAsrama } from '../app/asrama/asrama.model';
+import { initInventarisUmum, associateInventarisUmum } from '../app/inventaris.umum/inventaris.umum.model';
+import { initInventarisAsetHarian, associateInventarisAsetHarian } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -96,6 +98,8 @@ export function initializeModels(sequelize: Sequelize) {
   initAreaSubDistrict(sequelize);
   initActivityLog(sequelize);
   initAsrama(sequelize);
+  initInventarisUmum(sequelize);
+  initInventarisAsetHarian(sequelize);
 
   // associate
   associateAppRole();
@@ -113,6 +117,7 @@ export function initializeModels(sequelize: Sequelize) {
   associateAreaSubDistrict();
   associateActivityLog();
   associateAsrama();
+  associateInventarisAsetHarian()
 
   addGlobalActivityHooks(sequelize);
 }
