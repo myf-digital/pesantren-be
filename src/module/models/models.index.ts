@@ -76,7 +76,12 @@ import { associateLembagaPendidikanFormal, initLembagaPendidikanFormal } from '.
 import { initPegawai, associatePegawai } from '../app/pegawai/pegawai.model';
 =======
 import { initAsrama, associateAsrama } from '../app/asrama/asrama.model';
+<<<<<<< HEAD
 >>>>>>> f678277f662cc0bf7884cdd2629f6becbe83601b
+=======
+import { initInventarisUmum, associateInventarisUmum } from '../app/inventaris.umum/inventaris.umum.model';
+import { initInventarisAsetHarian, associateInventarisAsetHarian } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
+>>>>>>> samsul
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -113,7 +118,13 @@ export function initializeModels(sequelize: Sequelize) {
   initAreaDistrict(sequelize);
   initAreaSubDistrict(sequelize);
   initActivityLog(sequelize);
+<<<<<<< HEAD
   initPegawai(sequelize);
+=======
+  initAsrama(sequelize);
+  initInventarisUmum(sequelize);
+  initInventarisAsetHarian(sequelize);
+>>>>>>> samsul
 
   // associate
   associateAppRole();
@@ -140,7 +151,11 @@ export function initializeModels(sequelize: Sequelize) {
   associatePegawai();
 =======
   associateAsrama();
+<<<<<<< HEAD
 >>>>>>> f678277f662cc0bf7884cdd2629f6becbe83601b
+=======
+  associateInventarisAsetHarian()
+>>>>>>> samsul
 
   addGlobalActivityHooks(sequelize);
 }

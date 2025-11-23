@@ -30,6 +30,8 @@ import { santriProgram } from './santri.program/santri.program.controller';
 import { orangTuaWali } from './orang.tua.wali/orang.tua.wali.controller';
 import { LembagaPendidikanFormal } from './lembaga.pendidikan.formal/lembaga.pendidikan.formal.controller';
 import { Pegawai } from './pegawai/pegawai.controller';
+import { inventarisUmum } from './inventaris.umum/inventaris.umum.controller';
+import { inventarisAsetHarian } from './inventaris.aset.harian/inventaris.aset.harian.controller';
 
 const router: Router = Router();
 
@@ -364,6 +366,36 @@ router.delete(
   '/orang-tua-wali/:id',
   auth.checkBearerToken,
   orangTuaWali.delete
+);
+
+router.get(
+  '/inventaris-umum/all-data',
+  auth.checkBearerToken,
+  inventarisUmum.list
+);
+router.get('/inventaris-umum', auth.checkBearerToken, inventarisUmum.index);
+router.get('/inventaris-umum/:id', auth.checkBearerToken, inventarisUmum.detail);
+router.post('/inventaris-umum', auth.checkBearerToken, inventarisUmum.create);
+router.put('/inventaris-umum/:id', auth.checkBearerToken, inventarisUmum.update);
+router.delete(
+  '/inventaris-umum/:id',
+  auth.checkBearerToken,
+  inventarisUmum.delete
+);
+
+router.get(
+  '/inventaris-aset-harian/all-data',
+  auth.checkBearerToken,
+  inventarisAsetHarian.list
+);
+router.get('/inventaris-aset-harian', auth.checkBearerToken, inventarisAsetHarian.index);
+router.get('/inventaris-aset-harian/:id', auth.checkBearerToken, inventarisAsetHarian.detail);
+router.post('/inventaris-aset-harian', auth.checkBearerToken, inventarisAsetHarian.create);
+router.put('/inventaris-aset-harian/:id', auth.checkBearerToken, inventarisAsetHarian.update);
+router.delete(
+  '/inventaris-aset-harian/:id',
+  auth.checkBearerToken,
+  inventarisAsetHarian.delete
 );
 
 export default router;
