@@ -1,6 +1,8 @@
 'use strict';
 
 import { Router } from 'express';
+import { sanitizeBody } from '../../middlewares/sanitize';
+import { validate } from '../../middlewares/validate';
 import { role } from './role/role.controller';
 import { menu } from './menu/menu.controller';
 import { auth } from '../auth/auth.middleware';
@@ -10,6 +12,7 @@ import { paramGlobal } from './param.global/param.global.controller';
 import { tahunAngkatan } from './tahun.angkatan/tahun.angkatan.controller';
 import { tingkat } from './tingkat/tingkat.controller';
 import { tahunAjaran } from './tahun.ajaran/tahun.ajaran.controller';
+import { tahunAjaranSchema } from './tahun.ajaran/tahun.ajaran.schema';
 import { semester } from './semester/semester.ajaran.controller';
 import { statusAwalSantri } from './status.awal.santri/status.awal.santri.controller';
 import { jenisBeasiswa } from './jenis_beasiswa/jenis.beasiswa.controller';
@@ -92,8 +95,8 @@ router.delete('/tingkat/:id', auth.checkBearerToken, tingkat.delete);
 router.get('/tahun-ajaran/all-data', auth.checkBearerToken, tahunAjaran.list);
 router.get('/tahun-ajaran', auth.checkBearerToken, tahunAjaran.index);
 router.get('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.detail);
-router.post('/tahun-ajaran', auth.checkBearerToken, tahunAjaran.create);
-router.put('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.update);
+router.post('/tahun-ajaran', auth.checkBearerToken, sanitizeBody, validate(tahunAjaranSchema), tahunAjaran.create);
+router.put('/tahun-ajaran/:id', auth.checkBearerToken, sanitizeBody, validate(tahunAjaranSchema), tahunAjaran.update);
 router.delete('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.delete);
 
 router.get('/semester/all-data', auth.checkBearerToken, semester.list);

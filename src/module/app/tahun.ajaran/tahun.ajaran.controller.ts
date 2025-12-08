@@ -83,8 +83,17 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
+      const { tahun_ajaran } = req?.body;
       const check = await repository.detail({ id_tahunajaran: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
+
+      if (tahun_ajaran && tahun_ajaran !== check.tahun_ajaran) {
+        const duplicate = await repository.detail({ tahun_ajaran });
+
+        if (duplicate) {
+          return response.failed("Tahun ajaran sudah terdaftar", 400, res);
+        }
+      }
       const data: Object = helper.only(variable.fillable(), req?.body, true);
       await repository.update({
         payload: { ...data },
