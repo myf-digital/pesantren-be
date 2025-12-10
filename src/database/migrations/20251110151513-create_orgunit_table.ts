@@ -42,7 +42,7 @@ export const up = async (queryInterface: QueryInterface) => {
       type: DataTypes.STRING,
       allowNull: false,
       references: {
-        model: 'lembaga_pendidikan',
+        model: 'lembaga_pendidikan_formal',
         key: 'id_lembaga',
       },
       onUpdate: 'CASCADE',

@@ -8,4 +8,7 @@ export const tahunAjaranSchema = z.object({
       const [start, end] = value.split("/").map(Number);
       return end === start + 1;
     }, "Tahun kedua harus tahun pertama + 1"),
+  keterangan: z.string(),
+  nomor_urut: z.string(),
+  status: z.string(),
 });

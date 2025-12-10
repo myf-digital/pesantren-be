@@ -52,19 +52,19 @@ async function bootstrap() {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(express.static('public'));
-  app.use(
-    fileUpload({
-      useTempFiles: true,
-      tempFileDir: `./tmp/${day}/`,
-    })
-  );
   app.use(xss());
   app.use(cors(options));
   app.use((req, res, next) => {
     runWithUser(null, next);
   });
   app.use(routes);
-
+  app.use(
+    fileUpload({
+      useTempFiles: true,
+      tempFileDir: `./tmp/${day}/`,
+    })
+  );
+  
   cron.schedule(
     '1 0 * * *',
     async () => {
