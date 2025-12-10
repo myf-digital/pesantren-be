@@ -13,6 +13,9 @@ import {
   SUCCESS_SAVED,
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
+import { rawQuery } from '../../../helpers/rawQuery';
+import { QueryTypes } from 'sequelize';
+import { ar } from 'zod/v4/locales';
 
 const date: string = helper.date();
 
@@ -67,9 +70,19 @@ export default class Controller {
       const check = await repository.detail({ tahun_ajaran });
       if (check) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
-      await repository.create({
+      const result =await repository.create({
         payload: { ...data },
       });
+      if (result.status === 'Aktif') {
+        const query = `UPDATE tahun_ajaran SET status='Nonaktif' WHERE id_tahunajaran != :id_tahunajaran AND status != 'Arsip'`
+        const conn = await rawQuery.getConnection();
+        await conn.query(query, {
+          type:QueryTypes.UPDATE,
+          replacements: {
+            id_tahunajaran: result.id_tahunajaran,
+          },
+        });
+      }
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
       return helper.catchError(
@@ -83,7 +96,7 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const { tahun_ajaran } = req?.body;
+      const { tahun_ajaran, status } = req?.body;
       const check = await repository.detail({ id_tahunajaran: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
 
@@ -95,10 +108,27 @@ export default class Controller {
         }
       }
       const data: Object = helper.only(variable.fillable(), req?.body, true);
+      
+      let newData: Object = {};
+      if (status === 'Arsip') {
+        newData = {archived_at: date, archived_by: req?.user?.id}
+      }
+
       await repository.update({
-        payload: { ...data },
+        payload: { ...data, ...newData },
         condition: { id_tahunajaran: id },
       });
+
+      if (status === 'Aktif') {
+        const query = `UPDATE tahun_ajaran SET status='Nonaktif' WHERE id_tahunajaran != :id_tahunajaran AND status != 'Arsip'`
+        const conn = await rawQuery.getConnection();
+        await conn.query(query, {
+          type:QueryTypes.UPDATE,
+          replacements: {
+            id_tahunajaran: id,
+          },
+        });
+      }
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
       return helper.catchError(
