@@ -144,11 +144,15 @@ export function initializeModels(sequelize: Sequelize) {
 
 Model.prototype.toJSON = function () {
   const values = Object.assign({}, this.get());
-  if (values?.created_at) {
-    values.created_at = helper.dateFormat(values?.created_at);
-  }
-  if (values?.updated_at) {
-    values.updated_at = helper.dateFormat(values?.updated_at);
+  const createdAtDb = values.created_at || values.created_date;
+  const updatedAtDb = values.updated_at || values.modified_date;
+
+  values.created_at = createdAtDb ? helper.dateFormat(createdAtDb) : null;
+
+  if (updatedAtDb) {
+    values.updated_at = helper.dateFormat(updatedAtDb);
+  } else {
+    values.updated_at = createdAtDb ? helper.dateFormat(createdAtDb) : null;
   }
   return values;
 };
