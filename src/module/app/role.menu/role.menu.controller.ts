@@ -44,6 +44,18 @@ export default class Controller {
       return helper.catchError(`role menu index: ${err?.message}`, 500, res);
     }
   }
+  
+  public async detail(req: Request, res: Response) {
+    try {
+      const id: string = req?.params?.id || '';
+      const result: Object | any = await repository.detailRole({ role_id: id });
+      if (!result) return response.success(NOT_FOUND, null, res, false);
+      const roleMenu = transformer.detail(result);
+      return response.success(SUCCESS_RETRIEVED, roleMenu, res);
+    } catch (err: any) {
+      return helper.catchError(`menu detail: ${err?.message}`, 500, res);
+    }
+  }
 
   public async create(req: Request, res: Response) {
     try {

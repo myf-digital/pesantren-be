@@ -62,6 +62,17 @@ export default class Controller {
       );
     }
   }
+  
+  public async detailById(req: Request, res: Response) {
+    try {
+      const id: string = req?.params?.id || '';
+      const result: Object | any = await repository.detail({ id });
+      if (!result) return response.success(NOT_FOUND, null, res, false);
+      return response.success(SUCCESS_RETRIEVED, result, res);
+    } catch (err: any) {
+      return helper.catchError(`param global detail: ${err?.message}`, 500, res);
+    }
+  }
 
   public async create(req: Request, res: Response) {
     try {

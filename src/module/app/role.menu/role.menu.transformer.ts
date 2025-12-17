@@ -30,6 +30,26 @@ export default class Transformer {
     });
     return result;
   }
+
+  public detail(data: any) {
+    const role = data?.dataValues;
+    return {
+      role_id: role?.role_id,
+      role_name: role?.role_name,
+      role_menu_status: role?.status,
+      menu: role?.role_menu.map((m: any) => ({
+        menu_id: m?.menu?.menu_id,
+        status: m?.status,
+        view: m?.view,
+        create: m?.create,
+        edit: m?.edit,
+        delete: m?.delete,
+        approve: m?.approve,
+        import: m?.import,
+        export: m?.export,
+      })),
+    };
+  }
 }
 
 export const transformer = new Transformer();

@@ -36,6 +36,24 @@ const nestedChildren = (
   return result;
 };
 
+const formatNavigationRole = (data: any) => {
+  let result: Array<object> = [];
+  if (data?.dataValues?.role_menu?.length > 0) {
+    result = data?.dataValues?.role_menu.map((rm: any) => rm?.menu);
+  }
+  const navigation = nestedChildren(result);
+  return navigation;
+};
+
+const sortRecursive = (nodes: any[] = []) => {
+  nodes.sort((a, b) => (a.seq_number ?? 0) - (b.seq_number ?? 0))
+  nodes.forEach(n => {
+    if (Array.isArray(n.children)) {
+      sortRecursive(n.children)
+    }
+  })
+}
+
 const generateHeaderExcel = (sheet: any, data: any) => {
   sheet.addRow([data?.title]);
   sheet.mergeCells(data?.start + '1', data?.end + '1');
@@ -237,15 +255,6 @@ const generateHtmlPDF = (title: string, details: any) => {
   return html;
 };
 
-const formatNavigationRole = (data: any) => {
-  let result: Array<object> = [];
-  if (data?.dataValues?.role_menu?.length > 0) {
-    result = data?.dataValues?.role_menu.map((rm: any) => rm?.menu);
-  }
-  const navigation = nestedChildren(result);
-  return navigation;
-};
-
 export default class Controller {
   public index(req: Request, res: Response) {
     return response.success(
@@ -273,6 +282,7 @@ export default class Controller {
         navigation = nestedChildren(result);
       }
 
+      sortRecursive(navigation)
       return response.success(SUCCESS_RETRIEVED, navigation, res);
     } catch (err: any) {
       return helper.catchError(`navigation: ${err?.message}`, 500, res);
