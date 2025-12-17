@@ -3,7 +3,7 @@
 import { Sequelize, Model } from 'sequelize';
 import { helper } from '../../helpers/helper';
 import { initAppOtp } from '../auth/otp.model';
-import { initAppMenu } from '../app/menu/menu.model';
+import { initAppMenu, associateAppMenu } from '../app/menu/menu.model';
 import { initAreaProvince } from '../area/provinces.model';
 import { initAppRole, associateAppRole } from '../app/role/role.model';
 import { initParamGlobal } from '../app/param.global/param.global.model';
@@ -117,6 +117,7 @@ export function initializeModels(sequelize: Sequelize) {
 
   // associate
   associateAppRole();
+  associateAppMenu();
   associateAppRoleMenu();
   associateAppResource();
   associateAreaRegency();

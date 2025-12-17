@@ -19,7 +19,8 @@ const date: string = helper.date();
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
-      const result = await repository.list({});
+      const keyword: any = req?.query?.q || '';
+      const result = await repository.list({ keyword });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);

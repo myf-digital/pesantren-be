@@ -6,16 +6,17 @@ import Model from './kelompok.pelajaran.model';
 export default class Repository {
   public list(data: any) {
     let query: Object = {
+      where: {
+        status: 'Aktif',
+      },
       order: [['nomor_urut', 'DESC']],
     };
-    if (
-      data?.nama_kelpelajaran !== undefined &&
-      data?.nama_kelpelajaran != null
-    ) {
+    if (data?.keyword !== undefined && data?.keyword != null) {
       query = {
         ...query,
         where: {
-          nama_kelpelajaran: { [Op.like]: `%${data?.nama_kelpelajaran}%` },
+          status: 'Aktif',
+          nama_kelpelajaran: { [Op.like]: `%${data?.keyword}%` },
         },
       };
     }

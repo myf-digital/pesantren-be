@@ -75,6 +75,8 @@ export function initAppMenu(sequelize: Sequelize) {
   return AppMenu;
 }
 
-export function associateAppMenu() {}
+export function associateAppMenu() {
+  AppMenu.belongsTo(AppMenu, { as: 'parent', foreignKey: 'parent_id', targetKey: 'menu_id' });
+}
 
 export default AppMenu;

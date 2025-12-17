@@ -165,7 +165,11 @@ router.get(
   auth.checkBearerToken,
   kelompokPejaran.list
 );
-router.get('/kelompok-pelajaran', auth.checkBearerToken, kelompokPejaran.index);
+router.get(
+  '/kelompok-pelajaran',
+  auth.checkBearerToken, 
+  kelompokPejaran.index
+);
 router.get(
   '/kelompok-pelajaran/:id',
   auth.checkBearerToken,

@@ -197,21 +197,32 @@ export default class Middleware {
     }
   }
 
-  public checkAccess(role: string) {
+  public checkAccess(prefix: string = '') {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { role_name } = req?.user;
+        if (role_name == ROLE_ADMIN) {
+          next();
+          return;
+        }
+
         const role_menu: any = await repoRoleMenu.detailRole({
           role_name: { [Op.like]: `%${role_name}%` },
-        });
-        const ability = role_menu?.dataValues?.role_menu.find((rm: any) => {
-          let moduleName: string = rm?.menu?.module_name.toLowerCase();
-          if (moduleName.includes('user')) moduleName = 'resource';
-          return req?.originalUrl.split('?')[0].includes(moduleName);
+          menu_name: prefix.replace('-','_')
         });
 
-        if (!ability && role_name != ROLE_ADMIN)
-          return response.failed(`Sorry! You don't have access.`, 400, res);
+        if (role_menu) {
+          const ability = role_menu?.dataValues?.role_menu.find((rm: any) => {
+            let moduleName: string = rm?.menu?.module_name.toLowerCase();
+            if (moduleName.includes('user')) moduleName = 'resource';
+            return req?.originalUrl.split('?')[0].includes(moduleName);
+          });
+
+          if (!ability)
+            return response.failed(`Sorry! You don't have access.`, 400, res);
+        } else {
+          return response.failed(`Sorry! You don't have access menu ${prefix}`, 400, res);
+        }
 
         next();
         return;

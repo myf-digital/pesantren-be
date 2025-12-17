@@ -4,9 +4,12 @@ import { Op } from 'sequelize';
 import Model from './menu.model';
 
 export default class Repository {
-  public list() {
+  public list(condition: any = {}) {
     return Model.findAll({
-      where: { status: { [Op.ne]: 9 } },
+      where: {
+        ...condition,
+        status: { [Op.ne]: 9 }
+      },
       order: [['seq_number', 'ASC']],
     });
   }
@@ -49,6 +52,14 @@ export default class Repository {
         ...condition,
         status: { [Op.ne]: 9 },
       },
+      include: [
+        {
+          model: Model,
+          attributes: ['menu_id', 'menu_name', 'status'],
+          as: 'parent',
+          required: false,
+        },
+      ],
     });
   }
 

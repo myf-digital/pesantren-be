@@ -23,6 +23,8 @@ export default class Transformer {
           role_menu_edit: m?.edit,
           role_menu_delete: m?.delete,
           role_menu_approve: m?.approve,
+          role_menu_import: m?.import,
+          role_menu_export: m?.export,
         })),
       });
     });

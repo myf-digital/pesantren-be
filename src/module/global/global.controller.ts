@@ -13,12 +13,8 @@ import { sequelize } from '../../database/connection';
 import { repository as RepoMenu } from '../app/menu/menu.repository';
 import { repository as RoleMenu } from '../app/role.menu/role.menu.repository';
 import {
-  MYSQL,
   NOT_FOUND,
-  POSTGRES,
   REQUIRED,
-  ROLE_ADMIN,
-  ROLE_AGENT,
   SUCCESS_RETRIEVED,
 } from '../../utils/constant';
 
