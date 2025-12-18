@@ -6,6 +6,7 @@ import { DataTypes, Model, Sequelize } from 'sequelize';
 export class Tingkat extends Model {
   public id_tingkat!: string;
   public tingkat!: string;
+  public tingkat_type!: string;
   public nomor_urut!: number;
   public keterangan!: string;
 }
@@ -20,7 +21,6 @@ export function initTingkat(sequelize: Sequelize) {
       },
       tingkat: {
         type: DataTypes.STRING(255),
-        unique: true,
       },
       nomor_urut: {
         type: DataTypes.INTEGER,
@@ -28,6 +28,10 @@ export function initTingkat(sequelize: Sequelize) {
       },
       keterangan: {
         type: DataTypes.TEXT,
+      },
+      tingkat_type: {
+        type: DataTypes.ENUM('FORMAL', 'PESANTREN'),
+        allowNull: true,
       },
     },
     {

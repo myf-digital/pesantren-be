@@ -11,6 +11,7 @@ import { roleMenu } from './role.menu/role.menu.controller';
 import { paramGlobal } from './param.global/param.global.controller';
 import { tahunAngkatan } from './tahun.angkatan/tahun.angkatan.controller';
 import { tingkat } from './tingkat/tingkat.controller';
+import { tingkatSchema } from './tingkat/tingkat.schema';
 import { tahunAjaran } from './tahun.ajaran/tahun.ajaran.controller';
 import { tahunAjaranSchema } from './tahun.ajaran/tahun.ajaran.schema';
 import { semester } from './semester/semester.ajaran.controller';
@@ -88,8 +89,8 @@ router.delete(
 router.get('/tingkat/all-data', auth.checkBearerToken, tingkat.list);
 router.get('/tingkat', auth.checkBearerToken, tingkat.index);
 router.get('/tingkat/:id', auth.checkBearerToken, tingkat.detail);
-router.post('/tingkat', auth.checkBearerToken, tingkat.create);
-router.put('/tingkat/:id', auth.checkBearerToken, tingkat.update);
+router.post('/tingkat', auth.checkBearerToken, sanitizeBody, validate(tingkatSchema), tingkat.create);
+router.put('/tingkat/:id', auth.checkBearerToken, sanitizeBody, validate(tingkatSchema), tingkat.update);
 router.delete('/tingkat/:id', auth.checkBearerToken, tingkat.delete);
 
 router.get('/tahun-ajaran/all-data', auth.checkBearerToken, tahunAjaran.list);
