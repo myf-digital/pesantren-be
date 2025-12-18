@@ -19,7 +19,8 @@ const date: string = helper.date();
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
-      const result = await repository.list({});
+      const type: any = req?.query?.type || '';
+      const result = await repository.list({type});
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
@@ -57,9 +58,10 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
-      const { tingkat } = req?.body;
-      const check = await repository.detail({ tingkat });
-      if (check) return response.failed(ALREADY_EXIST, 400, res);
+      const { tingkat, tingkat_type, nomor_urut } = req?.body;
+      const check = await repository.detail({ tingkat, tingkat_type });
+      const nomorIsExist = await repository.detail({ nomor_urut });
+      if (check || nomorIsExist) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
       await repository.create({
         payload: { ...data },
@@ -73,8 +75,17 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
+      const { tingkat, tingkat_type, nomor_urut } = req?.body;
       const check = await repository.detail({ id_tingkat: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
+      if (tingkat !== check.tingkat && tingkat_type !== check.tingkat_type || nomor_urut !== check.nomor_urut) {
+        const duplicate = await repository.detail({ tingkat, tingkat_type });
+        const nomorIsExist = await repository.detail({ nomor_urut });
+
+        if (duplicate || nomorIsExist) {
+          return response.failed(ALREADY_EXIST, 400, res);
+        }
+      }
       const data: Object = helper.only(variable.fillable(), req?.body, true);
       await repository.update({
         payload: { ...data },
