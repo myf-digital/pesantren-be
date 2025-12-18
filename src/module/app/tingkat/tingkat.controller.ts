@@ -78,11 +78,18 @@ export default class Controller {
       const { tingkat, tingkat_type, nomor_urut } = req?.body;
       const check = await repository.detail({ id_tingkat: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-      if (tingkat !== check.tingkat && tingkat_type !== check.tingkat_type || nomor_urut !== check.nomor_urut) {
+      if (tingkat !== check.tingkat && tingkat_type !== check.tingkat_type) {
         const duplicate = await repository.detail({ tingkat, tingkat_type });
+
+        if (duplicate) {
+          return response.failed(ALREADY_EXIST, 400, res);
+        }
+      }
+
+      if (nomor_urut !== check.nomor_urut) {
         const nomorIsExist = await repository.detail({ nomor_urut });
 
-        if (duplicate || nomorIsExist) {
+        if (nomorIsExist) {
           return response.failed(ALREADY_EXIST, 400, res);
         }
       }
