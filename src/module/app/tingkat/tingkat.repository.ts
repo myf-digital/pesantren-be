@@ -8,11 +8,11 @@ export default class Repository {
     let query: Object = {
       order: [['created_at', 'DESC']],
     };
-    if (data?.tingkat !== undefined && data?.tingkat != null) {
+    if (data?.type !== undefined && data?.type != null) {
       query = {
         ...query,
         where: {
-          tingkat: { [Op.like]: `%${data?.tingkat}%` },
+          tingkat_type: { [Op.eq]: data?.type },
         },
       };
     }
