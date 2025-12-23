@@ -78,7 +78,12 @@ export default class Repository {
   }
 
   public detailRole(condition: any) {
-    const { role_name, menu_name, role_id } = condition;
+    const {
+      role_name,
+      menu_name,
+      role_id,
+      module_name,
+    } = condition;
 
     const roleWhere = {
       status: { [Op.ne]: 9 },
@@ -90,7 +95,8 @@ export default class Repository {
       status: { [Op.ne]: 9 },
       ...(menu_name && {
         menu_name: { [Op.like]: `%${menu_name}%` }
-      })
+      }),
+      ...(module_name && { module_name })
     };
 
     return Role.findOne({
@@ -104,7 +110,7 @@ export default class Repository {
             {
               model: Menu,
               as: 'menu',
-              required: menu_name ? true : false,
+              required: menu_name || module_name ? true : false,
               where: menuWhere,
             },
           ],

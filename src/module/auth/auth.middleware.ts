@@ -18,6 +18,79 @@ interface UserBody {
   password: string;
 }
 
+const checkAccess = async (req: Request, role_name: string = '', prefix: string = '') => {
+  try {
+    const method: string = req?.method;
+    const url: string = req?.originalUrl;
+
+    if (!role_name) {
+      return {
+        code: 401,
+        status: false,
+        message: 'Unauthorized',
+      };
+    }
+
+    if (role_name == ROLE_ADMIN) {
+      return {
+        code: 200,
+        status: true,
+        message: 'Have access',
+      };
+    }
+
+    const role: any = await repoRoleMenu.detailRole({
+      role_name: role_name,
+      module_name: { [Op.like]: `%${prefix}%` },
+    });
+
+    if (!role || !role?.dataValues?.role_menu?.length) {
+      return {
+        code: 403,
+        status: false,
+        message: `Sorry! You don't have access menu ${prefix}`,
+      };
+    }
+
+    const hasAccess = role.dataValues.role_menu.some((rm: any) => {
+      let moduleName = rm?.menu?.module_name?.toLowerCase() || '';
+
+      if (moduleName.includes('user')) moduleName = 'resource';
+
+      if (!moduleName.includes(prefix)) return false;
+      if (rm.view != '1') return false;
+
+      if (method === 'POST' && url.includes('import')) return rm.import == '1';
+      if (method === 'POST' && url.includes('export')) return rm.export == '1';
+      if (method === 'POST') return rm.create == '1';
+      if (method === 'PUT') return rm.edit == '1';
+      if (method === 'DELETE') return rm.delete == '1';
+
+      return true;
+    });
+
+    if (!hasAccess) {
+      return {
+        code: 403,
+        status: false,
+        message: `Sorry! You don't have access menu ${prefix}`,
+      };
+    }
+
+    return {
+      code: 200,
+      status: true,
+      message: 'Have access',
+    };
+  } catch (err: any) {
+    return {
+      code: 400,
+      status: false,
+      message: `check access: ${err?.message}`,
+    };
+  }
+}
+
 export default class Middleware {
   public async checkBearerToken(
     req: Request,
@@ -65,6 +138,12 @@ export default class Middleware {
           },
           condition: { resource_id: user?.getDataValue('resource_id') },
         });
+      }
+
+      const basePath: string = helper.getOriginUrl(req);
+      const { code, status, message } = await checkAccess(req, auth?.role_name, basePath);
+      if (!status) {
+        return response.failed(message, code, res);
       }
 
       setUserLogin(auth?.username || 'sistem');
@@ -195,41 +274,6 @@ export default class Middleware {
       req.user = null;
       next();
     }
-  }
-
-  public checkAccess(prefix: string = '') {
-    return async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const { role_name } = req?.user;
-        if (role_name == ROLE_ADMIN) {
-          next();
-          return;
-        }
-
-        const role_menu: any = await repoRoleMenu.detailRole({
-          role_name: { [Op.like]: `%${role_name}%` },
-          menu_name: prefix.replace('-','_')
-        });
-
-        if (role_menu) {
-          const ability = role_menu?.dataValues?.role_menu.find((rm: any) => {
-            let moduleName: string = rm?.menu?.module_name.toLowerCase();
-            if (moduleName.includes('user')) moduleName = 'resource';
-            return req?.originalUrl.split('?')[0].includes(moduleName);
-          });
-
-          if (!ability)
-            return response.failed(`Sorry! You don't have access.`, 400, res);
-        } else {
-          return response.failed(`Sorry! You don't have access menu ${prefix}`, 400, res);
-        }
-
-        next();
-        return;
-      } catch (err: any) {
-        return helper.catchError(`check access: ${err?.message}`, 400, res);
-      }
-    };
   }
 }
 

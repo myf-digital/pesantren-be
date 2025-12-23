@@ -342,6 +342,12 @@ export default class Helper {
     if (duration < 0) duration += 24;
     return duration;
   }
+
+  public getOriginUrl(req: Request) {
+    const path = req.path;
+    const segments = path.split('/').filter(Boolean);
+    return segments[0];
+  }
 }
 
 export const helper = new Helper();

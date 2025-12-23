@@ -171,7 +171,7 @@ router.get(
 );
 router.get(
   '/kelompok-pelajaran',
-  auth.checkBearerToken, 
+  auth.checkBearerToken,
   kelompokPejaran.index
 );
 router.get(
