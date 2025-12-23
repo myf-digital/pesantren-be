@@ -77,7 +77,7 @@ export default class Repository {
           model: TahunAjaran,
           as: 'tahun_ajaran',
           required: true,
-          attributes: ['tahun_ajaran'],
+          attributes: ['tahun_ajaran', 'id_tahunajaran'],
         },
       ],
     });
