@@ -15,7 +15,6 @@ import {
 } from '../../../utils/constant';
 import { rawQuery } from '../../../helpers/rawQuery';
 import { QueryTypes } from 'sequelize';
-import { ar } from 'zod/v4/locales';
 
 const date: string = helper.date();
 
