@@ -8,7 +8,8 @@ export default class Repository {
     let query: Object = {
       order: [['created_at', 'DESC']],
     };
-    if (data?.type !== undefined && data?.type != null) {
+
+    if (data?.type != '') {
       query = {
         ...query,
         where: {

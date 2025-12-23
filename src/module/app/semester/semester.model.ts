@@ -29,13 +29,18 @@ export function initSemester(sequelize: Sequelize) {
       },
       nomor_urut: {
         type: DataTypes.INTEGER,
-        unique: true,
       },
       keterangan: {
         type: DataTypes.TEXT,
       },
       status: {
         type: DataTypes.ENUM('Aktif', 'Nonaktif', 'Arsip'),
+      },
+      archived_at: {
+        type: DataTypes.DATE,
+      },
+      archived_by: {
+        type: DataTypes.STRING,
       },
     },
     {

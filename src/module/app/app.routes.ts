@@ -15,6 +15,7 @@ import { tingkatSchema } from './tingkat/tingkat.schema';
 import { tahunAjaran } from './tahun.ajaran/tahun.ajaran.controller';
 import { tahunAjaranSchema } from './tahun.ajaran/tahun.ajaran.schema';
 import { semester } from './semester/semester.ajaran.controller';
+import { semesterSchema } from './semester/semester.schema';
 import { statusAwalSantri } from './status.awal.santri/status.awal.santri.controller';
 import { jenisBeasiswa } from './jenis_beasiswa/jenis.beasiswa.controller';
 import { kelompokPejaran } from './kelompok.pelajaran/kelompok.pelajaran.controller';
@@ -105,8 +106,8 @@ router.delete('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.delete);
 router.get('/semester/all-data', auth.checkBearerToken, semester.list);
 router.get('/semester', auth.checkBearerToken, semester.index);
 router.get('/semester/:id', auth.checkBearerToken, semester.detail);
-router.post('/semester', auth.checkBearerToken, semester.create);
-router.put('/semester/:id', auth.checkBearerToken, semester.update);
+router.post('/semester', auth.checkBearerToken, sanitizeBody, validate(semesterSchema), semester.create);
+router.put('/semester/:id', auth.checkBearerToken, sanitizeBody, validate(semesterSchema), semester.update);
 router.delete('/semester/:id', auth.checkBearerToken, semester.delete);
 
 router.get(

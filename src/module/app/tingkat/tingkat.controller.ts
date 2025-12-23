@@ -78,7 +78,7 @@ export default class Controller {
       const { tingkat, tingkat_type, nomor_urut } = req?.body;
       const check = await repository.detail({ id_tingkat: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-      if (tingkat !== check.tingkat && tingkat_type !== check.tingkat_type) {
+      if (tingkat !== check.tingkat || tingkat_type !== check.tingkat_type) {
         const duplicate = await repository.detail({ tingkat, tingkat_type });
 
         if (duplicate) {
