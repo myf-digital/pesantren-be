@@ -19,7 +19,8 @@ const date: string = helper.date();
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
-      const result = await repository.list({});
+      const status: any = req?.query?.status || '';
+      const result = await repository.list({status});
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
@@ -91,8 +92,18 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
+      const { kode_status_awal } = req?.body;
       const check = await repository.detail({ id_status_awal_santri: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
+
+      if (kode_status_awal !== check.kode_status_awal) {
+        const duplicate = await repository.detail({ kode_status_awal });
+
+        if (duplicate) {
+          return response.failed(ALREADY_EXIST, 400, res);
+        }
+      }
+
       const data: Object = helper.only(variable.fillable(), req?.body, true);
       await repository.update({
         payload: { ...data },

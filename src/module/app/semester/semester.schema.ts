@@ -6,5 +6,5 @@ export const semesterSchema = z.object({
     keterangan: z.any(),
     id_tahunajaran: z.any(),
     nomor_urut: z.number(),
-    status: z.string(),
+    status: z.string().nonempty("Status wajib diisi"),
 });

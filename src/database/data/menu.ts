@@ -77,9 +77,9 @@ export default class DataMenu {
       },
       {
         parent_id: 2,
-        menu_name: 'Beasiswa Santri',
+        menu_name: 'Jenis Beasiswa',
         menu_icon: 'tabler-circle',
-        module_name: '/app/beasiswa-santri/list',
+        module_name: '/app/jenis-beasiswa/list',
         seq_number: 6,
         status: 1,
       },

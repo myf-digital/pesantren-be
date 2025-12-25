@@ -9,5 +9,5 @@ export const tahunAjaranSchema = z.object({
       return end === start + 1;
     }, "Tahun kedua harus tahun pertama + 1"),
     keterangan: z.any(),
-    status: z.string(),
+    status: z.string().nonempty("Status wajib diisi"),
 });

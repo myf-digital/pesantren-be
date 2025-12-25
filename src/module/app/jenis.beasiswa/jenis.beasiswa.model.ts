@@ -27,10 +27,6 @@ export function initJenisBeasiswa(sequelize: Sequelize) {
       nama_beasiswa: {
         type: DataTypes.STRING(255),
       },
-      nomor_urut: {
-        type: DataTypes.INTEGER,
-        unique: true,
-      },
       keterangan: {
         type: DataTypes.TEXT,
       },

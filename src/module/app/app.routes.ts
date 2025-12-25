@@ -17,7 +17,9 @@ import { tahunAjaranSchema } from './tahun.ajaran/tahun.ajaran.schema';
 import { semester } from './semester/semester.ajaran.controller';
 import { semesterSchema } from './semester/semester.schema';
 import { statusAwalSantri } from './status.awal.santri/status.awal.santri.controller';
-import { jenisBeasiswa } from './jenis_beasiswa/jenis.beasiswa.controller';
+import { statusAwalSantriSchema } from './status.awal.santri/status.awal.santri.schema';
+import { jenisBeasiswa } from './jenis.beasiswa/jenis.beasiswa.controller';
+import { jenisBeasiswaSchema } from './jenis.beasiswa/jenis.beasiswa.schema';
 import { kelompokPejaran } from './kelompok.pelajaran/kelompok.pelajaran.controller';
 import { jenisJamPelajaran } from './jenis.jampel/jenis.jampel.controller';
 import { jenisGuru } from './jenis.guru/jenis.guru.controller';
@@ -128,11 +130,15 @@ router.get(
 router.post(
   '/status-awal-santri',
   auth.checkBearerToken,
+  sanitizeBody,
+  validate(statusAwalSantriSchema),
   statusAwalSantri.create
 );
 router.put(
   '/status-awal-santri/:id',
   auth.checkBearerToken,
+  sanitizeBody,
+  validate(statusAwalSantriSchema),
   statusAwalSantri.update
 );
 router.delete(
@@ -152,10 +158,12 @@ router.get(
   auth.checkBearerToken,
   jenisBeasiswa.detail
 );
-router.post('/jenis-beasiswa', auth.checkBearerToken, jenisBeasiswa.create);
+router.post('/jenis-beasiswa', auth.checkBearerToken, sanitizeBody, validate(jenisBeasiswaSchema), jenisBeasiswa.create);
 router.put(
   '/jenis-beasiswa/:id',
   auth.checkBearerToken,
+  sanitizeBody,
+  validate(jenisBeasiswaSchema),
   jenisBeasiswa.update
 );
 router.delete(

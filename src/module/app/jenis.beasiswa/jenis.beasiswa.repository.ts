@@ -8,11 +8,11 @@ export default class Repository {
     let query: Object = {
       order: [['created_at', 'DESC']],
     };
-    if (data?.kode_beasiswa !== undefined && data?.kode_beasiswa != null) {
+    if (data?.status != '') {
       query = {
         ...query,
         where: {
-          kode_beasiswa: { [Op.like]: `%${data?.kode_beasiswa}%` },
+          status: { [Op.eq]: data?.status },
         },
       };
     }
@@ -32,10 +32,6 @@ export default class Repository {
           [Op.or]: [
             { kode_beasiswa: { [Op.like]: `%${data?.keyword}%` } },
             { nama_beasiswa: { [Op.like]: `%${data?.keyword}%` } },
-            Sequelize.where(
-              Sequelize.cast(Sequelize.col('nomor_urut'), 'TEXT'),
-              { [Op.like]: `%${data?.keyword}%` }
-            ),
             { keterangan: { [Op.like]: `%${data?.keyword}%` } },
           ],
         },

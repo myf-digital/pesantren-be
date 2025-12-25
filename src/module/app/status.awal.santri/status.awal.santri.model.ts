@@ -27,10 +27,6 @@ export function initStatusAwalSantri(sequelize: Sequelize) {
       nama_status_awal: {
         type: DataTypes.STRING(255),
       },
-      nomor_urut: {
-        type: DataTypes.INTEGER,
-        unique: true,
-      },
       keterangan: {
         type: DataTypes.TEXT,
       },
