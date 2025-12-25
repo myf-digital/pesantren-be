@@ -49,7 +49,6 @@ export function initJamPelajaran(sequelize: Sequelize) {
       },
       nomor_urut: {
         type: DataTypes.INTEGER,
-        unique: true,
       },
       keterangan: {
         type: DataTypes.STRING(255),

@@ -38,7 +38,6 @@ export function initMataPelajaran(sequelize: Sequelize) {
       },
       nomor_urut: {
         type: DataTypes.INTEGER,
-        unique: true,
       },
       kkm: {
         type: DataTypes.DECIMAL(19, 1),

@@ -4,27 +4,23 @@ import { Op, Sequelize } from 'sequelize';
 import Model from './kelompok.pelajaran.model';
 
 export default class Repository {
-  public list(data: any) {
-    let query: Object = {
+  public list(condition: any) {
+    return Model.findAll({
       where: {
-        status: 'Aktif',
+        ...condition,
+        status: 'A',
       },
       order: [['nomor_urut', 'DESC']],
-    };
-    if (data?.keyword !== undefined && data?.keyword != null) {
-      query = {
-        ...query,
-        where: {
-          status: 'Aktif',
-          nama_kelpelajaran: { [Op.like]: `%${data?.keyword}%` },
-        },
-      };
-    }
-    return Model.findAll(query);
+    });
   }
 
   public index(data: any) {
     let query: Object = {
+      where: {
+        parent_id: {
+          [Op.is]: null,
+        },
+      },
       order: [['nomor_urut', 'DESC']],
       offset: data?.offset,
       limit: data?.limit,
@@ -33,6 +29,9 @@ export default class Repository {
       query = {
         ...query,
         where: {
+          parent_id: {
+            [Op.is]: null,
+          },
           [Op.or]: [
             { nama_kelpelajaran: { [Op.like]: `%${data?.keyword}%` } },
             Sequelize.where(
@@ -44,7 +43,16 @@ export default class Repository {
         },
       };
     }
-    return Model.findAndCountAll(query);
+    return Model.findAndCountAll({
+      ...query,
+      include: [
+        {
+          model: Model,
+          as: 'children',
+          required: false,
+        },
+      ],
+    });
   }
 
   public detail(condition: any) {
@@ -52,6 +60,13 @@ export default class Repository {
       where: {
         ...condition,
       },
+      include: [
+        {
+          model: Model,
+          as: 'parent',
+          required: false,
+        },
+      ],
     });
   }
 

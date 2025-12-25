@@ -2,7 +2,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { DataTypes, Model, Sequelize } from 'sequelize';
-import ActivityLog from '../../global/activity.log.model';
 
 export class KelompokPelajaran extends Model {
   public id_kelpelajaran!: string;
@@ -26,7 +25,6 @@ export function initKelompokPelajaran(sequelize: Sequelize) {
       },
       nomor_urut: {
         type: DataTypes.INTEGER,
-        unique: true,
       },
       keterangan: {
         type: DataTypes.STRING(255),
@@ -34,6 +32,9 @@ export function initKelompokPelajaran(sequelize: Sequelize) {
       status: {
         type: DataTypes.STRING(255),
         defaultValue: 'A',
+      },
+      parent_id: {
+        type: DataTypes.STRING,
       },
       created_at: {
         type: DataTypes.DATE,
@@ -60,6 +61,13 @@ export function initKelompokPelajaran(sequelize: Sequelize) {
   return KelompokPelajaran;
 }
 
-export function associateKelompokPelajaran() {}
+export function associateKelompokPelajaran() {
+  KelompokPelajaran.belongsTo(KelompokPelajaran, { as: 'parent', foreignKey: 'parent_id', targetKey: 'id_kelpelajaran' });
+  KelompokPelajaran.hasMany(KelompokPelajaran, {
+    as: 'children',
+    foreignKey: 'parent_id',
+    sourceKey: 'id_kelpelajaran',
+  });
+}
 
 export default KelompokPelajaran;

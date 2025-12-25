@@ -43,6 +43,7 @@ export function initAppMenu(sequelize: Sequelize) {
       },
       parent_id: {
         type: DataTypes.STRING,
+        defaultValue: '00000000-0000-0000-0000-000000000000',
       },
       status: {
         type: DataTypes.TINYINT,

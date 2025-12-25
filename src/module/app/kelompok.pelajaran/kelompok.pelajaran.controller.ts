@@ -13,6 +13,7 @@ import {
   SUCCESS_SAVED,
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
+import { Op } from 'sequelize';
 
 const date: string = helper.date();
 
@@ -20,7 +21,21 @@ export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const keyword: any = req?.query?.q || '';
-      const result = await repository.list({ keyword });
+      const parent: any = req?.query?.parent || '';
+      let condition: any = {};
+      if (keyword && keyword == '1') {
+        condition = {
+          ...condition,
+          nama_kelpelajaran: { [Op.like]: `%${keyword}%` },
+        }
+      }
+      if (parent && parent == '1') {
+        condition = {
+          ...condition,
+          parent_id: null,
+        }
+      }
+      const result = await repository.list(condition);
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);

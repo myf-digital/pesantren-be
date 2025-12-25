@@ -36,7 +36,7 @@ import {
 } from '../app/semester/semester.model';
 import { initStatusAwalSantri } from '../app/status.awal.santri/status.awal.santri.model';
 import { initJenisBeasiswa } from '../app/jenis_beasiswa/jenis.beasiswa.model';
-import { initKelompokPelajaran } from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
+import { initKelompokPelajaran, associateKelompokPelajaran } from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
 import { initJenisJamPelajaran } from '../app/jenis.jampel/jenis.jampel.model';
 import { initJenisGuru } from '../app/jenis.guru/jenis.guru.model';
 import {
@@ -138,7 +138,8 @@ export function initializeModels(sequelize: Sequelize) {
   associateAreaSubDistrict();
   associateActivityLog();
   associatePegawai();
-  associateInventarisAsetHarian()
+  associateInventarisAsetHarian();
+  associateKelompokPelajaran();
 
   addGlobalActivityHooks(sequelize);
 }
