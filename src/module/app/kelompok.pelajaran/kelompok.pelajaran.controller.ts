@@ -1,5 +1,6 @@
 'use strict';
 
+import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
 import { helper } from '../../../helpers/helper';
 import { variable } from './kelompok.pelajaran.variable';
@@ -14,16 +15,57 @@ import {
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
 import { Op } from 'sequelize';
+import moment from 'moment';
 
-const date: string = helper.date();
+const generateDataExcel = (sheet: any, details: any) => {
+  sheet.addRow([
+    'No',
+    'Nama Kelompok',
+    'Nama Induk',
+    'Status',
+    'Nomor Urut',
+    'Keterangan',
+  ]);
+
+  sheet.getRow(1).eachCell((cell: any) => {
+    cell.font = { bold: true };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+  });
+
+  for (let i in details) {
+    sheet.addRow([
+      parseInt(i) + 1,
+      details[i]?.nama_kelpelajaran || '',
+      details[i]?.parent?.nama_kelpelajaran || '',
+      details[i]?.status == 'A' ? 'Aktif' : 'Tidak Aktif',
+      details[i]?.nomor_urut || '',
+      details[i]?.keterangan || '',
+    ]);
+  }
+
+  for (let row = 1; row <= details?.length + 1; row++) {
+    sheet.getRow(row).eachCell((cell: any) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+    });
+  }
+
+  return sheet;
+};
 
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const keyword: any = req?.query?.q || '';
       const parent: any = req?.query?.parent || '';
-      let condition: any = {};
-      if (keyword && keyword == '1') {
+      let condition: any = {
+        status: 'A',
+      };
+      if (keyword) {
         condition = {
           ...condition,
           nama_kelpelajaran: { [Op.like]: `%${keyword}%` },
@@ -136,6 +178,52 @@ export default class Controller {
     } catch (err: any) {
       return helper.catchError(
         `kelompok pelajaran delete: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async export(req: Request, res: Response) {
+    try {
+      let condition: any = {};
+      const { q, parent, template } = req?.body;
+      const isTemplate: boolean = template && template == '1';
+      if (q) {
+        condition = {
+          ...condition,
+          nama_kelpelajaran: { [Op.like]: `%${q}%` },
+        }
+      }
+      if (parent && parent == '1') {
+        condition = {
+          ...condition,
+          parent_id: null,
+        }
+      }
+
+      let result: any = [];
+      if (!isTemplate) {
+        result = await repository.list(condition, true);
+        if (result?.length < 1)
+          return response.success(NOT_FOUND, null, res, false);
+      }
+
+      const { dir, path } = await helper.checkDirExport('excel');
+
+      const name: string = 'kelompok-mata-pelajaran';
+      const filename: string = `${name}-${isTemplate ? 'template' : moment().format('DDMMYYYY')}.xlsx`;
+      const title: string = `${name.replace(/-/g, ' ').toUpperCase()}`;
+      const urlExcel: string = `${dir}/${filename}`;
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet(title);
+
+      generateDataExcel(sheet, result);
+      await workbook.xlsx.writeFile(`${path}/${filename}`);
+      return response.success('export excel kelompok pelajaran', urlExcel, res);
+    } catch (err: any) {
+      return helper.catchError(
+        `export excel kelompok pelajaran: ${err?.message}`,
         500,
         res
       );

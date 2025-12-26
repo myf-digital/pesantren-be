@@ -4,13 +4,23 @@ import { Op, Sequelize } from 'sequelize';
 import Model from './kelompok.pelajaran.model';
 
 export default class Repository {
-  public list(condition: any) {
+  public list(condition: any, useInclude = false) {
+    let include = {};
+    if (useInclude) {
+      include = {
+        include: [
+          {
+            model: Model,
+            as: 'children',
+            required: false,
+          },
+        ],
+      }
+    }
     return Model.findAll({
-      where: {
-        ...condition,
-        status: 'A',
-      },
-      order: [['nomor_urut', 'DESC']],
+      where: condition,
+      order: [['updated_at', 'DESC']],
+      ...include,
     });
   }
 
@@ -21,7 +31,7 @@ export default class Repository {
           [Op.is]: null,
         },
       },
-      order: [['nomor_urut', 'DESC']],
+      order: [['updated_at', 'DESC']],
       offset: data?.offset,
       limit: data?.limit,
     };

@@ -93,7 +93,7 @@ export default class DataMenu {
       },
       {
         parent_id: 2,
-        menu_name: 'Kelompok Pelajaran',
+        menu_name: 'Kelompok Mata Pelajaran',
         menu_icon: 'tabler-circle',
         module_name: '/app/kelompok-pelajaran/list',
         seq_number: 8,

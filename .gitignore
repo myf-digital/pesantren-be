@@ -5,6 +5,7 @@
 /tmp
 # exclude everything
 /public/uploads/*
+/public/excel/*
 
 # exception to the rule
 !/public/uploads/.gitkeep 

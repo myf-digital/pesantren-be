@@ -202,6 +202,11 @@ router.delete(
   auth.checkBearerToken,
   kelompokPejaran.delete
 );
+router.post(
+  '/kelompok-pelajaran/export',
+  auth.checkBearerToken,
+  kelompokPejaran.export
+);
 
 router.get(
   '/jenis-jampel/all-data',
