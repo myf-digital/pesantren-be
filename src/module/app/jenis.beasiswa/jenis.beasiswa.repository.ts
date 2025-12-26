@@ -8,6 +8,7 @@ export default class Repository {
     let query: Object = {
       order: [['created_at', 'DESC']],
     };
+
     if (data?.status != '') {
       query = {
         ...query,

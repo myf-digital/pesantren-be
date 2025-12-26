@@ -97,6 +97,11 @@ router.get('/tingkat/:id', auth.checkBearerToken, tingkat.detail);
 router.post('/tingkat', auth.checkBearerToken, sanitizeBody, validate(tingkatSchema), tingkat.create);
 router.put('/tingkat/:id', auth.checkBearerToken, sanitizeBody, validate(tingkatSchema), tingkat.update);
 router.delete('/tingkat/:id', auth.checkBearerToken, tingkat.delete);
+router.post(
+  '/tingkat/export',
+  auth.checkBearerToken,
+  tingkat.export
+);
 
 router.get('/tahun-ajaran/all-data', auth.checkBearerToken, tahunAjaran.list);
 router.get('/tahun-ajaran', auth.checkBearerToken, tahunAjaran.index);
@@ -104,6 +109,11 @@ router.get('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.detail);
 router.post('/tahun-ajaran', auth.checkBearerToken, sanitizeBody, validate(tahunAjaranSchema), tahunAjaran.create);
 router.put('/tahun-ajaran/:id', auth.checkBearerToken, sanitizeBody, validate(tahunAjaranSchema), tahunAjaran.update);
 router.delete('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.delete);
+router.post(
+  '/tahun-ajaran/export',
+  auth.checkBearerToken,
+  tahunAjaran.export
+);
 
 router.get('/semester/all-data', auth.checkBearerToken, semester.list);
 router.get('/semester', auth.checkBearerToken, semester.index);
@@ -111,6 +121,11 @@ router.get('/semester/:id', auth.checkBearerToken, semester.detail);
 router.post('/semester', auth.checkBearerToken, sanitizeBody, validate(semesterSchema), semester.create);
 router.put('/semester/:id', auth.checkBearerToken, sanitizeBody, validate(semesterSchema), semester.update);
 router.delete('/semester/:id', auth.checkBearerToken, semester.delete);
+router.post(
+  '/semester/export',
+  auth.checkBearerToken,
+  semester.export
+);
 
 router.get(
   '/status-awal-santri/all-data',
@@ -146,6 +161,11 @@ router.delete(
   auth.checkBearerToken,
   statusAwalSantri.delete
 );
+router.post(
+  '/status-awal-santri/export',
+  auth.checkBearerToken,
+  statusAwalSantri.export
+);
 
 router.get(
   '/jenis-beasiswa/all-data',
@@ -170,6 +190,11 @@ router.delete(
   '/jenis-beasiswa/:id',
   auth.checkBearerToken,
   jenisBeasiswa.delete
+);
+router.post(
+  '/jenis-beasiswa/export',
+  auth.checkBearerToken,
+  jenisBeasiswa.export
 );
 
 router.get(

@@ -1,5 +1,6 @@
 'use strict';
 
+import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
 import { helper } from '../../../helpers/helper';
 import { variable } from './tahun.ajaran.variable';
@@ -15,8 +16,45 @@ import {
 } from '../../../utils/constant';
 import { rawQuery } from '../../../helpers/rawQuery';
 import { QueryTypes } from 'sequelize';
+import moment from 'moment';
 
 const date: string = helper.date();
+
+const generateDataExcel = (sheet: any, details: any) => {
+  sheet.addRow([
+    'No',
+    'Tahun Ajaran',
+    'Status',
+    'Keterangan',
+  ]);
+
+  sheet.getRow(1).eachCell((cell: any) => {
+    cell.font = { bold: true };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+  });
+
+  for (let i in details) {
+    sheet.addRow([
+      parseInt(i) + 1,
+      details[i]?.tahun_ajaran || '',
+      details[i]?.status,
+      details[i]?.keterangan || '',
+    ]);
+  }
+
+  for (let row = 1; row <= details?.length + 1; row++) {
+    sheet.getRow(row).eachCell((cell: any) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+    });
+  }
+
+  return sheet;
+};
 
 export default class Controller {
   public async list(req: Request, res: Response) {
@@ -151,6 +189,40 @@ export default class Controller {
     } catch (err: any) {
       return helper.catchError(
         `tahun ajaran delete: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async export(req: Request, res: Response) {
+    try {
+      let condition: any = {};
+      const { q, template } = req?.body;
+      const isTemplate: boolean = template && template == '1';
+
+      let result: any = [];
+      if (!isTemplate) {
+        result = await repository.list({status: q});
+        if (result?.length < 1)
+          return response.success(NOT_FOUND, null, res, false);
+      }
+
+      const { dir, path } = await helper.checkDirExport('excel');
+
+      const name: string = 'tahun-ajaran';
+      const filename: string = `${name}-${isTemplate ? 'template' : moment().format('DDMMYYYY')}.xlsx`;
+      const title: string = `${name.replace(/-/g, ' ').toUpperCase()}`;
+      const urlExcel: string = `${dir}/${filename}`;
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet(title);
+
+      generateDataExcel(sheet, result);
+      await workbook.xlsx.writeFile(`${path}/${filename}`);
+      return response.success('export excel tahun ajaran', urlExcel, res);
+    } catch (err: any) {
+      return helper.catchError(
+        `export excel tahun ajaran: ${err?.message}`,
         500,
         res
       );
