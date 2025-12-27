@@ -267,26 +267,41 @@ router.post(
 );
 
 router.get(
-  '/jenis-jampel/all-data',
+  '/jenis-jam-pelajaran/all-data',
   auth.checkBearerToken,
   jenisJamPelajaran.list
 );
-router.get('/jenis-jampel', auth.checkBearerToken, jenisJamPelajaran.index);
+router.get('/jenis-jam-pelajaran', auth.checkBearerToken, jenisJamPelajaran.index);
 router.get(
-  '/jenis-jampel/:id',
+  '/jenis-jam-pelajaran/:id',
   auth.checkBearerToken,
   jenisJamPelajaran.detail
 );
-router.post('/jenis-jampel', auth.checkBearerToken, jenisJamPelajaran.create);
+router.post('/jenis-jam-pelajaran', auth.checkBearerToken, jenisJamPelajaran.create);
 router.put(
-  '/jenis-jampel/:id',
+  '/jenis-jam-pelajaran/:id',
   auth.checkBearerToken,
   jenisJamPelajaran.update
 );
 router.delete(
-  '/jenis-jampel/:id',
+  '/jenis-jam-pelajaran/:id',
   auth.checkBearerToken,
   jenisJamPelajaran.delete
+);
+router.post(
+  '/jenis-jam-pelajaran/export',
+  auth.checkBearerToken,
+  jenisJamPelajaran.export
+);
+router.post(
+  '/jenis-jam-pelajaran/import',
+  auth.checkBearerToken,
+  jenisJamPelajaran.import
+);
+router.post(
+  '/jenis-jam-pelajaran/insert',
+  auth.checkBearerToken,
+  jenisJamPelajaran.insert
 );
 
 router.get('/jenis-guru/all-data', auth.checkBearerToken, jenisGuru.list);

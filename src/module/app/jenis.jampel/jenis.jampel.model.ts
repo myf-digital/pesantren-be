@@ -6,6 +6,7 @@ import { DataTypes, Model, Sequelize } from 'sequelize';
 export class JenisJamPelajaran extends Model {
   public id_jenisjam!: string;
   public nama_jenis_jam!: string;
+  public lembaga_type!: string;
   public nomor_urut!: number;
   public keterangan!: string;
   public status!: string;
@@ -20,17 +21,20 @@ export function initJenisJamPelajaran(sequelize: Sequelize) {
         unique: true,
       },
       nama_jenis_jam: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         unique: true,
+      },
+      lembaga_type: {
+        type: DataTypes.STRING(25),
       },
       nomor_urut: {
         type: DataTypes.INTEGER,
       },
       keterangan: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.TEXT,
       },
       status: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(10),
         defaultValue: 'A',
       },
       created_at: {
