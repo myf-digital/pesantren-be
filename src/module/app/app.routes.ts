@@ -35,6 +35,7 @@ import { kegiatanAkademik } from './kegiatan.akademik/kegiatan.akademik.controll
 import { programPesantren } from './program.pesantren/program.pesantren.controller';
 import { santriProgram } from './santri.program/santri.program.controller';
 import { orangTuaWali } from './orang.tua.wali/orang.tua.wali.controller';
+import { orangTuaWaliSchema } from './orang.tua.wali/orang.tua.wali.schema';
 import { LembagaPendidikanFormal } from './lembaga.pendidikan.formal/lembaga.pendidikan.formal.controller';
 import { Pegawai } from './pegawai/pegawai.controller';
 import { inventarisUmum } from './inventaris.umum/inventaris.umum.controller';
@@ -409,12 +410,17 @@ router.get(
 );
 router.get('/orang-tua-wali', auth.checkBearerToken, orangTuaWali.index);
 router.get('/orang-tua-wali/:id', auth.checkBearerToken, orangTuaWali.detail);
-router.post('/orang-tua-wali', auth.checkBearerToken, orangTuaWali.create);
-router.put('/orang-tua-wali/:id', auth.checkBearerToken, orangTuaWali.update);
+router.post('/orang-tua-wali', auth.checkBearerToken, sanitizeBody, validate(orangTuaWaliSchema), orangTuaWali.create);
+router.put('/orang-tua-wali/:id', auth.checkBearerToken, sanitizeBody, validate(orangTuaWaliSchema), orangTuaWali.update);
 router.delete(
   '/orang-tua-wali/:id',
   auth.checkBearerToken,
   orangTuaWali.delete
+);
+router.post(
+  '/orang-tua-wali/export',
+  auth.checkBearerToken,
+  orangTuaWali.export
 );
 
 router.get(
