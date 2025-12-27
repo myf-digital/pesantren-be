@@ -27,22 +27,24 @@ export function initJenisPenilaian(sequelize: Sequelize) {
       },
       jenis_pengujian: {
         type: DataTypes.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
       keterangan: {
         type: DataTypes.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
       created_at: {
         type: DataTypes.DATE,
         get() {
-          const value : string = this.getDataValue('created_at');
+          const value: string = this.getDataValue('created_at');
           return value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
         },
         set(value) {
-          const formattedValue = value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
+          const formattedValue = value
+            ? moment(value).format('YYYY-MM-DD HH:mm:ss')
+            : null;
           this.setDataValue('created_at', formattedValue);
-        }
+        },
       },
       updated_at: {
         type: DataTypes.DATE,
@@ -51,16 +53,18 @@ export function initJenisPenilaian(sequelize: Sequelize) {
           return value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
         },
         set(value) {
-          const formattedValue = value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
+          const formattedValue = value
+            ? moment(value).format('YYYY-MM-DD HH:mm:ss')
+            : null;
           this.setDataValue('updated_at', formattedValue);
-        }
-      }
+        },
+      },
     },
     {
       sequelize,
       modelName: 'JenisPenilaian',
       tableName: 'jenis_penilaian',
-      timestamps: false
+      timestamps: false,
     }
   );
 
@@ -69,11 +73,11 @@ export function initJenisPenilaian(sequelize: Sequelize) {
   });
 
   JenisPenilaian.beforeBulkCreate((jenisPenilaianInstances) => {
-    jenisPenilaianInstances.forEach(jenisPenilaian => {
+    jenisPenilaianInstances.forEach((jenisPenilaian) => {
       jenisPenilaian.setDataValue('id_penilaian', uuidv4()); // Assign a UUID to each instance
     });
   });
-  
+
   return JenisPenilaian;
 }
 

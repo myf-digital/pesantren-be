@@ -8,7 +8,7 @@ export default class Repository {
     return Model.findAll({
       where: {
         ...condition,
-        status: { [Op.ne]: 9 }
+        status: { [Op.ne]: 9 },
       },
       order: [['seq_number', 'ASC']],
     });

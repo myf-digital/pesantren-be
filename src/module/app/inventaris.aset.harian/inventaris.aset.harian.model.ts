@@ -53,14 +53,20 @@ export function initInventarisAsetHarian(sequelize: Sequelize) {
         type: DataTypes.STRING(255),
       },
       status_progres: {
-        type: DataTypes.ENUM('Normal', 'Menunggu Approval', 'Perbaikan', 'Penggantian', 'Selesai'),
+        type: DataTypes.ENUM(
+          'Normal',
+          'Menunggu Approval',
+          'Perbaikan',
+          'Penggantian',
+          'Selesai'
+        ),
       },
       catatan: {
         type: DataTypes.TEXT,
       },
       jenis_input: {
         type: DataTypes.ENUM('Laporan Kondisi', 'Inventaris Baru'),
-      }
+      },
     },
     {
       sequelize,

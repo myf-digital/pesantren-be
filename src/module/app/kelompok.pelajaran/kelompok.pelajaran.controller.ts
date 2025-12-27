@@ -1,10 +1,15 @@
 'use strict';
 
+import moment from 'moment';
+import fs from 'fs/promises';
 import ExcelJS from 'exceljs';
+import { Op } from 'sequelize';
 import { Request, Response } from 'express';
 import { helper } from '../../../helpers/helper';
-import { variable } from './kelompok.pelajaran.variable';
 import { response } from '../../../helpers/response';
+import { sequelize } from '../../../database/connection';
+import { variable } from './kelompok.pelajaran.variable';
+import KelompokPelajaran from './kelompok.pelajaran.model';
 import { repository } from './kelompok.pelajaran.repository';
 import {
   ALREADY_EXIST,
@@ -14,8 +19,6 @@ import {
   SUCCESS_SAVED,
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
-import { Op } from 'sequelize';
-import moment from 'moment';
 
 const generateDataExcel = (sheet: any, details: any) => {
   sheet.addRow([
@@ -57,6 +60,27 @@ const generateDataExcel = (sheet: any, details: any) => {
   return sheet;
 };
 
+const normalizeRow = (row: any) => ({
+  nama_kelpelajaran: String(row['Nama Kelompok'] || '').trim(),
+  nama_induk: String(row['Nama Induk'] || '').trim(),
+  status: row['Status'] === 'Aktif' ? 'A' : 'N',
+  nomor_urut:
+    row['Nomor Urut'] !== undefined ? Number(row['Nomor Urut']) : null,
+  keterangan: String(row['Keterangan'] || '').trim(),
+  __row: row.__row,
+});
+
+const validateRow = (row: any) => {
+  const errors: string[] = [];
+  if (!row.nama_kelpelajaran) {
+    errors.push('Nama Kelompok wajib diisi');
+  }
+  if (row.nomor_urut !== null && Number.isNaN(row.nomor_urut)) {
+    errors.push('Nomor Urut harus angka');
+  }
+  return errors;
+};
+
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
@@ -69,13 +93,13 @@ export default class Controller {
         condition = {
           ...condition,
           nama_kelpelajaran: { [Op.like]: `%${keyword}%` },
-        }
+        };
       }
       if (parent && parent == '1') {
         condition = {
           ...condition,
           parent_id: null,
-        }
+        };
       }
       const result = await repository.list(condition);
       if (result?.length < 1)
@@ -193,13 +217,13 @@ export default class Controller {
         condition = {
           ...condition,
           nama_kelpelajaran: { [Op.like]: `%${q}%` },
-        }
+        };
       }
       if (parent && parent == '1') {
         condition = {
           ...condition,
           parent_id: null,
-        }
+        };
       }
 
       let result: any = [];
@@ -227,6 +251,169 @@ export default class Controller {
         500,
         res
       );
+    }
+  }
+
+  public async import(req: Request, res: Response) {
+    const mode: 'preview' | 'commit' = req.body?.mode ?? 'preview';
+    const uploaded = req.files?.file_import;
+
+    if (!uploaded) {
+      return response.success('File tidak valid', null, res, false);
+    }
+
+    const trx = mode === 'commit' ? await sequelize.transaction() : null;
+
+    try {
+      let buffer: Buffer;
+      const file = Array.isArray(uploaded) ? uploaded[0] : uploaded;
+      if (file.tempFilePath) {
+        buffer = await fs.readFile(file.tempFilePath);
+      } else if (file.data) {
+        buffer = file.data;
+      } else {
+        return response.success(
+          'File kosong atau gagal dibaca',
+          null,
+          res,
+          false
+        );
+      }
+
+      const results: any[] = [];
+      const rows = await helper.parseImportFile({
+        name: file.name,
+        data: buffer,
+      });
+
+      for (const raw of rows) {
+        const row = normalizeRow(raw);
+        const errors = validateRow(row);
+
+        let parent_id: string | null = null;
+        let parent_nama: string | null = null;
+        if (row.nama_induk) {
+          const parent = await repository.detail({
+            nama_kelpelajaran: row.nama_induk,
+          });
+
+          if (!parent) {
+            errors.push(`Induk "${row.nama_induk}" tidak ditemukan`);
+          } else {
+            parent_id = parent.id_kelpelajaran;
+            parent_nama = parent.getDataValue('nama_kelpelajaran');
+          }
+        }
+        const valid = errors.length === 0;
+
+        const payload = {
+          nama_kelpelajaran: row.nama_kelpelajaran,
+          nomor_urut: row.nomor_urut,
+          keterangan: row.keterangan ?? null,
+          status: row.status ?? 'A',
+          parent_id,
+        };
+
+        results.push({
+          row: row.__row,
+          valid,
+          error: errors.length ? errors.join(', ') : null,
+          payload: {
+            ...payload,
+            parent_nama,
+          },
+        });
+        if (mode === 'preview' || !valid) continue;
+
+        const existing = await repository.detail({
+          nama_kelpelajaran: row.nama_kelpelajaran,
+        });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+            updated_at: helper.date(),
+          }, { transaction: trx! });
+        } else {
+          await KelompokPelajaran.create({
+            ...payload,
+            created_at: helper.date(),
+          }, { transaction: trx! });
+        }
+      }
+
+      let dataRes = {
+        mode,
+        total: results.length,
+        valid: results.filter((r) => r.valid).length,
+        invalid: results.filter((r) => !r.valid).length,
+      };
+
+      if (trx) {
+        await trx.commit();
+        return response.success(
+          'import kelompok pelajaran berhasil',
+          dataRes,
+          res
+        );
+      }
+
+      return response.success(
+        'preview import kelompok pelajaran',
+        {
+          ...dataRes,
+          data: results,
+        },
+        res
+      );
+    } catch (err: any) {
+      if (trx) await trx.rollback();
+
+      console.error(err);
+      return helper.catchError(
+        `import excel kelompok pelajaran: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async insert(req: Request, res: Response) {
+    const payloads = req.body?.data as any[];
+
+    if (!Array.isArray(payloads) || payloads.length === 0) {
+      return response.success('Data import kosong', null, res, false);
+    }
+
+    const trx = await sequelize.transaction();
+    try {
+      for (const payload of payloads) {
+        const existing = await repository.detail({
+          nama_kelpelajaran: payload.nama_kelpelajaran,
+        });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+            updated_at: helper.date(),
+          }, { transaction: trx });
+        } else {
+          await KelompokPelajaran.create({
+            ...payload,
+            created_at: helper.date(),
+          }, { transaction: trx });
+        }
+      }
+      await trx.commit();
+
+      return response.success(
+        'Import batch kelompok pelajaran berhasil',
+        { total: payloads.length },
+        res
+      );
+    } catch (err: any) {
+      await trx.rollback();
+      return helper.catchError(`Import batch gagal: ${err.message}`, 500, res);
     }
   }
 }

@@ -73,7 +73,13 @@ export const up = async (queryInterface: QueryInterface) => {
       allowNull: true,
     },
     status_progres: {
-      type: DataTypes.ENUM('Normal', 'Menunggu Approval', 'Perbaikan', 'Penggantian', 'Selesai'),
+      type: DataTypes.ENUM(
+        'Normal',
+        'Menunggu Approval',
+        'Perbaikan',
+        'Penggantian',
+        'Selesai'
+      ),
       allowNull: true,
     },
     catatan: {

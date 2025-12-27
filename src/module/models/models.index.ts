@@ -36,7 +36,10 @@ import {
 } from '../app/semester/semester.model';
 import { initStatusAwalSantri } from '../app/status.awal.santri/status.awal.santri.model';
 import { initJenisBeasiswa } from '../app/jenis.beasiswa/jenis.beasiswa.model';
-import { initKelompokPelajaran, associateKelompokPelajaran } from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
+import {
+  initKelompokPelajaran,
+  associateKelompokPelajaran,
+} from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
 import { initJenisJamPelajaran } from '../app/jenis.jampel/jenis.jampel.model';
 import { initJenisGuru } from '../app/jenis.guru/jenis.guru.model';
 import {
@@ -48,8 +51,14 @@ import {
   associateJamPelajaran,
 } from '../app/jam.pelajaran/jam.pelajaran.model';
 import { associateCabang, initCabang } from '../app/cabang/cabang.model';
-import { associateLembagaPendidikanKepesantrenan, initLembagaPendidikanKepesantrenan } from '../app/lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
-import { associateOrganitationUnit, initOrganitationUnit } from '../app/organitation.unit/organitation.unit.model';
+import {
+  associateLembagaPendidikanKepesantrenan,
+  initLembagaPendidikanKepesantrenan,
+} from '../app/lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
+import {
+  associateOrganitationUnit,
+  initOrganitationUnit,
+} from '../app/organitation.unit/organitation.unit.model';
 import { associateJabatan, initJabatan } from '../app/jabatan/jabatan.model';
 import { initJenisPenilaian } from '../app/jenis.penilaian/jenis.penilaian.model';
 import { associateAsrama, initAsrama } from '../app/asrama/asrama.model';
@@ -71,10 +80,19 @@ import ActivityLog, {
   associateActivityLog,
 } from '../global/activity.log.model';
 import { getUserLogin } from '../../context/userContext';
-import { associateLembagaPendidikanFormal, initLembagaPendidikanFormal } from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
+import {
+  associateLembagaPendidikanFormal,
+  initLembagaPendidikanFormal,
+} from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 import { initPegawai, associatePegawai } from '../app/pegawai/pegawai.model';
-import { initInventarisUmum, associateInventarisUmum } from '../app/inventaris.umum/inventaris.umum.model';
-import { initInventarisAsetHarian, associateInventarisAsetHarian } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
+import {
+  initInventarisUmum,
+  associateInventarisUmum,
+} from '../app/inventaris.umum/inventaris.umum.model';
+import {
+  initInventarisAsetHarian,
+  associateInventarisAsetHarian,
+} from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize

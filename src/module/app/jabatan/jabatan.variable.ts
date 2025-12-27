@@ -8,7 +8,7 @@ export default class Variable {
       'level_jabatan',
       'sifat_jabatan',
       'kode_jabatan',
-      'keterangan'
+      'keterangan',
     ];
     return field;
   }

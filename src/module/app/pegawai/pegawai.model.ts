@@ -49,7 +49,7 @@ export function initPegawai(sequelize: Sequelize) {
       nip: {
         type: DataTypes.STRING(30),
         allowNull: true,
-        unique: true
+        unique: true,
       },
       nama_lengkap: {
         type: DataTypes.STRING(150),
@@ -64,7 +64,7 @@ export function initPegawai(sequelize: Sequelize) {
         allowNull: true,
       },
       jenis_kelamin: {
-        type: DataTypes.ENUM("Laki-laki", "Perempuan"),
+        type: DataTypes.ENUM('Laki-laki', 'Perempuan'),
         allowNull: true,
       },
       tempat_lahir: {
@@ -86,31 +86,31 @@ export function initPegawai(sequelize: Sequelize) {
       },
       umur: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: true,
       },
       alamat: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: true,
       },
       pendidikan: {
         type: DataTypes.STRING(100),
-        allowNull: true
+        allowNull: true,
       },
       bidang_ilmu: {
         type: DataTypes.STRING(100),
-        allowNull: true
+        allowNull: true,
       },
       id_orgunit: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       id_jabatan: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       status_pegawai: {
-        type: DataTypes.ENUM("Aktif", "Tidak Aktif", "Pensiun"),
-        allowNull: true
+        type: DataTypes.ENUM('Aktif', 'Tidak Aktif', 'Pensiun'),
+        allowNull: true,
       },
       tmt: {
         type: DataTypes.DATE,
@@ -127,7 +127,7 @@ export function initPegawai(sequelize: Sequelize) {
       },
       foto: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       created_at: {
         type: DataTypes.DATE,

@@ -21,8 +21,8 @@ export default class Controller {
       let condition: any = {};
       if (parent && parent == '1') {
         condition = {
-          parent_id: '00000000-0000-0000-0000-000000000000'
-        }
+          parent_id: '00000000-0000-0000-0000-000000000000',
+        };
       }
       const result = await repository.list(condition);
       if (result?.length < 1)

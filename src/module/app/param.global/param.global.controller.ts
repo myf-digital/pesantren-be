@@ -62,7 +62,7 @@ export default class Controller {
       );
     }
   }
-  
+
   public async detailById(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
@@ -70,7 +70,11 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(`param global detail: ${err?.message}`, 500, res);
+      return helper.catchError(
+        `param global detail: ${err?.message}`,
+        500,
+        res
+      );
     }
   }
 

@@ -3,8 +3,7 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
 export const up = async (queryInterface: QueryInterface) => {
-
-   await queryInterface.changeColumn('tingkat', 'tingkat', {
+  await queryInterface.changeColumn('tingkat', 'tingkat', {
     type: DataTypes.STRING(255),
     allowNull: true,
   });
@@ -19,11 +18,9 @@ export const up = async (queryInterface: QueryInterface) => {
     type: 'unique',
     name: 'unique_tingkat_tingkat_type',
   });
-
 };
 
 export const down = async (queryInterface: QueryInterface) => {
-
   await queryInterface.changeColumn('tingkat', 'tingkat', {
     type: DataTypes.STRING(255),
     allowNull: true,

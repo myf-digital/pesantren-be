@@ -19,13 +19,7 @@ import moment from 'moment';
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
-  sheet.addRow([
-    'No',
-    'Tingkat',
-    'Tipe',
-    'Nomor Urut',
-    'Keterangan',
-  ]);
+  sheet.addRow(['No', 'Tingkat', 'Tipe', 'Nomor Urut', 'Keterangan']);
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -60,7 +54,7 @@ export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const type: any = req?.query?.type || '';
-      const result = await repository.list({type});
+      const result = await repository.list({ type });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
@@ -101,7 +95,8 @@ export default class Controller {
       const { tingkat, tingkat_type, nomor_urut } = req?.body;
       const check = await repository.detail({ tingkat, tingkat_type });
       const nomorIsExist = await repository.detail({ nomor_urut });
-      if (check || nomorIsExist) return response.failed(ALREADY_EXIST, 400, res);
+      if (check || nomorIsExist)
+        return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
       await repository.create({
         payload: { ...data },
@@ -166,7 +161,7 @@ export default class Controller {
 
       let result: any = [];
       if (!isTemplate) {
-        result = await repository.list({type: q});
+        result = await repository.list({ type: q });
         if (result?.length < 1)
           return response.success(NOT_FOUND, null, res, false);
       }
