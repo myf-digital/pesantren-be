@@ -62,7 +62,11 @@ export function initKelompokPelajaran(sequelize: Sequelize) {
 }
 
 export function associateKelompokPelajaran() {
-  KelompokPelajaran.belongsTo(KelompokPelajaran, { as: 'parent', foreignKey: 'parent_id', targetKey: 'id_kelpelajaran' });
+  KelompokPelajaran.belongsTo(KelompokPelajaran, {
+    as: 'parent',
+    foreignKey: 'parent_id',
+    targetKey: 'id_kelpelajaran',
+  });
   KelompokPelajaran.hasMany(KelompokPelajaran, {
     as: 'children',
     foreignKey: 'parent_id',

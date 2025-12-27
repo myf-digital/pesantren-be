@@ -6,7 +6,7 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addColumn('kelompok_pelajaran', 'parent_id', {
     type: DataTypes.STRING,
     allowNull: true,
-      references: {
+    references: {
       model: 'kelompok_pelajaran',
       key: 'id_kelpelajaran',
     },
@@ -19,6 +19,9 @@ export const up = async (queryInterface: QueryInterface) => {
 };
 
 export const down = async (queryInterface: QueryInterface) => {
-  await queryInterface.removeIndex('kelompok_pelajaran', 'idx_kelompok_pelajaran_parent_id');
+  await queryInterface.removeIndex(
+    'kelompok_pelajaran',
+    'idx_kelompok_pelajaran_parent_id'
+  );
   await queryInterface.removeColumn('kelompok_pelajaran', 'parent_id');
 };

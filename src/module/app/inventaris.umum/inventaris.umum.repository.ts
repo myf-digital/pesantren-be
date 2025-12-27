@@ -18,8 +18,7 @@ export default class Repository {
     }
     return Model.findAll({
       ...query,
-      include: [
-      ],
+      include: [],
     });
   }
 
@@ -44,8 +43,7 @@ export default class Repository {
     }
     return Model.findAndCountAll({
       ...query,
-      include: [
-      ],
+      include: [],
     });
   }
 
@@ -54,8 +52,7 @@ export default class Repository {
       where: {
         ...condition,
       },
-      include: [
-      ],
+      include: [],
     });
   }
 

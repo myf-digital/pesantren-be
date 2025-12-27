@@ -10,7 +10,7 @@ export default class Variable {
       'id_lembaga',
       'jenis_orgunit',
       'keterangan',
-      'lembaga_type'
+      'lembaga_type',
     ];
     return field;
   }

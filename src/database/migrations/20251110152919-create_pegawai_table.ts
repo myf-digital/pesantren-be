@@ -17,7 +17,7 @@ export const up = async (queryInterface: QueryInterface) => {
     nip: {
       type: DataTypes.STRING(30),
       allowNull: true,
-      unique: true
+      unique: true,
     },
     nama_lengkap: {
       type: DataTypes.STRING(150),
@@ -32,7 +32,7 @@ export const up = async (queryInterface: QueryInterface) => {
       allowNull: true,
     },
     jenis_kelamin: {
-      type: DataTypes.ENUM("Laki-laki", "Perempuan"),
+      type: DataTypes.ENUM('Laki-laki', 'Perempuan'),
       allowNull: true,
     },
     tempat_lahir: {
@@ -41,23 +41,23 @@ export const up = async (queryInterface: QueryInterface) => {
     },
     tanggal_lahir: {
       type: DataTypes.DATEONLY,
-      allowNull: true
+      allowNull: true,
     },
     umur: {
       type: DataTypes.INTEGER,
-      allowNull: true
+      allowNull: true,
     },
     alamat: {
       type: DataTypes.TEXT,
-      allowNull: true
+      allowNull: true,
     },
     pendidikan: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: true,
     },
     bidang_ilmu: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: true,
     },
     id_orgunit: {
       type: DataTypes.STRING,
@@ -80,17 +80,17 @@ export const up = async (queryInterface: QueryInterface) => {
       onDelete: 'SET NULL',
     },
     status_pegawai: {
-      type: DataTypes.ENUM("Aktif", "Tidak Aktif", "Pensiun"),
-      allowNull: true
+      type: DataTypes.ENUM('Aktif', 'Tidak Aktif', 'Pensiun'),
+      allowNull: true,
     },
     tmt: {
       type: DataTypes.DATEONLY,
-      allowNull: true
+      allowNull: true,
     },
     foto: {
       type: DataTypes.STRING,
-      allowNull: true
-    }
+      allowNull: true,
+    },
   });
 
   // Tambahkan kolom created_at & updated_at via raw SQL

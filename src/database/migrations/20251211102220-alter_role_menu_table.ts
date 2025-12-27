@@ -3,7 +3,7 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
 export const up = async (queryInterface: QueryInterface) => {
-   await queryInterface.addColumn('app_role_menu', 'import', {
+  await queryInterface.addColumn('app_role_menu', 'import', {
     type: DataTypes.INTEGER,
     allowNull: true,
   });

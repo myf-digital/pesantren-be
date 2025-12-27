@@ -15,7 +15,7 @@ export default class Repository {
             required: false,
           },
         ],
-      }
+      };
     }
     return Model.findAll({
       where: condition,

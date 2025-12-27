@@ -70,13 +70,8 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
-      const {
-        id_aset,
-        id_asrama,
-        id_kamar,
-        id_biro_aset,
-        id_rumah_tangga
-      } = req?.body;
+      const { id_aset, id_asrama, id_kamar, id_biro_aset, id_rumah_tangga } =
+        req?.body;
 
       let foto_dokumentasi: any = null;
       if (req?.files && req?.files.foto_dokumentasi) {
@@ -119,13 +114,8 @@ export default class Controller {
       const id: string = req?.params?.id || '';
       const check = await repository.detail({ id_laporan: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-      const {
-        id_aset,
-        id_asrama,
-        id_kamar,
-        id_biro_aset,
-        id_rumah_tangga,
-      } = req?.body;
+      const { id_aset, id_asrama, id_kamar, id_biro_aset, id_rumah_tangga } =
+        req?.body;
 
       let foto_dokumentasi: any = null;
       if (req?.files && req?.files.foto_dokumentasi) {
@@ -145,17 +135,19 @@ export default class Controller {
       await repository.update({
         payload: {
           ...data,
-          id_aset:
-            JSON.parse(id_aset)?.value || check?.getDataValue('id_aset'),
-          id_asrama: JSON.parse(id_asrama)?.value || check?.getDataValue('id_asrama'),
+          id_aset: JSON.parse(id_aset)?.value || check?.getDataValue('id_aset'),
+          id_asrama:
+            JSON.parse(id_asrama)?.value || check?.getDataValue('id_asrama'),
           id_kamar:
-            JSON.parse(id_kamar)?.value ||
-            check?.getDataValue('id_kamar'),
+            JSON.parse(id_kamar)?.value || check?.getDataValue('id_kamar'),
           id_biro_aset:
             JSON.parse(id_biro_aset)?.value ||
             check?.getDataValue('id_biro_aset'),
-          id_rumah_tangga: JSON.parse(id_rumah_tangga)?.value || check?.getDataValue('id_rumah_tangga'),
-          foto_dokumentasi: foto_dokumentasi || check?.getDataValue('foto_dokumentasi'),
+          id_rumah_tangga:
+            JSON.parse(id_rumah_tangga)?.value ||
+            check?.getDataValue('id_rumah_tangga'),
+          foto_dokumentasi:
+            foto_dokumentasi || check?.getDataValue('foto_dokumentasi'),
         },
         condition: { id_laporan: id },
       });

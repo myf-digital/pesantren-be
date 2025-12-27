@@ -11,7 +11,7 @@ export default class Variable {
       'contact',
       'email',
       'keterangan',
-      'alamat'
+      'alamat',
     ];
     return field;
   }

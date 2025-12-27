@@ -21,12 +21,7 @@ import moment from 'moment';
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
-  sheet.addRow([
-    'No',
-    'Tahun Ajaran',
-    'Status',
-    'Keterangan',
-  ]);
+  sheet.addRow(['No', 'Tahun Ajaran', 'Status', 'Keterangan']);
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -60,7 +55,7 @@ export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const status: any = req?.query?.status || '';
-      const result = await repository.list({status});
+      const result = await repository.list({ status });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
@@ -108,14 +103,14 @@ export default class Controller {
       const check = await repository.detail({ tahun_ajaran });
       if (check) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
-      const result =await repository.create({
+      const result = await repository.create({
         payload: { ...data },
       });
       if (result.status === 'Aktif') {
-        const query = `UPDATE tahun_ajaran SET status='Nonaktif' WHERE id_tahunajaran != :id_tahunajaran AND status != 'Arsip'`
+        const query = `UPDATE tahun_ajaran SET status='Nonaktif' WHERE id_tahunajaran != :id_tahunajaran AND status != 'Arsip'`;
         const conn = await rawQuery.getConnection();
         await conn.query(query, {
-          type:QueryTypes.UPDATE,
+          type: QueryTypes.UPDATE,
           replacements: {
             id_tahunajaran: result.id_tahunajaran,
           },
@@ -146,10 +141,10 @@ export default class Controller {
         }
       }
       const data: Object = helper.only(variable.fillable(), req?.body, true);
-      
+
       let newData: Object = {};
       if (status === 'Arsip') {
-        newData = {archived_at: date, archived_by: req?.user?.id}
+        newData = { archived_at: date, archived_by: req?.user?.id };
       }
 
       await repository.update({
@@ -158,10 +153,10 @@ export default class Controller {
       });
 
       if (status === 'Aktif') {
-        const query = `UPDATE tahun_ajaran SET status='Nonaktif' WHERE id_tahunajaran != :id_tahunajaran AND status != 'Arsip'`
+        const query = `UPDATE tahun_ajaran SET status='Nonaktif' WHERE id_tahunajaran != :id_tahunajaran AND status != 'Arsip'`;
         const conn = await rawQuery.getConnection();
         await conn.query(query, {
-          type:QueryTypes.UPDATE,
+          type: QueryTypes.UPDATE,
           replacements: {
             id_tahunajaran: id,
           },
@@ -203,7 +198,7 @@ export default class Controller {
 
       let result: any = [];
       if (!isTemplate) {
-        result = await repository.list({status: q});
+        result = await repository.list({ status: q });
         if (result?.length < 1)
           return response.success(NOT_FOUND, null, res, false);
       }

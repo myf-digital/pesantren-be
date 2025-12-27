@@ -3,8 +3,7 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
 export const up = async (queryInterface: QueryInterface) => {
-
-   await queryInterface.changeColumn('tahun_ajaran', 'keterangan', {
+  await queryInterface.changeColumn('tahun_ajaran', 'keterangan', {
     type: DataTypes.TEXT,
     allowNull: true,
   });
@@ -28,7 +27,6 @@ export const up = async (queryInterface: QueryInterface) => {
 };
 
 export const down = async (queryInterface: QueryInterface) => {
-
   await queryInterface.removeColumn('tahun_ajaran', 'created_at');
   await queryInterface.removeColumn('tahun_ajaran', 'updated_at');
 

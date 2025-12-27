@@ -12,33 +12,33 @@ export default class Repository {
     let query: Object = {
       order: [['id_cabang', 'DESC']],
       include: [
-				{
-					model: AreaProvince,
-					as: 'province',
-					attributes: ['id', 'name'],
-					required: false,
-				},
         {
-					model: AreaRegency,
-					as: 'city',
-					attributes: ['id', 'name'],
-					required: false,
-				},
+          model: AreaProvince,
+          as: 'province',
+          attributes: ['id', 'name'],
+          required: false,
+        },
         {
-					model: AreaDistrict,
-					as: 'district',
-					attributes: ['id', 'name'],
-					required: false,
-				},
+          model: AreaRegency,
+          as: 'city',
+          attributes: ['id', 'name'],
+          required: false,
+        },
         {
-					model: AreaSubDistrict,
-					as: 'subDistrict',
-					attributes: ['id', 'name'],
-					required: false,
-				}
-			],
+          model: AreaDistrict,
+          as: 'district',
+          attributes: ['id', 'name'],
+          required: false,
+        },
+        {
+          model: AreaSubDistrict,
+          as: 'subDistrict',
+          attributes: ['id', 'name'],
+          required: false,
+        },
+      ],
     };
-    
+
     if (data?.cabang !== undefined && data?.cabang != null) {
       query = {
         ...query,
@@ -57,7 +57,7 @@ export default class Repository {
       offset: data?.offset,
       limit: data?.limit,
     };
-  
+
     if (data?.keyword && data?.keyword != undefined) {
       query = {
         ...query,
@@ -71,10 +71,9 @@ export default class Repository {
         },
       };
     }
-  
+
     return Model.findAndCountAll(query);
   }
-  
 
   public detail(condition: any) {
     return Model.findOne({

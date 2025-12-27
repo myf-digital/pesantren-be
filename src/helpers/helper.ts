@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import moment from 'moment';
+import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import TelegramBot from 'tele-sender';
@@ -12,6 +13,7 @@ import { Request, Response } from 'express';
 import { response } from '../helpers/response';
 import { appConfig } from '../config/config.app';
 import { mailConfig } from '../config/config.mail';
+import { parse as ParseCSV } from 'csv-parse/sync';
 import { teleConfig } from '../config/config.telegram';
 import { APP_NAME, MYSQL, POSTGRES } from '../utils/constant';
 import AppResource from '../module/app/resource/resource.model';
@@ -71,7 +73,7 @@ export default class Helper {
       result = {
         ...result,
         created_at: date,
-        updated_at: date
+        updated_at: date,
       };
     }
     return result;
@@ -347,6 +349,62 @@ export default class Helper {
     const path = req.path;
     const segments = path.split('/').filter(Boolean);
     return segments[0];
+  }
+
+  public parseCSV(buffer: Buffer) {
+    const records = ParseCSV(buffer, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+      bom: true,
+    });
+
+    return records.map((row: any, i: number) => ({
+      __row: i + 2,
+      ...row,
+    }));
+  }
+
+  public async parseImportFile(file: any) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (ext === 'csv') {
+      return this.parseCSV(file.data);
+    }
+
+    if (['xlsx', 'xls'].includes(ext)) {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(file.data);
+
+      const sheet = workbook.worksheets[0];
+      if (!sheet) throw new Error('Sheet tidak ditemukan');
+
+      const headers: string[] = [];
+      sheet.getRow(1).eachCell((cell, col) => {
+        const header = String(cell.value ?? '').trim();
+        if (header) headers[col - 1] = header;
+      });
+
+      const rows: any[] = [];
+      sheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+
+        const item: any = { __row: rowNumber };
+        headers.forEach((h, i) => {
+          const cell = row.getCell(i + 1).value;
+          if (cell === null || cell === undefined) {
+            item[h] = null;
+          } else if (typeof cell === 'object' && 'text' in cell) {
+            item[h] = cell.text;
+          } else {
+            item[h] = cell;
+          }
+        });
+        rows.push(item);
+      });
+      return rows;
+    }
+    throw new Error('Format file tidak didukung');
   }
 }
 

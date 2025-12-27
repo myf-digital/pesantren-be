@@ -42,11 +42,11 @@ export function initJabatan(sequelize: Sequelize) {
       },
       sifat_jabatan: {
         type: DataTypes.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
       kode_jabatan: {
         type: DataTypes.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
       keterangan: {
         type: DataTypes.STRING(255),
@@ -109,6 +109,5 @@ export function associateJabatan() {
     onDelete: 'SET NULL',
   });
 }
-
 
 export default Jabatan;

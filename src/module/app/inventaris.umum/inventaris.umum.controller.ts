@@ -69,9 +69,7 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
-      const {
-        kode_aset
-      } = req?.body;
+      const { kode_aset } = req?.body;
       const check = await repository.detail({ kode_aset });
       if (check) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
@@ -95,9 +93,7 @@ export default class Controller {
       const id: string = req?.params?.id || '';
       const check = await repository.detail({ id_aset: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-      const {
-        kode_aset,
-      } = req?.body;
+      const { kode_aset } = req?.body;
       const data: Object = helper.only(variable.fillable(), req?.body, true);
       await repository.update({
         payload: {

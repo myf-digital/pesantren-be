@@ -8,7 +8,7 @@ export default class Variable {
       'keterangan',
       'jenis_lembaga',
       'status_akreditasi',
-      'nomor_npsn'
+      'nomor_npsn',
     ];
     return field;
   }

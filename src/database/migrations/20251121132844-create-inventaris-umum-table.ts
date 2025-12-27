@@ -36,7 +36,12 @@ export const up = async (queryInterface: QueryInterface) => {
       allowNull: true,
     },
     sumber_aset: {
-      type: DataTypes.ENUM('Rumah Tangga', 'Kewaliasuhan', 'Takmir Masjid', 'Lainnya'),
+      type: DataTypes.ENUM(
+        'Rumah Tangga',
+        'Kewaliasuhan',
+        'Takmir Masjid',
+        'Lainnya'
+      ),
       allowNull: true,
     },
     tanggal_input: {

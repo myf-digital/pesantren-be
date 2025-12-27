@@ -49,6 +49,12 @@ async function bootstrap() {
     preflightContinue: false,
   };
 
+  app.use(
+    fileUpload({
+      useTempFiles: true,
+      tempFileDir: `./tmp/${day}/`,
+    })
+  );
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(express.static('public'));
@@ -60,13 +66,7 @@ async function bootstrap() {
     runWithUser(null, next);
   });
   app.use(routes);
-  app.use(
-    fileUpload({
-      useTempFiles: true,
-      tempFileDir: `./tmp/${day}/`,
-    })
-  );
-  
+
   cron.schedule(
     '1 0 * * *',
     async () => {

@@ -18,7 +18,11 @@ interface UserBody {
   password: string;
 }
 
-const checkAccess = async (req: Request, role_name: string = '', prefix: string = '') => {
+const checkAccess = async (
+  req: Request,
+  role_name: string = '',
+  prefix: string = ''
+) => {
   try {
     const method: string = req?.method;
     const url: string = req?.originalUrl;
@@ -89,7 +93,7 @@ const checkAccess = async (req: Request, role_name: string = '', prefix: string 
       message: `check access: ${err?.message}`,
     };
   }
-}
+};
 
 export default class Middleware {
   public async checkBearerToken(
@@ -141,7 +145,11 @@ export default class Middleware {
       }
 
       const basePath: string = helper.getOriginUrl(req);
-      const { code, status, message } = await checkAccess(req, auth?.role_name, basePath);
+      const { code, status, message } = await checkAccess(
+        req,
+        auth?.role_name,
+        basePath
+      );
       if (!status) {
         return response.failed(message, code, res);
       }

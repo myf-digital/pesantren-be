@@ -31,7 +31,7 @@ export function initLembagaPendidikanKepesantrenan(sequelize: Sequelize) {
       },
       id_cabang: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       keterangan: {
         type: DataTypes.STRING(255),

@@ -5,9 +5,13 @@ import { QueryInterface, DataTypes } from 'sequelize';
 export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.renameTable('beasiswa_santri', 'jenis_beasiswa');
 
-  await queryInterface.renameColumn('jenis_beasiswa', 'id_beasiswasantri', 'id_beasiswa');
+  await queryInterface.renameColumn(
+    'jenis_beasiswa',
+    'id_beasiswasantri',
+    'id_beasiswa'
+  );
 
-   await queryInterface.changeColumn('jenis_beasiswa', 'keterangan', {
+  await queryInterface.changeColumn('jenis_beasiswa', 'keterangan', {
     type: DataTypes.TEXT,
     allowNull: true,
   });
@@ -31,7 +35,6 @@ export const up = async (queryInterface: QueryInterface) => {
 };
 
 export const down = async (queryInterface: QueryInterface) => {
-
   await queryInterface.removeColumn('jenis_beasiswa', 'created_at');
   await queryInterface.removeColumn('jenis_beasiswa', 'updated_at');
 
@@ -45,7 +48,11 @@ export const down = async (queryInterface: QueryInterface) => {
     allowNull: true,
   });
 
-  await queryInterface.renameColumn('jenis_beasiswa', 'id_beasiswa', 'id_beasiswasantri');
+  await queryInterface.renameColumn(
+    'jenis_beasiswa',
+    'id_beasiswa',
+    'id_beasiswasantri'
+  );
 
   await queryInterface.renameTable('jenis_beasiswa', 'beasiswa_santri');
 

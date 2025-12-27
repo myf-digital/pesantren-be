@@ -78,12 +78,7 @@ export default class Repository {
   }
 
   public detailRole(condition: any) {
-    const {
-      role_name,
-      menu_name,
-      role_id,
-      module_name,
-    } = condition;
+    const { role_name, menu_name, role_id, module_name } = condition;
 
     const roleWhere = {
       status: { [Op.ne]: 9 },
@@ -94,9 +89,9 @@ export default class Repository {
     const menuWhere = {
       status: { [Op.ne]: 9 },
       ...(menu_name && {
-        menu_name: { [Op.like]: `%${menu_name}%` }
+        menu_name: { [Op.like]: `%${menu_name}%` },
       }),
-      ...(module_name && { module_name })
+      ...(module_name && { module_name }),
     };
 
     return Role.findOne({

@@ -44,7 +44,12 @@ export function initInventarisUmum(sequelize: Sequelize) {
         type: DataTypes.STRING(255),
       },
       sumber_aset: {
-        type: DataTypes.ENUM('Rumah Tangga', 'Kewaliasuhan', 'Takmir Masjid', 'Lainnya'),
+        type: DataTypes.ENUM(
+          'Rumah Tangga',
+          'Kewaliasuhan',
+          'Takmir Masjid',
+          'Lainnya'
+        ),
       },
       tanggal_input: {
         type: DataTypes.DATEONLY,
@@ -70,8 +75,6 @@ export function initInventarisUmum(sequelize: Sequelize) {
   return InventarisUmum;
 }
 
-export function associateInventarisUmum() {
-
-}
+export function associateInventarisUmum() {}
 
 export default InventarisUmum;

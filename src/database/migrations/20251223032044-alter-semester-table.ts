@@ -3,12 +3,11 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
 export const up = async (queryInterface: QueryInterface) => {
-
-   await queryInterface.changeColumn('semester', 'nomor_urut', {
+  await queryInterface.changeColumn('semester', 'nomor_urut', {
     type: DataTypes.INTEGER,
     allowNull: true,
   });
-  
+
   await queryInterface.addColumn('semester', 'archived_by', {
     type: DataTypes.STRING(255),
     allowNull: true,
@@ -16,7 +15,7 @@ export const up = async (queryInterface: QueryInterface) => {
 
   await queryInterface.addColumn('semester', 'archived_at', {
     allowNull: true,
-    type: DataTypes.DATE
+    type: DataTypes.DATE,
   });
 
   await queryInterface.addConstraint('semester', {
@@ -24,11 +23,9 @@ export const up = async (queryInterface: QueryInterface) => {
     type: 'unique',
     name: 'unique_nama_semester_id_tahunajaran',
   });
-
 };
 
 export const down = async (queryInterface: QueryInterface) => {
-
   await queryInterface.changeColumn('semester', 'nomor_urut', {
     type: DataTypes.INTEGER,
     allowNull: true,

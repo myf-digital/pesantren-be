@@ -7,7 +7,7 @@ export default class Variable {
       'jumlah_kamar',
       'id_cabang',
       'keterangan',
-      'alamat'
+      'alamat',
     ];
     return field;
   }

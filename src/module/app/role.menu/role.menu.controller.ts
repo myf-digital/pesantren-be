@@ -44,7 +44,7 @@ export default class Controller {
       return helper.catchError(`role menu index: ${err?.message}`, 500, res);
     }
   }
-  
+
   public async detail(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';

@@ -63,7 +63,7 @@ export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const status: any = req?.query?.status || '';
-      const result = await repository.list({status});
+      const result = await repository.list({ status });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
@@ -104,18 +104,25 @@ export default class Controller {
       const { nama_semester, id_tahunajaran, nomor_urut } = req?.body;
 
       const idTahunajaran = id_tahunajaran?.value || null;
-      const check = await repository.detail({ nama_semester, id_tahunajaran: idTahunajaran });
-      const nomorIsExist = await repository.detail({ nomor_urut, id_tahunajaran: idTahunajaran });
-      if (check || nomorIsExist) return response.failed(ALREADY_EXIST, 400, res);
+      const check = await repository.detail({
+        nama_semester,
+        id_tahunajaran: idTahunajaran,
+      });
+      const nomorIsExist = await repository.detail({
+        nomor_urut,
+        id_tahunajaran: idTahunajaran,
+      });
+      if (check || nomorIsExist)
+        return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
       const result = await repository.create({
         payload: { ...data, id_tahunajaran: idTahunajaran },
       });
       if (result.status === 'Aktif') {
-        const query = `UPDATE semester SET status='Nonaktif' WHERE id_semester != :id_semester AND status != 'Arsip'`
+        const query = `UPDATE semester SET status='Nonaktif' WHERE id_semester != :id_semester AND status != 'Arsip'`;
         const conn = await rawQuery.getConnection();
         await conn.query(query, {
-          type:QueryTypes.UPDATE,
+          type: QueryTypes.UPDATE,
           replacements: {
             id_semester: result.id_semester,
           },
@@ -134,17 +141,29 @@ export default class Controller {
       const idTahunajaran = id_tahunajaran?.value;
       const check = await repository.detail({ id_semester: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-       
-      if (nama_semester !== check.nama_semester || idTahunajaran !== check.id_tahunajaran) {
-        const duplicate = await repository.detail({ nama_semester, id_tahunajaran: idTahunajaran });
+
+      if (
+        nama_semester !== check.nama_semester ||
+        idTahunajaran !== check.id_tahunajaran
+      ) {
+        const duplicate = await repository.detail({
+          nama_semester,
+          id_tahunajaran: idTahunajaran,
+        });
 
         if (duplicate) {
           return response.failed(ALREADY_EXIST, 400, res);
         }
       }
 
-      if (nomor_urut !== check.nomor_urut || idTahunajaran !== check.id_tahunajaran) {
-        const nomorIsExist = await repository.detail({ nomor_urut, id_tahunajaran: idTahunajaran });
+      if (
+        nomor_urut !== check.nomor_urut ||
+        idTahunajaran !== check.id_tahunajaran
+      ) {
+        const nomorIsExist = await repository.detail({
+          nomor_urut,
+          id_tahunajaran: idTahunajaran,
+        });
 
         if (nomorIsExist) {
           return response.failed(ALREADY_EXIST, 400, res);
@@ -155,23 +174,24 @@ export default class Controller {
 
       let newData: Object = {};
       if (status === 'Arsip') {
-        newData = {archived_at: date, archived_by: req?.user?.id}
+        newData = { archived_at: date, archived_by: req?.user?.id };
       }
 
       await repository.update({
         payload: {
           ...data,
           ...newData,
-          id_tahunajaran: idTahunajaran || check?.getDataValue('id_tahunajaran'),
+          id_tahunajaran:
+            idTahunajaran || check?.getDataValue('id_tahunajaran'),
         },
         condition: { id_semester: id },
       });
 
       if (status === 'Aktif') {
-        const query = `UPDATE semester SET status='Nonaktif' WHERE id_semester != :id_semester AND status != 'Arsip'`
+        const query = `UPDATE semester SET status='Nonaktif' WHERE id_semester != :id_semester AND status != 'Arsip'`;
         const conn = await rawQuery.getConnection();
         await conn.query(query, {
-          type:QueryTypes.UPDATE,
+          type: QueryTypes.UPDATE,
           replacements: {
             id_semester: id,
           },
@@ -206,7 +226,7 @@ export default class Controller {
 
       let result: any = [];
       if (!isTemplate) {
-        result = await repository.list({status: q});
+        result = await repository.list({ status: q });
         if (result?.length < 1)
           return response.success(NOT_FOUND, null, res, false);
       }

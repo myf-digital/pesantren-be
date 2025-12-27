@@ -24,7 +24,11 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(`LP kepesantrenan list: ${err?.message}`, 500, res);
+      return helper.catchError(
+        `LP kepesantrenan list: ${err?.message}`,
+        500,
+        res
+      );
     }
   }
 
@@ -40,7 +44,11 @@ export default class Controller {
         res
       );
     } catch (err: any) {
-      return helper.catchError(`LP kepesantrenan index: ${err?.message}`, 500, res);
+      return helper.catchError(
+        `LP kepesantrenan index: ${err?.message}`,
+        500,
+        res
+      );
     }
   }
 
@@ -51,29 +59,33 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(`LP Kepesantrenan detail: ${err?.message}`, 500, res);
+      return helper.catchError(
+        `LP Kepesantrenan detail: ${err?.message}`,
+        500,
+        res
+      );
     }
   }
 
   public async create(req: Request, res: Response) {
     try {
       let data = req?.body;
-    
+
       if (Array.isArray(data)) {
-        data = data.map((item) => helper.only(variable.fillable(), item))
+        data = data.map((item) => helper.only(variable.fillable(), item));
         await repository.create({
           payload: data,
         });
       } else {
-        data = helper.only(variable.fillable(), data)
+        data = helper.only(variable.fillable(), data);
         await repository.create({
-          payload: [data], 
+          payload: [data],
         });
       }
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
-      console.log(err)
+      console.log(err);
       return helper.catchError(
         `LP kepesantrenan create: ${err?.message}`,
         500,

@@ -8,7 +8,7 @@ export const up = async (queryInterface: QueryInterface) => {
       type: DataTypes.STRING,
       allowNull: false,
       primaryKey: true,
-      unique: true
+      unique: true,
     },
     singkatan: {
       type: DataTypes.STRING(255),

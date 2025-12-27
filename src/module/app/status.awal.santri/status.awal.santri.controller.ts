@@ -60,7 +60,7 @@ export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const status: any = req?.query?.status || '';
-      const result = await repository.list({status});
+      const result = await repository.list({ status });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
@@ -185,7 +185,7 @@ export default class Controller {
 
       let result: any = [];
       if (!isTemplate) {
-        result = await repository.list({status: q});
+        result = await repository.list({ status: q });
         if (result?.length < 1)
           return response.success(NOT_FOUND, null, res, false);
       }
