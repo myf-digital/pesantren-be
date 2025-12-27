@@ -124,14 +124,6 @@ export default class DataMenu {
         status: 1,
       },
       {
-        parent_id: 2,
-        menu_name: 'Orang Tua Wali',
-        menu_icon: 'tabler-circle',
-        module_name: '/app/orang-tua-wali/list',
-        seq_number: 12,
-        status: 1,
-      },
-      {
         parent_id: 3,
         menu_name: 'User',
         menu_icon: 'tabler-circle',
