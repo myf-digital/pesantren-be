@@ -32,19 +32,19 @@ export function initCabang(sequelize: Sequelize) {
       },
       province_id: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       city_id: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       district_id: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       sub_district_id: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       contact: {
         type: DataTypes.STRING,
@@ -65,9 +65,11 @@ export function initCabang(sequelize: Sequelize) {
           return value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
         },
         set(value) {
-          const formattedValue = value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
+          const formattedValue = value
+            ? moment(value).format('YYYY-MM-DD HH:mm:ss')
+            : null;
           this.setDataValue('created_at', formattedValue);
-        }
+        },
       },
       updated_at: {
         type: DataTypes.DATE,
@@ -76,16 +78,18 @@ export function initCabang(sequelize: Sequelize) {
           return value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
         },
         set(value) {
-          const formattedValue = value ? moment(value).format('YYYY-MM-DD HH:mm:ss') : null;
+          const formattedValue = value
+            ? moment(value).format('YYYY-MM-DD HH:mm:ss')
+            : null;
           this.setDataValue('updated_at', formattedValue);
-        }
-      }
+        },
+      },
     },
     {
       sequelize,
       modelName: 'Cabang',
       tableName: 'cabang',
-      timestamps: false
+      timestamps: false,
     }
   );
 
@@ -94,11 +98,11 @@ export function initCabang(sequelize: Sequelize) {
   });
 
   Cabang.beforeBulkCreate((cabangInstances) => {
-    cabangInstances.forEach(cabang => {
+    cabangInstances.forEach((cabang) => {
       cabang.setDataValue('id_cabang', uuidv4()); // Assign a UUID to each instance
     });
   });
-  
+
   return Cabang;
 }
 

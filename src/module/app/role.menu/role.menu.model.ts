@@ -12,6 +12,8 @@ export class AppRoleMenu extends Model {
   public edit!: number;
   public delete!: number;
   public approve!: number;
+  public import!: number;
+  public export!: number;
   public status!: number;
   public created_by!: string;
   public created_date!: Date;
@@ -46,6 +48,12 @@ export function initAppRoleMenu(sequelize: Sequelize) {
         type: DataTypes.TINYINT,
       },
       approve: {
+        type: DataTypes.TINYINT,
+      },
+      import: {
+        type: DataTypes.TINYINT,
+      },
+      export: {
         type: DataTypes.TINYINT,
       },
       status: {

@@ -9,11 +9,11 @@ export default class Repository {
     let query: Object = {
       order: [['created_at', 'DESC']],
     };
-    if (data?.nama_semester !== undefined && data?.nama_semester != null) {
+    if (data?.status != '') {
       query = {
         ...query,
         where: {
-          nama_semester: { [Op.like]: `%${data?.nama_semester}%` },
+          status: { [Op.eq]: data?.status },
         },
       };
     }
@@ -77,7 +77,7 @@ export default class Repository {
           model: TahunAjaran,
           as: 'tahun_ajaran',
           required: true,
-          attributes: ['tahun_ajaran'],
+          attributes: ['tahun_ajaran', 'id_tahunajaran'],
         },
       ],
     });

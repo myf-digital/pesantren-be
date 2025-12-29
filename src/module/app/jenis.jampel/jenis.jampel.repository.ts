@@ -4,24 +4,16 @@ import { Op, Sequelize } from 'sequelize';
 import Model from './jenis.jampel.model';
 
 export default class Repository {
-  public list(data: any) {
-    let query: Object = {
-      order: [['nomor_urut', 'DESC']],
-    };
-    if (data?.nama_jenis_jam !== undefined && data?.nama_jenis_jam != null) {
-      query = {
-        ...query,
-        where: {
-          nama_jenis_jam: { [Op.like]: `%${data?.nama_jenis_jam}%` },
-        },
-      };
-    }
-    return Model.findAll(query);
+  public list(condition: any) {
+    return Model.findAll({
+      where: condition,
+      order: [['updated_at', 'DESC']],
+    });
   }
 
   public index(data: any) {
     let query: Object = {
-      order: [['nomor_urut', 'DESC']],
+      order: [['updated_at', 'DESC']],
       offset: data?.offset,
       limit: data?.limit,
     };

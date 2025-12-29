@@ -8,7 +8,7 @@ export default class Repository {
     let query: Object = {
       order: [['id_penilaian', 'DESC']],
     };
-    
+
     if (data?.singkatan !== undefined && data?.singkatan != null) {
       query = {
         ...query,
@@ -27,7 +27,7 @@ export default class Repository {
       offset: data?.offset,
       limit: data?.limit,
     };
-  
+
     if (data?.keyword && data?.keyword != undefined) {
       query = {
         ...query,
@@ -40,10 +40,9 @@ export default class Repository {
         },
       };
     }
-  
+
     return Model.findAndCountAll(query);
   }
-  
 
   public detail(condition: any) {
     return Model.findOne({

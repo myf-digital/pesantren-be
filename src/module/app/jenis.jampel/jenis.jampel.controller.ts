@@ -1,10 +1,16 @@
 'use strict';
 
+import moment from 'moment';
+import fs from 'fs/promises';
+import ExcelJS from 'exceljs';
+import { Op } from 'sequelize';
 import { Request, Response } from 'express';
 import { helper } from '../../../helpers/helper';
 import { variable } from './jenis.jampel.variable';
 import { response } from '../../../helpers/response';
+import JenisJamPelajaran from './jenis.jampel.model';
 import { repository } from './jenis.jampel.repository';
+import { sequelize } from '../../../database/connection';
 import {
   ALREADY_EXIST,
   NOT_FOUND,
@@ -14,12 +20,86 @@ import {
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
 
-const date: string = helper.date();
+
+const generateDataExcel = (sheet: any, details: any) => {
+  sheet.addRow([
+    'No',
+    'Nama',
+    'Tipe',
+    'Status',
+    'Nomor Urut',
+    'Keterangan',
+  ]);
+
+  sheet.getRow(1).eachCell((cell: any) => {
+    cell.font = { bold: true };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+  });
+
+  for (let i in details) {
+    sheet.addRow([
+      parseInt(i) + 1,
+      details[i]?.nama_jenis_jam || '',
+      details[i]?.lembaga_type || '',
+      details[i]?.status == 'A' ? 'Aktif' : 'Tidak Aktif',
+      details[i]?.nomor_urut || '',
+      details[i]?.keterangan || '',
+    ]);
+  }
+
+  for (let row = 1; row <= details?.length + 1; row++) {
+    sheet.getRow(row).eachCell((cell: any) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+    });
+  }
+
+  return sheet;
+};
+
+const normalizeRow = (row: any) => ({
+  nama_jenis_jam: String(row['Nama'] || '').trim(),
+  lembaga_type: String(row['Tipe'] || '').trim(),
+  status: row['Status'] === 'Aktif' ? 'A' : 'N',
+  nomor_urut:
+    row['Nomor Urut'] !== undefined ? Number(row['Nomor Urut']) : null,
+  keterangan: String(row['Keterangan'] || '').trim(),
+  __row: row.__row,
+});
+
+const validateRow = (row: any) => {
+  const errors: string[] = [];
+  if (!row.nama_jenis_jam) {
+    errors.push('Nama wajib diisi');
+  }
+  if (!row.lembaga_type) {
+    errors.push('Tipe wajib diisi');
+  }
+  if (row.lembaga_type && !['FORMAL','PESANTREN'].includes(row.lembaga_type)) {
+    errors.push('Tipe hanya diisi (FORMAL / PESANTREN)');
+  }
+  if (row.nomor_urut !== null && Number.isNaN(row.nomor_urut)) {
+    errors.push('Nomor Urut harus angka');
+  }
+  return errors;
+};
 
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
-      const result = await repository.list({});
+      let condition: any = {};
+      const { q } = req?.body;
+      if (q) {
+        condition = {
+          nama_jenis_jam: { [Op.like]: `%${q}%` },
+        };
+      }
+
+      const result = await repository.list(condition);
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
@@ -123,6 +203,191 @@ export default class Controller {
         500,
         res
       );
+    }
+  }
+
+  public async export(req: Request, res: Response) {
+    try {
+      let condition: any = {};
+      const { q, template } = req?.body;
+      const isTemplate: boolean = template && template == '1';
+      if (q) {
+        condition = {
+          ...condition,
+          nama_jenis_jam: { [Op.like]: `%${q}%` },
+        };
+      }
+
+      let result: any = [];
+      if (!isTemplate) {
+        result = await repository.list(condition);
+        if (result?.length < 1)
+          return response.success(NOT_FOUND, null, res, false);
+      }
+
+      const { dir, path } = await helper.checkDirExport('excel');
+
+      const name: string = 'jenis-jam-pelajaran';
+      const filename: string = `${name}-${isTemplate ? 'template' : moment().format('DDMMYYYY')}.xlsx`;
+      const title: string = `${name.replace(/-/g, ' ').toUpperCase()}`;
+      const urlExcel: string = `${dir}/${filename}`;
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet(title);
+
+      generateDataExcel(sheet, result);
+      await workbook.xlsx.writeFile(`${path}/${filename}`);
+      return response.success('export excel jenis jam pelajaran', urlExcel, res);
+    } catch (err: any) {
+      return helper.catchError(
+        `export excel jenis jam pelajaran: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async import(req: Request, res: Response) {
+    const mode: 'preview' | 'commit' = req.body?.mode ?? 'preview';
+    const uploaded = req.files?.file_import;
+
+    if (!uploaded) {
+      return response.success('File tidak valid', null, res, false);
+    }
+
+    const trx = mode === 'commit' ? await sequelize.transaction() : null;
+
+    try {
+      let buffer: Buffer;
+      const file = Array.isArray(uploaded) ? uploaded[0] : uploaded;
+      if (file.tempFilePath) {
+        buffer = await fs.readFile(file.tempFilePath);
+      } else if (file.data) {
+        buffer = file.data;
+      } else {
+        return response.success(
+          'File kosong atau gagal dibaca',
+          null,
+          res,
+          false
+        );
+      }
+
+      const results: any[] = [];
+      const rows = await helper.parseImportFile({
+        name: file.name,
+        data: buffer,
+      });
+
+      for (const raw of rows) {
+        const row = normalizeRow(raw);
+        const errors = validateRow(row);
+        const valid = errors.length === 0;
+
+        const payload = {
+          nama_jenis_jam: row.nama_jenis_jam,
+          lembaga_type: row.lembaga_type,
+          nomor_urut: row.nomor_urut,
+          keterangan: row.keterangan ?? null,
+          status: row.status ?? 'A',
+        };
+
+        results.push({
+          row: row.__row,
+          valid,
+          error: errors.length ? errors.join(', ') : null,
+          payload,
+        });
+        if (mode === 'preview' || !valid) continue;
+
+        const existing = await repository.detail({
+          nama_jenis_jam: row.nama_jenis_jam,
+        });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+            updated_at: helper.date(),
+          }, { transaction: trx! });
+        } else {
+          await JenisJamPelajaran.create({
+            ...payload,
+            created_at: helper.date(),
+          }, { transaction: trx! });
+        }
+      }
+
+      let dataRes = {
+        mode,
+        total: results.length,
+        valid: results.filter((r) => r.valid).length,
+        invalid: results.filter((r) => !r.valid).length,
+      };
+
+      if (trx) {
+        await trx.commit();
+        return response.success(
+          'import jenis jam pelajaran berhasil',
+          dataRes,
+          res
+        );
+      }
+
+      return response.success(
+        'preview import jenis jam pelajaran',
+        {
+          ...dataRes,
+          data: results,
+        },
+        res
+      );
+    } catch (err: any) {
+      if (trx) await trx.rollback();
+
+      console.error(err);
+      return helper.catchError(
+        `import excel jenis jam pelajaran: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async insert(req: Request, res: Response) {
+    const payloads = req.body?.data as any[];
+
+    if (!Array.isArray(payloads) || payloads.length === 0) {
+      return response.success('Data import kosong', null, res, false);
+    }
+
+    const trx = await sequelize.transaction();
+    try {
+      for (const payload of payloads) {
+        const existing = await repository.detail({
+          nama_jenis_jam: payload.nama_jenis_jam,
+        });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+            updated_at: helper.date(),
+          }, { transaction: trx });
+        } else {
+          await JenisJamPelajaran.create({
+            ...payload,
+            created_at: helper.date(),
+          }, { transaction: trx });
+        }
+      }
+      await trx.commit();
+
+      return response.success(
+        'Import batch jenis jam pelajaran berhasil',
+        { total: payloads.length },
+        res
+      );
+    } catch (err: any) {
+      await trx.rollback();
+      return helper.catchError(`Import batch gagal: ${err.message}`, 500, res);
     }
   }
 }

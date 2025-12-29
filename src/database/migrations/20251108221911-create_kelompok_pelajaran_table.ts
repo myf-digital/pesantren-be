@@ -11,7 +11,7 @@ export const up = async (queryInterface: QueryInterface) => {
       unique: true,
     },
     nama_kelpelajaran: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.STRING(150),
       allowNull: true,
       unique: true,
     },
@@ -21,11 +21,11 @@ export const up = async (queryInterface: QueryInterface) => {
       unique: true,
     },
     keterangan: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     status: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.STRING(10),
       allowNull: true,
     },
   });

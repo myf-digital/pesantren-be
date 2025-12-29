@@ -2,9 +2,9 @@
 
 import { Request, Response } from 'express';
 import { helper } from '../../../helpers/helper';
-import { variable } from './jenis.beasiswa.variable';
+import { variable } from './inventaris.umum.variable';
 import { response } from '../../../helpers/response';
-import { repository } from './jenis.beasiswa.repository';
+import { repository } from './inventaris.umum.repository';
 import {
   ALREADY_EXIST,
   NOT_FOUND,
@@ -25,7 +25,7 @@ export default class Controller {
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
       return helper.catchError(
-        `beasiswa santri list: ${err?.message}`,
+        `inventaris umum list: ${err?.message}`,
         500,
         res
       );
@@ -45,7 +45,7 @@ export default class Controller {
       );
     } catch (err: any) {
       return helper.catchError(
-        `beasiswa santri index: ${err?.message}`,
+        `inventaris umum index: ${err?.message}`,
         500,
         res
       );
@@ -55,14 +55,12 @@ export default class Controller {
   public async detail(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const result: Object | any = await repository.detail({
-        id_beasiswa: id,
-      });
+      const result: Object | any = await repository.detail({ id_aset: id });
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
       return helper.catchError(
-        `beasiswa santri detail: ${err?.message}`,
+        `inventaris umum detail: ${err?.message}`,
         500,
         res
       );
@@ -71,17 +69,19 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
-      const { kode_beasiswa } = req?.body;
-      const check = await repository.detail({ kode_beasiswa });
+      const { kode_aset } = req?.body;
+      const check = await repository.detail({ kode_aset });
       if (check) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
       await repository.create({
-        payload: { ...data },
+        payload: {
+          ...data,
+        },
       });
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
       return helper.catchError(
-        `beasiswa santri create: ${err?.message}`,
+        `inventaris umum create: ${err?.message}`,
         500,
         res
       );
@@ -91,17 +91,20 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const check = await repository.detail({ id_beasiswa: id });
+      const check = await repository.detail({ id_aset: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
+      const { kode_aset } = req?.body;
       const data: Object = helper.only(variable.fillable(), req?.body, true);
       await repository.update({
-        payload: { ...data },
-        condition: { id_beasiswa: id },
+        payload: {
+          ...data,
+        },
+        condition: { id_aset: id },
       });
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
       return helper.catchError(
-        `beasiswa santri update: ${err?.message}`,
+        `inventaris umum update: ${err?.message}`,
         500,
         res
       );
@@ -111,15 +114,15 @@ export default class Controller {
   public async delete(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const check = await repository.detail({ id_beasiswa: id });
+      const check = await repository.detail({ id_aset: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
       await repository.delete({
-        condition: { id_beasiswa: id },
+        condition: { id_aset: id },
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
       return helper.catchError(
-        `beasiswa santri delete: ${err?.message}`,
+        `inventaris umum delete: ${err?.message}`,
         500,
         res
       );
@@ -127,4 +130,4 @@ export default class Controller {
   }
 }
 
-export const jenisBeasiswa = new Controller();
+export const inventarisUmum = new Controller();

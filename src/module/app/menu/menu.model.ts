@@ -43,6 +43,7 @@ export function initAppMenu(sequelize: Sequelize) {
       },
       parent_id: {
         type: DataTypes.STRING,
+        defaultValue: '00000000-0000-0000-0000-000000000000',
       },
       status: {
         type: DataTypes.TINYINT,
@@ -75,6 +76,12 @@ export function initAppMenu(sequelize: Sequelize) {
   return AppMenu;
 }
 
-export function associateAppMenu() {}
+export function associateAppMenu() {
+  AppMenu.belongsTo(AppMenu, {
+    as: 'parent',
+    foreignKey: 'parent_id',
+    targetKey: 'menu_id',
+  });
+}
 
 export default AppMenu;

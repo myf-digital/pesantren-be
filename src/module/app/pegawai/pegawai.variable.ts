@@ -20,11 +20,10 @@ export default class Variable {
       'id_jabatan',
       'status_pegawai',
       'tmt',
-      'foto'
+      'foto',
     ];
     return field;
   }
-  
 }
 
 export const variable = new Variable();

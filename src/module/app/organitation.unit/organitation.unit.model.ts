@@ -4,7 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { DataTypes, Model, Sequelize } from 'sequelize';
 import moment from 'moment';
 import Cabang from '../cabang/cabang.model';
-import LembagaPendidikan, { LembagaPendidikanKepesantrenan } from '../lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
+import LembagaPendidikan, {
+  LembagaPendidikanKepesantrenan,
+} from '../lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
 import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 
 export class OrganitationUnit extends Model {
@@ -48,19 +50,19 @@ export function initOrganitationUnit(sequelize: Sequelize) {
       },
       id_cabang: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       id_lembaga: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       jenis_orgunit: {
-        type: DataTypes.ENUM("Biro", "Bagian", "Lembaga", "Sub-Unit", "Umum"),
+        type: DataTypes.ENUM('Biro', 'Bagian', 'Lembaga', 'Sub-Unit', 'Umum'),
         allowNull: true,
       },
       lembaga_type: {
         type: DataTypes.ENUM('FORMAL', 'PESANTREN'),
-        allowNull: true
+        allowNull: true,
       },
       keterangan: {
         type: DataTypes.STRING(255),
@@ -151,6 +153,5 @@ export function associateOrganitationUnit() {
     onDelete: 'SET NULL',
   });
 }
-
 
 export default OrganitationUnit;

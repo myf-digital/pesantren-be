@@ -3,7 +3,7 @@
 import { Sequelize, Model } from 'sequelize';
 import { helper } from '../../helpers/helper';
 import { initAppOtp } from '../auth/otp.model';
-import { initAppMenu } from '../app/menu/menu.model';
+import { initAppMenu, associateAppMenu } from '../app/menu/menu.model';
 import { initAreaProvince } from '../area/provinces.model';
 import { initAppRole, associateAppRole } from '../app/role/role.model';
 import { initParamGlobal } from '../app/param.global/param.global.model';
@@ -35,8 +35,11 @@ import {
   initSemester,
 } from '../app/semester/semester.model';
 import { initStatusAwalSantri } from '../app/status.awal.santri/status.awal.santri.model';
-import { initJenisBeasiswa } from '../app/jenis_beasiswa/jenis.beasiswa.model';
-import { initKelompokPelajaran } from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
+import { initJenisBeasiswa } from '../app/jenis.beasiswa/jenis.beasiswa.model';
+import {
+  initKelompokPelajaran,
+  associateKelompokPelajaran,
+} from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
 import { initJenisJamPelajaran } from '../app/jenis.jampel/jenis.jampel.model';
 import { initJenisGuru } from '../app/jenis.guru/jenis.guru.model';
 import {
@@ -48,8 +51,14 @@ import {
   associateJamPelajaran,
 } from '../app/jam.pelajaran/jam.pelajaran.model';
 import { associateCabang, initCabang } from '../app/cabang/cabang.model';
-import { associateLembagaPendidikanKepesantrenan, initLembagaPendidikanKepesantrenan } from '../app/lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
-import { associateOrganitationUnit, initOrganitationUnit } from '../app/organitation.unit/organitation.unit.model';
+import {
+  associateLembagaPendidikanKepesantrenan,
+  initLembagaPendidikanKepesantrenan,
+} from '../app/lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
+import {
+  associateOrganitationUnit,
+  initOrganitationUnit,
+} from '../app/organitation.unit/organitation.unit.model';
 import { associateJabatan, initJabatan } from '../app/jabatan/jabatan.model';
 import { initJenisPenilaian } from '../app/jenis.penilaian/jenis.penilaian.model';
 import { associateAsrama, initAsrama } from '../app/asrama/asrama.model';
@@ -75,6 +84,14 @@ import { associateLembagaPendidikanFormal, initLembagaPendidikanFormal } from '.
 import { initPegawai, associatePegawai } from '../app/pegawai/pegawai.model';
 import { associateKamar, initKamar } from '../app/kamar/kamar.model';
 import { associatePenempatanKamarSantri, initPenempatanKamarSantri } from '../app/penempatan.kamar.santri/penempatan.kamar.santri.model';
+import {
+  initInventarisUmum,
+  associateInventarisUmum,
+} from '../app/inventaris.umum/inventaris.umum.model';
+import {
+  initInventarisAsetHarian,
+  associateInventarisAsetHarian,
+} from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -114,9 +131,12 @@ export function initializeModels(sequelize: Sequelize) {
   initPegawai(sequelize);
   initKamar(sequelize);
   initPenempatanKamarSantri(sequelize);
+  initInventarisUmum(sequelize);
+  initInventarisAsetHarian(sequelize);
 
   // associate
   associateAppRole();
+  associateAppMenu();
   associateAppRoleMenu();
   associateAppResource();
   associateAreaRegency();
@@ -139,17 +159,23 @@ export function initializeModels(sequelize: Sequelize) {
   associatePegawai();
   associateKamar();
   associatePenempatanKamarSantri();
+  associateInventarisAsetHarian();
+  associateKelompokPelajaran();
 
   addGlobalActivityHooks(sequelize);
 }
 
 Model.prototype.toJSON = function () {
   const values = Object.assign({}, this.get());
-  if (values?.created_at) {
-    values.created_at = helper.dateFormat(values?.created_at);
-  }
-  if (values?.updated_at) {
-    values.updated_at = helper.dateFormat(values?.updated_at);
+  const createdAtDb = values.created_at || values.created_date;
+  const updatedAtDb = values.updated_at || values.modified_date;
+
+  values.created_at = createdAtDb ? helper.dateFormat(createdAtDb) : null;
+
+  if (updatedAtDb) {
+    values.updated_at = helper.dateFormat(updatedAtDb);
+  } else {
+    values.updated_at = createdAtDb ? helper.dateFormat(createdAtDb) : null;
   }
   return values;
 };

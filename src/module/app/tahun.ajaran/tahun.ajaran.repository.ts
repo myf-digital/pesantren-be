@@ -8,11 +8,11 @@ export default class Repository {
     let query: Object = {
       order: [['created_at', 'DESC']],
     };
-    if (data?.tahun_ajaran !== undefined && data?.tahun_ajaran != null) {
+    if (data?.status != '') {
       query = {
         ...query,
         where: {
-          tahun_ajaran: { [Op.like]: `%${data?.tahun_ajaran}%` },
+          status: { [Op.eq]: data?.status },
         },
       };
     }

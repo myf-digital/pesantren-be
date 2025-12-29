@@ -4,27 +4,34 @@ import { Op, Sequelize } from 'sequelize';
 import Model from './kelompok.pelajaran.model';
 
 export default class Repository {
-  public list(data: any) {
-    let query: Object = {
-      order: [['nomor_urut', 'DESC']],
-    };
-    if (
-      data?.nama_kelpelajaran !== undefined &&
-      data?.nama_kelpelajaran != null
-    ) {
-      query = {
-        ...query,
-        where: {
-          nama_kelpelajaran: { [Op.like]: `%${data?.nama_kelpelajaran}%` },
-        },
+  public list(condition: any, useInclude = false) {
+    let include = {};
+    if (useInclude) {
+      include = {
+        include: [
+          {
+            model: Model,
+            as: 'children',
+            required: false,
+          },
+        ],
       };
     }
-    return Model.findAll(query);
+    return Model.findAll({
+      where: condition,
+      order: [['updated_at', 'DESC']],
+      ...include,
+    });
   }
 
   public index(data: any) {
     let query: Object = {
-      order: [['nomor_urut', 'DESC']],
+      where: {
+        parent_id: {
+          [Op.is]: null,
+        },
+      },
+      order: [['updated_at', 'DESC']],
       offset: data?.offset,
       limit: data?.limit,
     };
@@ -32,6 +39,9 @@ export default class Repository {
       query = {
         ...query,
         where: {
+          parent_id: {
+            [Op.is]: null,
+          },
           [Op.or]: [
             { nama_kelpelajaran: { [Op.like]: `%${data?.keyword}%` } },
             Sequelize.where(
@@ -43,7 +53,16 @@ export default class Repository {
         },
       };
     }
-    return Model.findAndCountAll(query);
+    return Model.findAndCountAll({
+      ...query,
+      include: [
+        {
+          model: Model,
+          as: 'children',
+          required: false,
+        },
+      ],
+    });
   }
 
   public detail(condition: any) {
@@ -51,6 +70,13 @@ export default class Repository {
       where: {
         ...condition,
       },
+      include: [
+        {
+          model: Model,
+          as: 'parent',
+          required: false,
+        },
+      ],
     });
   }
 

@@ -49,16 +49,18 @@ async function bootstrap() {
     preflightContinue: false,
   };
 
-  app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
-  app.use(express.static('public'));
   app.use(
     fileUpload({
       useTempFiles: true,
       tempFileDir: `./tmp/${day}/`,
     })
   );
-  app.use(xss());
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(express.static('public'));
+  app.use(xss({
+    allowedKeys: ['penghasilan']
+  }));
   app.use(cors(options));
   app.use((req, res, next) => {
     runWithUser(null, next);

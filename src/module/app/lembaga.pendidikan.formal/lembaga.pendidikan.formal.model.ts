@@ -34,18 +34,28 @@ export function initLembagaPendidikanFormal(sequelize: Sequelize) {
       },
       id_cabang: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       keterangan: {
         type: DataTypes.STRING(255),
         allowNull: true,
       },
       jenis_lembaga: {
-        type: DataTypes.ENUM('SD','MI','SMP','MTs','SMA','MA','SMK','Diniyah','Perguruan Tinggi'),
+        type: DataTypes.ENUM(
+          'SD',
+          'MI',
+          'SMP',
+          'MTs',
+          'SMA',
+          'MA',
+          'SMK',
+          'Diniyah',
+          'Perguruan Tinggi'
+        ),
         allowNull: true,
       },
       status_akreditasi: {
-        type: DataTypes.ENUM('A','B','C','Belum Terakreditasi'),
+        type: DataTypes.ENUM('A', 'B', 'C', 'Belum Terakreditasi'),
         allowNull: true,
       },
       nomor_npsn: {

@@ -24,7 +24,11 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(`jenis penilaian list: ${err?.message}`, 500, res);
+      return helper.catchError(
+        `jenis penilaian list: ${err?.message}`,
+        500,
+        res
+      );
     }
   }
 
@@ -40,35 +44,45 @@ export default class Controller {
         res
       );
     } catch (err: any) {
-      return helper.catchError(`jenis penilaian index: ${err?.message}`, 500, res);
+      return helper.catchError(
+        `jenis penilaian index: ${err?.message}`,
+        500,
+        res
+      );
     }
   }
 
   public async detail(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const result: Object | any = await repository.detail({ id_penilaian: id });
+      const result: Object | any = await repository.detail({
+        id_penilaian: id,
+      });
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(`jenis penilaian detail: ${err?.message}`, 500, res);
+      return helper.catchError(
+        `jenis penilaian detail: ${err?.message}`,
+        500,
+        res
+      );
     }
   }
 
   public async create(req: Request, res: Response) {
     try {
       let data = req?.body;
-     
+
       if (Array.isArray(data)) {
-        data = data.map((item) => helper.only(variable.fillable(), item))
+        data = data.map((item) => helper.only(variable.fillable(), item));
         console.log(data);
         await repository.create({
           payload: data,
         });
       } else {
-        data = helper.only(variable.fillable(), data)
+        data = helper.only(variable.fillable(), data);
         await repository.create({
-          payload: [data], 
+          payload: [data],
         });
       }
 
@@ -94,11 +108,7 @@ export default class Controller {
       });
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `tingkat update: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`tingkat update: ${err?.message}`, 500, res);
     }
   }
 
@@ -112,11 +122,7 @@ export default class Controller {
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `tingkat delete: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`tingkat delete: ${err?.message}`, 500, res);
     }
   }
 }

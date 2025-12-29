@@ -8,7 +8,7 @@ export const up = async (queryInterface: QueryInterface) => {
       type: DataTypes.STRING,
       allowNull: false,
       primaryKey: true,
-      unique: true
+      unique: true,
     },
     nama_lembaga: {
       type: DataTypes.STRING(150),
@@ -29,11 +29,21 @@ export const up = async (queryInterface: QueryInterface) => {
       allowNull: true,
     },
     jenis_lembaga: {
-      type: DataTypes.ENUM('SD','MI','SMP','MTs','SMA','MA','SMK','Diniyah','Perguruan Tinggi'),
+      type: DataTypes.ENUM(
+        'SD',
+        'MI',
+        'SMP',
+        'MTs',
+        'SMA',
+        'MA',
+        'SMK',
+        'Diniyah',
+        'Perguruan Tinggi'
+      ),
       allowNull: true,
     },
     status_akreditasi: {
-      type: DataTypes.ENUM('A','B','C','Belum Terakreditasi'),
+      type: DataTypes.ENUM('A', 'B', 'C', 'Belum Terakreditasi'),
       allowNull: true,
     },
     nomor_npsn: {

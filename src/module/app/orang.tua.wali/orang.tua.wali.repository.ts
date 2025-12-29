@@ -2,30 +2,48 @@
 
 import { Op, Sequelize } from 'sequelize';
 import Model from './orang.tua.wali.model';
+import AreaProvince from '../../area/provinces.model';
+import AreaRegency from '../../area/regencies.model';
+import AreaDistrict from '../../area/districts.model';
+import AreaSubDistrict from '../../area/subdistricts.model';
 //import Santri from '../santri/santri.model';
+
 
 export default class Repository {
   public list(data: any) {
     let query: Object = {
       order: [['created_at', 'DESC']],
+      where: {
+        is_deleted: false,
+      },
     };
-    if (data?.nama_wali !== undefined && data?.nama_wali != null) {
-      query = {
-        ...query,
-        where: {
-          nama_wali: { [Op.like]: `%${data?.nama_wali}%` },
-        },
-      };
-    }
     return Model.findAll({
       ...query,
       include: [
-        // {
-        //   model: Santri,
-        //   as: 'santri',
-        //   required: true,
-        //   attributes: ['nama_santri'],
-        // }
+        {
+          model: AreaProvince,
+          as: 'province',
+          required: true,
+          attributes: ['name'],
+        },
+        {
+          model: AreaRegency,
+          as: 'city',
+          required: true,
+          attributes: ['name'],
+        },
+        {
+          model: AreaDistrict,
+          as: 'district',
+          required: true,
+          attributes: ['name'],
+        },
+        {
+          model: AreaSubDistrict,
+          as: 'sub_district',
+          required: true,
+          attributes: ['name'],
+        },
       ],
     });
   }
@@ -35,6 +53,9 @@ export default class Repository {
       order: [['created_at', 'DESC']],
       offset: data?.offset,
       limit: data?.limit,
+      where: {
+        is_deleted: false,
+      },
     };
     if (data?.keyword && data?.keyword != undefined) {
       query = {
@@ -52,12 +73,30 @@ export default class Repository {
     return Model.findAndCountAll({
       ...query,
       include: [
-        // {
-        //   model: Santri,
-        //   as: 'santri',
-        //   required: false,
-        //   attributes: ['nama_santri'],
-        // },
+        {
+          model: AreaProvince,
+          as: 'province',
+          required: false,
+          attributes: ['name'],
+        },
+        {
+          model: AreaRegency,
+          as: 'city',
+          required: false,
+          attributes: ['name'],
+        },
+        {
+          model: AreaDistrict,
+          as: 'district',
+          required: false,
+          attributes: ['name'],
+        },
+        {
+          model: AreaSubDistrict,
+          as: 'sub_district',
+          required: false,
+          attributes: ['name'],
+        },
       ],
     });
   }
@@ -68,12 +107,30 @@ export default class Repository {
         ...condition,
       },
       include: [
-        // {
-        //   model: Santri,
-        //   as: 'santri',
-        //   required: true,
-        //   attributes: ['nama_santri'],
-        // },
+        {
+          model: AreaProvince,
+          as: 'province',
+          required: true,
+          attributes: ['id','name'],
+        },
+        {
+          model: AreaRegency,
+          as: 'city',
+          required: true,
+          attributes: ['id','name'],
+        },
+        {
+          model: AreaDistrict,
+          as: 'district',
+          required: true,
+          attributes: ['id','name'],
+        },
+        {
+          model: AreaSubDistrict,
+          as: 'sub_district',
+          required: true,
+          attributes: ['id','name'],
+        },
       ],
     });
   }

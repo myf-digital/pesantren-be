@@ -34,6 +34,12 @@ export function initTahunAjaran(sequelize: Sequelize) {
       status: {
         type: DataTypes.ENUM('Aktif', 'Nonaktif', 'Arsip'),
       },
+      archived_at: {
+        type: DataTypes.DATE,
+      },
+      archived_by: {
+        type: DataTypes.STRING,
+      },
     },
     {
       sequelize,

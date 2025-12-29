@@ -3,24 +3,15 @@
 import moment from 'moment';
 import ExcelJS from 'exceljs';
 import puppeteer from 'puppeteer';
-import { Op, Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 import { Request, Response } from 'express';
 import { helper } from '../../helpers/helper';
 import { response } from '../../helpers/response';
-import { transformer } from './global.transformer';
 import { appConfig } from '../../config/config.app';
 import { sequelize } from '../../database/connection';
 import { repository as RepoMenu } from '../app/menu/menu.repository';
 import { repository as RoleMenu } from '../app/role.menu/role.menu.repository';
-import {
-  MYSQL,
-  NOT_FOUND,
-  POSTGRES,
-  REQUIRED,
-  ROLE_ADMIN,
-  ROLE_AGENT,
-  SUCCESS_RETRIEVED,
-} from '../../utils/constant';
+import { NOT_FOUND, REQUIRED, SUCCESS_RETRIEVED } from '../../utils/constant';
 
 const nestedChildren = (
   data: any,
@@ -38,6 +29,24 @@ const nestedChildren = (
     }
   });
   return result;
+};
+
+const formatNavigationRole = (data: any) => {
+  let result: Array<object> = [];
+  if (data?.dataValues?.role_menu?.length > 0) {
+    result = data?.dataValues?.role_menu.map((rm: any) => rm?.menu);
+  }
+  const navigation = nestedChildren(result);
+  return navigation;
+};
+
+const sortRecursive = (nodes: any[] = []) => {
+  nodes.sort((a, b) => (a.seq_number ?? 0) - (b.seq_number ?? 0));
+  nodes.forEach((n) => {
+    if (Array.isArray(n.children)) {
+      sortRecursive(n.children);
+    }
+  });
 };
 
 const generateHeaderExcel = (sheet: any, data: any) => {
@@ -241,15 +250,6 @@ const generateHtmlPDF = (title: string, details: any) => {
   return html;
 };
 
-const formatNavigationRole = (data: any) => {
-  let result: Array<object> = [];
-  if (data?.dataValues?.role_menu?.length > 0) {
-    result = data?.dataValues?.role_menu.map((rm: any) => rm?.menu);
-  }
-  const navigation = nestedChildren(result);
-  return navigation;
-};
-
 export default class Controller {
   public index(req: Request, res: Response) {
     return response.success(
@@ -277,6 +277,7 @@ export default class Controller {
         navigation = nestedChildren(result);
       }
 
+      sortRecursive(navigation);
       return response.success(SUCCESS_RETRIEVED, navigation, res);
     } catch (err: any) {
       return helper.catchError(`navigation: ${err?.message}`, 500, res);

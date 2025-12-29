@@ -1,6 +1,8 @@
 'use strict';
 
 import { Router } from 'express';
+import { sanitizeBody } from '../../middlewares/sanitize';
+import { validate } from '../../middlewares/validate';
 import { role } from './role/role.controller';
 import { menu } from './menu/menu.controller';
 import { auth } from '../auth/auth.middleware';
@@ -9,10 +11,15 @@ import { roleMenu } from './role.menu/role.menu.controller';
 import { paramGlobal } from './param.global/param.global.controller';
 import { tahunAngkatan } from './tahun.angkatan/tahun.angkatan.controller';
 import { tingkat } from './tingkat/tingkat.controller';
+import { tingkatSchema } from './tingkat/tingkat.schema';
 import { tahunAjaran } from './tahun.ajaran/tahun.ajaran.controller';
+import { tahunAjaranSchema } from './tahun.ajaran/tahun.ajaran.schema';
 import { semester } from './semester/semester.ajaran.controller';
+import { semesterSchema } from './semester/semester.schema';
 import { statusAwalSantri } from './status.awal.santri/status.awal.santri.controller';
-import { jenisBeasiswa } from './jenis_beasiswa/jenis.beasiswa.controller';
+import { statusAwalSantriSchema } from './status.awal.santri/status.awal.santri.schema';
+import { jenisBeasiswa } from './jenis.beasiswa/jenis.beasiswa.controller';
+import { jenisBeasiswaSchema } from './jenis.beasiswa/jenis.beasiswa.schema';
 import { kelompokPejaran } from './kelompok.pelajaran/kelompok.pelajaran.controller';
 import { jenisJamPelajaran } from './jenis.jampel/jenis.jampel.controller';
 import { jenisGuru } from './jenis.guru/jenis.guru.controller';
@@ -28,10 +35,13 @@ import { kegiatanAkademik } from './kegiatan.akademik/kegiatan.akademik.controll
 import { programPesantren } from './program.pesantren/program.pesantren.controller';
 import { santriProgram } from './santri.program/santri.program.controller';
 import { orangTuaWali } from './orang.tua.wali/orang.tua.wali.controller';
+import { orangTuaWaliSchema } from './orang.tua.wali/orang.tua.wali.schema';
 import { LembagaPendidikanFormal } from './lembaga.pendidikan.formal/lembaga.pendidikan.formal.controller';
 import { Pegawai } from './pegawai/pegawai.controller';
 import { Kamar } from './kamar/kamar.controller';
 import { PenempatanKamarSantri } from './penempatan.kamar.santri/penempatan.kamar.santri..controller';
+import { inventarisUmum } from './inventaris.umum/inventaris.umum.controller';
+import { inventarisAsetHarian } from './inventaris.aset.harian/inventaris.aset.harian.controller';
 
 const router: Router = Router();
 
@@ -51,11 +61,13 @@ router.delete('/menu/:id', auth.checkBearerToken, menu.delete);
 
 router.get('/role-menu/all-data', auth.checkBearerToken, roleMenu.list);
 router.get('/role-menu', auth.checkBearerToken, roleMenu.index);
+router.get('/role-menu/:id', auth.checkBearerToken, roleMenu.detail);
 router.post('/role-menu', auth.checkBearerToken, roleMenu.create);
 
 router.get('/param-global/all-data', auth.checkToken, paramGlobal.list);
 router.get('/param-global', auth.checkToken, paramGlobal.index);
 router.get('/param-global/detail', auth.checkToken, paramGlobal.detail);
+router.get('/param-global/:id', auth.checkBearerToken, paramGlobal.detailById);
 router.post('/param-global', auth.checkBearerToken, paramGlobal.create);
 router.put('/param-global/:id', auth.checkBearerToken, paramGlobal.update);
 router.delete('/param-global/:id', auth.checkBearerToken, paramGlobal.delete);
@@ -85,23 +97,62 @@ router.delete(
 router.get('/tingkat/all-data', auth.checkBearerToken, tingkat.list);
 router.get('/tingkat', auth.checkBearerToken, tingkat.index);
 router.get('/tingkat/:id', auth.checkBearerToken, tingkat.detail);
-router.post('/tingkat', auth.checkBearerToken, tingkat.create);
-router.put('/tingkat/:id', auth.checkBearerToken, tingkat.update);
+router.post(
+  '/tingkat',
+  auth.checkBearerToken,
+  sanitizeBody,
+  validate(tingkatSchema),
+  tingkat.create
+);
+router.put(
+  '/tingkat/:id',
+  auth.checkBearerToken,
+  sanitizeBody,
+  validate(tingkatSchema),
+  tingkat.update
+);
 router.delete('/tingkat/:id', auth.checkBearerToken, tingkat.delete);
+router.post('/tingkat/export', auth.checkBearerToken, tingkat.export);
 
 router.get('/tahun-ajaran/all-data', auth.checkBearerToken, tahunAjaran.list);
 router.get('/tahun-ajaran', auth.checkBearerToken, tahunAjaran.index);
 router.get('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.detail);
-router.post('/tahun-ajaran', auth.checkBearerToken, tahunAjaran.create);
-router.put('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.update);
+router.post(
+  '/tahun-ajaran',
+  auth.checkBearerToken,
+  sanitizeBody,
+  validate(tahunAjaranSchema),
+  tahunAjaran.create
+);
+router.put(
+  '/tahun-ajaran/:id',
+  auth.checkBearerToken,
+  sanitizeBody,
+  validate(tahunAjaranSchema),
+  tahunAjaran.update
+);
 router.delete('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.delete);
+router.post('/tahun-ajaran/export', auth.checkBearerToken, tahunAjaran.export);
 
 router.get('/semester/all-data', auth.checkBearerToken, semester.list);
 router.get('/semester', auth.checkBearerToken, semester.index);
 router.get('/semester/:id', auth.checkBearerToken, semester.detail);
-router.post('/semester', auth.checkBearerToken, semester.create);
-router.put('/semester/:id', auth.checkBearerToken, semester.update);
+router.post(
+  '/semester',
+  auth.checkBearerToken,
+  sanitizeBody,
+  validate(semesterSchema),
+  semester.create
+);
+router.put(
+  '/semester/:id',
+  auth.checkBearerToken,
+  sanitizeBody,
+  validate(semesterSchema),
+  semester.update
+);
 router.delete('/semester/:id', auth.checkBearerToken, semester.delete);
+router.post('/semester/export', auth.checkBearerToken, semester.export);
 
 router.get(
   '/status-awal-santri/all-data',
@@ -121,17 +172,26 @@ router.get(
 router.post(
   '/status-awal-santri',
   auth.checkBearerToken,
+  sanitizeBody,
+  validate(statusAwalSantriSchema),
   statusAwalSantri.create
 );
 router.put(
   '/status-awal-santri/:id',
   auth.checkBearerToken,
+  sanitizeBody,
+  validate(statusAwalSantriSchema),
   statusAwalSantri.update
 );
 router.delete(
   '/status-awal-santri/:id',
   auth.checkBearerToken,
   statusAwalSantri.delete
+);
+router.post(
+  '/status-awal-santri/export',
+  auth.checkBearerToken,
+  statusAwalSantri.export
 );
 
 router.get(
@@ -140,21 +200,30 @@ router.get(
   jenisBeasiswa.list
 );
 router.get('/jenis-beasiswa', auth.checkBearerToken, jenisBeasiswa.index);
-router.get(
-  '/jenis-beasiswa/:id',
+router.get('/jenis-beasiswa/:id', auth.checkBearerToken, jenisBeasiswa.detail);
+router.post(
+  '/jenis-beasiswa',
   auth.checkBearerToken,
-  jenisBeasiswa.detail
+  sanitizeBody,
+  validate(jenisBeasiswaSchema),
+  jenisBeasiswa.create
 );
-router.post('/jenis-beasiswa', auth.checkBearerToken, jenisBeasiswa.create);
 router.put(
   '/jenis-beasiswa/:id',
   auth.checkBearerToken,
+  sanitizeBody,
+  validate(jenisBeasiswaSchema),
   jenisBeasiswa.update
 );
 router.delete(
   '/jenis-beasiswa/:id',
   auth.checkBearerToken,
   jenisBeasiswa.delete
+);
+router.post(
+  '/jenis-beasiswa/export',
+  auth.checkBearerToken,
+  jenisBeasiswa.export
 );
 
 router.get(
@@ -183,28 +252,58 @@ router.delete(
   auth.checkBearerToken,
   kelompokPejaran.delete
 );
+router.post(
+  '/kelompok-pelajaran/export',
+  auth.checkBearerToken,
+  kelompokPejaran.export
+);
+router.post(
+  '/kelompok-pelajaran/import',
+  auth.checkBearerToken,
+  kelompokPejaran.import
+);
+router.post(
+  '/kelompok-pelajaran/insert',
+  auth.checkBearerToken,
+  kelompokPejaran.insert
+);
 
 router.get(
-  '/jenis-jampel/all-data',
+  '/jenis-jam-pelajaran/all-data',
   auth.checkBearerToken,
   jenisJamPelajaran.list
 );
-router.get('/jenis-jampel', auth.checkBearerToken, jenisJamPelajaran.index);
+router.get('/jenis-jam-pelajaran', auth.checkBearerToken, jenisJamPelajaran.index);
 router.get(
-  '/jenis-jampel/:id',
+  '/jenis-jam-pelajaran/:id',
   auth.checkBearerToken,
   jenisJamPelajaran.detail
 );
-router.post('/jenis-jampel', auth.checkBearerToken, jenisJamPelajaran.create);
+router.post('/jenis-jam-pelajaran', auth.checkBearerToken, jenisJamPelajaran.create);
 router.put(
-  '/jenis-jampel/:id',
+  '/jenis-jam-pelajaran/:id',
   auth.checkBearerToken,
   jenisJamPelajaran.update
 );
 router.delete(
-  '/jenis-jampel/:id',
+  '/jenis-jam-pelajaran/:id',
   auth.checkBearerToken,
   jenisJamPelajaran.delete
+);
+router.post(
+  '/jenis-jam-pelajaran/export',
+  auth.checkBearerToken,
+  jenisJamPelajaran.export
+);
+router.post(
+  '/jenis-jam-pelajaran/import',
+  auth.checkBearerToken,
+  jenisJamPelajaran.import
+);
+router.post(
+  '/jenis-jam-pelajaran/insert',
+  auth.checkBearerToken,
+  jenisJamPelajaran.insert
 );
 
 router.get('/jenis-guru/all-data', auth.checkBearerToken, jenisGuru.list);
@@ -235,26 +334,94 @@ router.post('/cabang', auth.checkBearerToken, cabang.create);
 router.put('/cabang/:id', auth.checkBearerToken, cabang.update);
 router.delete('/cabang/:id', auth.checkBearerToken, cabang.delete);
 
-router.get('/lembaga-kepesantrenan/all-data', auth.checkBearerToken, LembagaPendidikanKepesantrenan.list);
-router.get('/lembaga-kepesantrenan', auth.checkBearerToken, LembagaPendidikanKepesantrenan.index);
-router.get('/lembaga-kepesantrenan/:id', auth.checkBearerToken, LembagaPendidikanKepesantrenan.detail);
-router.post('/lembaga-kepesantrenan', auth.checkBearerToken, LembagaPendidikanKepesantrenan.create);
-router.put('/lembaga-kepesantrenan/:id', auth.checkBearerToken, LembagaPendidikanKepesantrenan.update);
-router.delete('/lembaga-kepesantrenan/:id', auth.checkBearerToken, LembagaPendidikanKepesantrenan.delete);
+router.get(
+  '/lembaga-kepesantrenan/all-data',
+  auth.checkBearerToken,
+  LembagaPendidikanKepesantrenan.list
+);
+router.get(
+  '/lembaga-kepesantrenan',
+  auth.checkBearerToken,
+  LembagaPendidikanKepesantrenan.index
+);
+router.get(
+  '/lembaga-kepesantrenan/:id',
+  auth.checkBearerToken,
+  LembagaPendidikanKepesantrenan.detail
+);
+router.post(
+  '/lembaga-kepesantrenan',
+  auth.checkBearerToken,
+  LembagaPendidikanKepesantrenan.create
+);
+router.put(
+  '/lembaga-kepesantrenan/:id',
+  auth.checkBearerToken,
+  LembagaPendidikanKepesantrenan.update
+);
+router.delete(
+  '/lembaga-kepesantrenan/:id',
+  auth.checkBearerToken,
+  LembagaPendidikanKepesantrenan.delete
+);
 
-router.get('/lembaga-formal/all-data', auth.checkBearerToken, LembagaPendidikanFormal.list);
-router.get('/lembaga-formal', auth.checkBearerToken, LembagaPendidikanFormal.index);
-router.get('/lembaga-formal/:id', auth.checkBearerToken, LembagaPendidikanFormal.detail);
-router.post('/lembaga-formal', auth.checkBearerToken, LembagaPendidikanFormal.create);
-router.put('/lembaga-formal/:id', auth.checkBearerToken, LembagaPendidikanFormal.update);
-router.delete('/lembaga-formal/:id', auth.checkBearerToken, LembagaPendidikanFormal.delete);
+router.get(
+  '/lembaga-formal/all-data',
+  auth.checkBearerToken,
+  LembagaPendidikanFormal.list
+);
+router.get(
+  '/lembaga-formal',
+  auth.checkBearerToken,
+  LembagaPendidikanFormal.index
+);
+router.get(
+  '/lembaga-formal/:id',
+  auth.checkBearerToken,
+  LembagaPendidikanFormal.detail
+);
+router.post(
+  '/lembaga-formal',
+  auth.checkBearerToken,
+  LembagaPendidikanFormal.create
+);
+router.put(
+  '/lembaga-formal/:id',
+  auth.checkBearerToken,
+  LembagaPendidikanFormal.update
+);
+router.delete(
+  '/lembaga-formal/:id',
+  auth.checkBearerToken,
+  LembagaPendidikanFormal.delete
+);
 
-router.get('/organitation-unit/all-data', auth.checkBearerToken, OrganitationUnit.list);
+router.get(
+  '/organitation-unit/all-data',
+  auth.checkBearerToken,
+  OrganitationUnit.list
+);
 router.get('/organitation-unit', auth.checkBearerToken, OrganitationUnit.index);
-router.get('/organitation-unit/:id', auth.checkBearerToken, OrganitationUnit.detail);
-router.post('/organitation-unit', auth.checkBearerToken, OrganitationUnit.create);
-router.put('/organitation-unit/:id', auth.checkBearerToken, OrganitationUnit.update);
-router.delete('/organitation-unit/:id', auth.checkBearerToken, OrganitationUnit.delete);
+router.get(
+  '/organitation-unit/:id',
+  auth.checkBearerToken,
+  OrganitationUnit.detail
+);
+router.post(
+  '/organitation-unit',
+  auth.checkBearerToken,
+  OrganitationUnit.create
+);
+router.put(
+  '/organitation-unit/:id',
+  auth.checkBearerToken,
+  OrganitationUnit.update
+);
+router.delete(
+  '/organitation-unit/:id',
+  auth.checkBearerToken,
+  OrganitationUnit.delete
+);
 
 router.get('/jabatan/all-data', auth.checkBearerToken, Jabatan.list);
 router.get('/jabatan', auth.checkBearerToken, Jabatan.index);
@@ -263,12 +430,28 @@ router.post('/jabatan', auth.checkBearerToken, Jabatan.create);
 router.put('/jabatan/:id', auth.checkBearerToken, Jabatan.update);
 router.delete('/jabatan/:id', auth.checkBearerToken, Jabatan.delete);
 
-router.get('/jenis-penilaian/all-data', auth.checkBearerToken, JenisPenilaian.list);
+router.get(
+  '/jenis-penilaian/all-data',
+  auth.checkBearerToken,
+  JenisPenilaian.list
+);
 router.get('/jenis-penilaian', auth.checkBearerToken, JenisPenilaian.index);
-router.get('/jenis-penilaian/:id', auth.checkBearerToken, JenisPenilaian.detail);
+router.get(
+  '/jenis-penilaian/:id',
+  auth.checkBearerToken,
+  JenisPenilaian.detail
+);
 router.post('/jenis-penilaian', auth.checkBearerToken, JenisPenilaian.create);
-router.put('/jenis-penilaian/:id', auth.checkBearerToken, JenisPenilaian.update);
-router.delete('/jenis-penilaian/:id', auth.checkBearerToken, JenisPenilaian.delete);
+router.put(
+  '/jenis-penilaian/:id',
+  auth.checkBearerToken,
+  JenisPenilaian.update
+);
+router.delete(
+  '/jenis-penilaian/:id',
+  auth.checkBearerToken,
+  JenisPenilaian.delete
+);
 
 router.get('/asrama/all-data', auth.checkBearerToken, Asrama.list);
 router.get('/asrama', auth.checkBearerToken, Asrama.index);
@@ -374,12 +557,71 @@ router.get(
 );
 router.get('/orang-tua-wali', auth.checkBearerToken, orangTuaWali.index);
 router.get('/orang-tua-wali/:id', auth.checkBearerToken, orangTuaWali.detail);
-router.post('/orang-tua-wali', auth.checkBearerToken, orangTuaWali.create);
-router.put('/orang-tua-wali/:id', auth.checkBearerToken, orangTuaWali.update);
+router.post('/orang-tua-wali', auth.checkBearerToken, sanitizeBody, validate(orangTuaWaliSchema), orangTuaWali.create);
+router.put('/orang-tua-wali/:id', auth.checkBearerToken, sanitizeBody, validate(orangTuaWaliSchema), orangTuaWali.update);
 router.delete(
   '/orang-tua-wali/:id',
   auth.checkBearerToken,
   orangTuaWali.delete
+);
+router.post(
+  '/orang-tua-wali/export',
+  auth.checkBearerToken,
+  orangTuaWali.export
+);
+
+router.get(
+  '/inventaris-umum/all-data',
+  auth.checkBearerToken,
+  inventarisUmum.list
+);
+router.get('/inventaris-umum', auth.checkBearerToken, inventarisUmum.index);
+router.get(
+  '/inventaris-umum/:id',
+  auth.checkBearerToken,
+  inventarisUmum.detail
+);
+router.post('/inventaris-umum', auth.checkBearerToken, inventarisUmum.create);
+router.put(
+  '/inventaris-umum/:id',
+  auth.checkBearerToken,
+  inventarisUmum.update
+);
+router.delete(
+  '/inventaris-umum/:id',
+  auth.checkBearerToken,
+  inventarisUmum.delete
+);
+
+router.get(
+  '/inventaris-aset-harian/all-data',
+  auth.checkBearerToken,
+  inventarisAsetHarian.list
+);
+router.get(
+  '/inventaris-aset-harian',
+  auth.checkBearerToken,
+  inventarisAsetHarian.index
+);
+router.get(
+  '/inventaris-aset-harian/:id',
+  auth.checkBearerToken,
+  inventarisAsetHarian.detail
+);
+router.post(
+  '/inventaris-aset-harian',
+  auth.checkBearerToken,
+  inventarisAsetHarian.create
+);
+router.put(
+  '/inventaris-aset-harian/:id',
+  auth.checkBearerToken,
+  inventarisAsetHarian.update
+);
+router.delete(
+  '/inventaris-aset-harian/:id',
+  auth.checkBearerToken,
+  inventarisAsetHarian.delete
 );
 
 export default router;

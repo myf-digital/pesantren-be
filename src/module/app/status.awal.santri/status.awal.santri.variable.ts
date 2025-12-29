@@ -5,7 +5,6 @@ export default class Variable {
     const field: Array<string> = [
       'kode_status_awal',
       'nama_status_awal',
-      'nomor_urut',
       'keterangan',
       'status',
     ];

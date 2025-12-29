@@ -17,7 +17,14 @@ import {
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
-      const result = await repository.list();
+      const parent: any = req?.query?.parent || '';
+      let condition: any = {};
+      if (parent && parent == '1') {
+        condition = {
+          parent_id: '00000000-0000-0000-0000-000000000000',
+        };
+      }
+      const result = await repository.list(condition);
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);

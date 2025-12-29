@@ -1,22 +1,25 @@
 'use strict';
 
 import { Op, Sequelize } from 'sequelize';
-import Model from './jenis.beasiswa.model';
+import Model from './inventaris.umum.model';
 
 export default class Repository {
   public list(data: any) {
     let query: Object = {
       order: [['created_at', 'DESC']],
     };
-    if (data?.kode_beasiswa !== undefined && data?.kode_beasiswa != null) {
+    if (data?.nama_aset !== undefined && data?.kode_aset != null) {
       query = {
         ...query,
         where: {
-          kode_beasiswa: { [Op.like]: `%${data?.kode_beasiswa}%` },
+          kode_aset: { [Op.like]: `%${data?.kode_aset}%` },
         },
       };
     }
-    return Model.findAll(query);
+    return Model.findAll({
+      ...query,
+      include: [],
+    });
   }
 
   public index(data: any) {
@@ -30,18 +33,18 @@ export default class Repository {
         ...query,
         where: {
           [Op.or]: [
-            { kode_beasiswa: { [Op.like]: `%${data?.keyword}%` } },
-            { nama_beasiswa: { [Op.like]: `%${data?.keyword}%` } },
-            Sequelize.where(
-              Sequelize.cast(Sequelize.col('nomor_urut'), 'TEXT'),
-              { [Op.like]: `%${data?.keyword}%` }
-            ),
+            { kode_aset: { [Op.like]: `%${data?.keyword}%` } },
+            { nama_aset: { [Op.like]: `%${data?.keyword}%` } },
+            { kategori: { [Op.like]: `%${data?.keyword}%` } },
             { keterangan: { [Op.like]: `%${data?.keyword}%` } },
           ],
         },
       };
     }
-    return Model.findAndCountAll(query);
+    return Model.findAndCountAll({
+      ...query,
+      include: [],
+    });
   }
 
   public detail(condition: any) {
@@ -49,6 +52,7 @@ export default class Repository {
       where: {
         ...condition,
       },
+      include: [],
     });
   }
 

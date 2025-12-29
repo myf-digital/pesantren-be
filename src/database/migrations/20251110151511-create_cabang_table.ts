@@ -8,12 +8,12 @@ export const up = async (queryInterface: QueryInterface) => {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
-      unique: true
+      unique: true,
     },
     nama_cabang: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true
+      unique: true,
     },
     nomor_urut: {
       type: DataTypes.INTEGER,
@@ -22,12 +22,12 @@ export const up = async (queryInterface: QueryInterface) => {
     keterangan: {
       type: DataTypes.STRING(255),
       allowNull: true,
-      unique: true
+      unique: true,
     },
     alamat: {
       type: DataTypes.STRING(255),
-      allowNull: true
-    }
+      allowNull: true,
+    },
   });
 
   await queryInterface.sequelize.query(`

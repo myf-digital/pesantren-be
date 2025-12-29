@@ -29,6 +29,8 @@ export default class Transformer {
             role_menu_edit: rm?.edit,
             role_menu_delete: rm?.delete,
             role_menu_approve: rm?.approve,
+            role_menu_import: rm?.import,
+            role_menu_export: rm?.export,
           }));
         }
 
@@ -72,6 +74,8 @@ export default class Transformer {
           role_menu_edit: rm?.edit,
           role_menu_delete: rm?.delete,
           role_menu_approve: rm?.approve,
+          role_menu_import: rm?.import,
+          role_menu_export: rm?.export,
         }));
       }
 

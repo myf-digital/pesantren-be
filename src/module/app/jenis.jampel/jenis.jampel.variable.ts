@@ -7,6 +7,7 @@ export default class Variable {
       'nomor_urut',
       'keterangan',
       'status',
+      'lembaga_type',
     ];
     return field;
   }

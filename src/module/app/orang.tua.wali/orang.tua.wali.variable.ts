@@ -9,8 +9,14 @@ export default class Variable {
       'nik',
       'pendidikan',
       'pekerjaan',
+      'penghasilan',
       'no_hp',
       'alamat',
+      'province_id',
+      'city_id',
+      'district_id',
+      'sub_district_id',
+      'keterangan',
     ];
     return field;
   }

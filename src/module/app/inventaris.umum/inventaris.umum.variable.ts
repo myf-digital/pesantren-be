@@ -3,11 +3,15 @@
 export default class Variable {
   public fillable() {
     const field: Array<string> = [
-      'kode_beasiswa',
-      'nama_beasiswa',
-      'nomor_urut',
+      'kode_aset',
+      'nama_aset',
+      'kategori',
+      'jumlah',
+      'kondisi',
+      'lokasi',
+      'sumber_aset',
+      'tanggal_input',
       'keterangan',
-      'status',
     ];
     return field;
   }

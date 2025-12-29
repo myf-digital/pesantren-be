@@ -45,6 +45,18 @@ export default class Controller {
     }
   }
 
+  public async detail(req: Request, res: Response) {
+    try {
+      const id: string = req?.params?.id || '';
+      const result: Object | any = await repository.detailRole({ role_id: id });
+      if (!result) return response.success(NOT_FOUND, null, res, false);
+      const roleMenu = transformer.detail(result);
+      return response.success(SUCCESS_RETRIEVED, roleMenu, res);
+    } catch (err: any) {
+      return helper.catchError(`menu detail: ${err?.message}`, 500, res);
+    }
+  }
+
   public async create(req: Request, res: Response) {
     try {
       interface Menu {
@@ -54,6 +66,8 @@ export default class Controller {
         edit: number;
         delete: number;
         approve: number;
+        import: number;
+        export: number;
         status: string;
       }
       const date: string = helper.date();
@@ -76,6 +90,8 @@ export default class Controller {
             edit: i?.edit,
             delete: i?.delete,
             approve: i?.approve,
+            import: i?.import,
+            export: i?.export,
             status: i?.status,
             created_by: req?.user?.id,
             created_date: date,
