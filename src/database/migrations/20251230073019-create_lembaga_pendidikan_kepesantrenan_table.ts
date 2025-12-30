@@ -14,6 +14,16 @@ export const up = async (queryInterface: QueryInterface) => {
       type: DataTypes.STRING(150),
       allowNull: false,
     },
+    id_cabang: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'cabang',
+        key: 'id_cabang',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+    },
     keterangan: {
       type: DataTypes.TEXT,
       allowNull: true,
