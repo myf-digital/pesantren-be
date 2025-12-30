@@ -96,6 +96,11 @@ import {
   initKelasMda,
   associateKelasMda,
 } from '../app/kelas.mda/kelas.mda.model';
+import {
+  initKelasFormal,
+  associateKelasFormal,
+} from '../app/kelas.formal/kelas.formal.model';
+
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -138,6 +143,7 @@ export function initializeModels(sequelize: Sequelize) {
   initInventarisUmum(sequelize);
   initInventarisAsetHarian(sequelize);
   initKelasMda(sequelize);
+  initKelasFormal(sequelize);
 
   // associate
   associateAppRole();
@@ -167,6 +173,7 @@ export function initializeModels(sequelize: Sequelize) {
   associateInventarisAsetHarian();
   associateKelompokPelajaran();
   associateKelasMda();
+  associateKelasFormal();
 
   addGlobalActivityHooks(sequelize);
 }

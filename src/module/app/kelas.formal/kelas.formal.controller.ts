@@ -3,9 +3,9 @@
 import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
 import { helper } from '../../../helpers/helper';
-import { variable } from './kelas.mda.variable';
+import { variable } from './kelas.formal.variable';
 import { response } from '../../../helpers/response';
-import { repository } from './kelas.mda.repository';
+import { repository } from './kelas.formal.repository';
 import {
   ALREADY_EXIST,
   NOT_FOUND,
@@ -21,7 +21,7 @@ import moment from 'moment';
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
-  sheet.addRow(['No', 'Nama Kelas MDA', 'Lembaga', 'Tahun Ajaran', 'Tingkat', 'Wali Kelas', 'Status', 'Keterangan']);
+  sheet.addRow(['No', 'Nama Kelas', 'Lembaga Formal', 'Tahun Ajaran', 'Tingkat', 'Wali Kelas', 'Status', 'Keterangan']);
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -31,7 +31,7 @@ const generateDataExcel = (sheet: any, details: any) => {
   for (let i in details) {
     sheet.addRow([
       parseInt(i) + 1,
-      details[i]?.nama_kelas_mda || '',
+      details[i]?.nama_kelas || '',
       details[i]?.lembaga?.nama_lembaga || '',
       details[i]?.tahun_ajaran?.tahun_ajaran || '',
       details[i]?.tingkat?.tingkat || '',
@@ -64,7 +64,7 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(`kelas mda list: ${err?.message}`, 500, res);
+      return helper.catchError(`kelas formal list: ${err?.message}`, 500, res);
     }
   }
 
@@ -80,7 +80,7 @@ export default class Controller {
         res
       );
     } catch (err: any) {
-      return helper.catchError(`kelas mda index: ${err?.message}`, 500, res);
+      return helper.catchError(`kelas formal index: ${err?.message}`, 500, res);
     }
   }
 
@@ -88,13 +88,13 @@ export default class Controller {
     try {
       const id: string = req?.params?.id || '';
       const result: Object | any = await repository.detail({
-        id_kelas_mda: id,
+        id_kelas: id,
       });
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
       return helper.catchError(
-        `kelas mda detail: ${err?.message}`,
+        `kelas formal detail: ${err?.message}`,
         500,
         res
       );
@@ -103,13 +103,13 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
-      const { nama_kelas_mda, id_lembaga, id_tahunajaran, id_tingkat, id_wali_kelas } = req?.body;
+      const { nama_kelas, id_lembaga, id_tahunajaran, id_tingkat, id_wali_kelas } = req?.body;
 
       const idLembaga = id_lembaga?.value || null;
       const idTahunajaran = id_tahunajaran?.value || null;
       const idTingkat = id_tingkat?.value || null;
       const idWaliKelas = id_wali_kelas?.value || null;
-      const check = await repository.detail({ nama_kelas_mda, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran });
+      const check = await repository.detail({ nama_kelas, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran });
 
       if (check) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
@@ -120,7 +120,7 @@ export default class Controller {
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
       return helper.catchError(
-        `kelas mda create: ${err?.message}`,
+        `kelas formal create: ${err?.message}`,
         500,
         res
       );
@@ -130,16 +130,16 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const { nama_kelas_mda, id_lembaga, id_tahunajaran, status, id_tingkat, id_wali_kelas } = req?.body;
+      const { nama_kelas, id_lembaga, id_tahunajaran, status, id_tingkat, id_wali_kelas } = req?.body;
       const idLembaga = id_lembaga?.value;
       const idTahunajaran = id_tahunajaran?.value;
       const idTingkat = id_tingkat?.value;
       const idWaliKelas = id_wali_kelas?.value;
-      const check = await repository.detail({ id_kelas_mda: id });
+      const check = await repository.detail({ id_kelas: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
 
-      if (nama_kelas_mda !== check.nama_kelas_mda || idLembaga !== check.id_lembaga || idTahunajaran !== check.id_tahunajaran) {
-        const duplicate = await repository.detail({ nama_kelas_mda, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran });
+      if (nama_kelas !== check.nama_kelas || idLembaga !== check.id_lembaga || idTahunajaran !== check.id_tahunajaran) {
+        const duplicate = await repository.detail({ nama_kelas, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran });
 
         if (duplicate) {
           return response.failed(ALREADY_EXIST, 400, res);
@@ -161,13 +161,13 @@ export default class Controller {
           id_wali_kelas: idWaliKelas || check?.getDataValue('id_wali_kelas'), 
           id_lembaga: idLembaga || check?.getDataValue('id_lembaga') 
         },
-        condition: { id_kelas_mda: id },
+        condition: { id_kelas: id },
       });
 
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
       return helper.catchError(
-        `kelas mda update: ${err?.message}`,
+        `kelas formal update: ${err?.message}`,
         500,
         res
       );
@@ -177,15 +177,15 @@ export default class Controller {
   public async delete(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const check = await repository.detail({ id_kelas_mda: id });
+      const check = await repository.detail({ id_kelas: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
       await repository.delete({
-        condition: { id_kelas_mda: id },
+        condition: { id_kelas: id },
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
       return helper.catchError(
-        `kelas mda delete: ${err?.message}`,
+        `kelas formal delete: ${err?.message}`,
         500,
         res
       );
@@ -207,7 +207,7 @@ export default class Controller {
 
       const { dir, path } = await helper.checkDirExport('excel');
 
-      const name: string = 'kelas-mda';
+      const name: string = 'kelas-formal';
       const filename: string = `${name}-${isTemplate ? 'template' : moment().format('DDMMYYYY')}.xlsx`;
       const title: string = `${name.replace(/-/g, ' ').toUpperCase()}`;
       const urlExcel: string = `${dir}/${filename}`;
@@ -216,10 +216,10 @@ export default class Controller {
 
       generateDataExcel(sheet, result);
       await workbook.xlsx.writeFile(`${path}/${filename}`);
-      return response.success('export excel kelas mda', urlExcel, res);
+      return response.success('export excel kelas formal', urlExcel, res);
     } catch (err: any) {
       return helper.catchError(
-        `export excel kelas mda: ${err?.message}`,
+        `export excel kelas formal: ${err?.message}`,
         500,
         res
       );
@@ -227,4 +227,4 @@ export default class Controller {
   }
 }
 
-export const kelasMda = new Controller();
+export const kelasFormal = new Controller();
