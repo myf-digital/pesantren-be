@@ -92,6 +92,7 @@ import {
   initInventarisAsetHarian,
   associateInventarisAsetHarian,
 } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
+import { associateJenisPenilaianBobot, initJenisPenilaianBobot } from '../app/jenis.penilaian.bobot/jenis.penilaian.bobot.model';
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -133,6 +134,7 @@ export function initializeModels(sequelize: Sequelize) {
   initPenempatanKamarSantri(sequelize);
   initInventarisUmum(sequelize);
   initInventarisAsetHarian(sequelize);
+  initJenisPenilaianBobot(sequelize);
 
   // associate
   associateAppRole();
@@ -161,6 +163,7 @@ export function initializeModels(sequelize: Sequelize) {
   associatePenempatanKamarSantri();
   associateInventarisAsetHarian();
   associateKelompokPelajaran();
+  associateJenisPenilaianBobot();
 
   addGlobalActivityHooks(sequelize);
 }

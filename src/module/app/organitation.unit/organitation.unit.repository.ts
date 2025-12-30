@@ -1,13 +1,7 @@
 'use strict';
 
-import { Op, Sequelize, literal, QueryTypes } from 'sequelize';
-import Model, { OrganitationUnit } from './organitation.unit.model';
-import Cabang from '../cabang/cabang.model';
-import LembagaPendidikan, {
-  LembagaPendidikanKepesantrenan,
-} from '../lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
-import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
-import { sequelize } from '../../../database/connection';
+import { QueryTypes } from 'sequelize';
+import Model from './organitation.unit.model';
 import { rawQuery } from '../../../helpers/rawQuery';
 
 export default class Repository {

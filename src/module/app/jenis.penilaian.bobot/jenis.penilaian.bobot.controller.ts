@@ -2,9 +2,9 @@
 
 import { Request, Response } from 'express';
 import { helper } from '../../../helpers/helper';
-import { variable } from './lembaga.pendidikan.kepesantrenan.variable';
+import { variable } from './jenis.penilaian.bobot.variable';
 import { response } from '../../../helpers/response';
-import { repository } from './lembaga.pendidikan.kepesantrenan.repository';
+import { repository } from './jenis.penilaian.bobot.repository';
 import {
   ALREADY_EXIST,
   NOT_FOUND,
@@ -13,6 +13,7 @@ import {
   SUCCESS_SAVED,
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
+import { updateExistingBobot, validateBobot } from './validation';
 
 const date: string = helper.date();
 
@@ -25,7 +26,7 @@ export default class Controller {
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
       return helper.catchError(
-        `LP kepesantrenan list: ${err?.message}`,
+        `list: ${err?.message}`,
         500,
         res
       );
@@ -45,7 +46,7 @@ export default class Controller {
       );
     } catch (err: any) {
       return helper.catchError(
-        `LP kepesantrenan index: ${err?.message}`,
+        `index: ${err?.message}`,
         500,
         res
       );
@@ -55,12 +56,14 @@ export default class Controller {
   public async detail(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const result: Object | any = await repository.detail({ id_lembaga: id });
+      const result: Object | any = await repository.detail({
+        id_bobot: id,
+      });
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
       return helper.catchError(
-        `LP Kepesantrenan detail: ${err?.message}`,
+        `detail: ${err?.message}`,
         500,
         res
       );
@@ -70,7 +73,7 @@ export default class Controller {
   public async create(req: Request, res: Response) {
     try {
       let data = req?.body;
-      
+
       if (Array.isArray(data)) {
         data = data.map((item) => helper.only(variable.fillable(), item));
         await repository.create({
@@ -78,16 +81,20 @@ export default class Controller {
         });
       } else {
         data = helper.only(variable.fillable(), data);
-        await repository.create({
-          payload: [data],
-        });
+
+        const isUpdated =  await updateExistingBobot(data);
+        await validateBobot([data]);
+
+        if (!isUpdated)
+          await repository.create({
+            payload: [data],
+          });
       }
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
-      console.log(err);
       return helper.catchError(
-        `LP kepesantrenan create: ${err?.message}`,
+        `create: ${err?.message}`,
         500,
         res
       );
@@ -97,40 +104,35 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const check = await repository.detail({ id_lembaga: id });
+      const check = await repository.detail({ id_bobot: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
       const data: Object = helper.only(variable.fillable(), req?.body, true);
+      
+      await validateBobot([data], true);
+
       await repository.update({
         payload: { ...data },
-        condition: { id_lembaga: id },
+        condition: { id_bobot: id },
       });
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `LP kepesantrenan update: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`Update: ${err?.message}`, 500, res);
     }
   }
 
   public async delete(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const check = await repository.detail({ id_lembaga: id });
+      const check = await repository.detail({ id_bobot: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
       await repository.delete({
-        condition: { id_lembaga: id },
+        condition: { id_bobot: id },
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `LP kepesantrenan delete: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`Delete: ${err?.message}`, 500, res);
     }
   }
 }
 
-export const LembagaPendidikanKepesantrenan = new Controller();
+export const JenisPenilaianBobot = new Controller();

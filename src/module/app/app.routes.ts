@@ -42,6 +42,7 @@ import { Kamar } from './kamar/kamar.controller';
 import { PenempatanKamarSantri } from './penempatan.kamar.santri/penempatan.kamar.santri..controller';
 import { inventarisUmum } from './inventaris.umum/inventaris.umum.controller';
 import { inventarisAsetHarian } from './inventaris.aset.harian/inventaris.aset.harian.controller';
+import { JenisPenilaianBobot } from './jenis.penilaian.bobot/jenis.penilaian.bobot.controller';
 
 const router: Router = Router();
 
@@ -452,6 +453,13 @@ router.delete(
   auth.checkBearerToken,
   JenisPenilaian.delete
 );
+
+router.get('/bobot-penilaian/all-data', auth.checkBearerToken, JenisPenilaianBobot.list);
+router.get('/bobot-penilaian', auth.checkBearerToken, JenisPenilaianBobot.index);
+router.get('/bobot-penilaian/:id', auth.checkBearerToken, JenisPenilaianBobot.detail);
+router.post('/bobot-penilaian', auth.checkBearerToken, JenisPenilaianBobot.create);
+router.put('/bobot-penilaian/:id', auth.checkBearerToken, JenisPenilaianBobot.update);
+router.delete('/bobot-penilaian/:id', auth.checkBearerToken, JenisPenilaianBobot.delete);
 
 router.get('/asrama/all-data', auth.checkBearerToken, Asrama.list);
 router.get('/asrama', auth.checkBearerToken, Asrama.index);
