@@ -93,6 +93,14 @@ import {
   associateInventarisAsetHarian,
 } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
 import { associateJenisPenilaianBobot, initJenisPenilaianBobot } from '../app/jenis.penilaian.bobot/jenis.penilaian.bobot.model';
+import {
+  initKelasMda,
+  associateKelasMda,
+} from '../app/kelas.mda/kelas.mda.model';
+import {
+  initKelasFormal,
+  associateKelasFormal,
+} from '../app/kelas.formal/kelas.formal.model';
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -135,6 +143,8 @@ export function initializeModels(sequelize: Sequelize) {
   initInventarisUmum(sequelize);
   initInventarisAsetHarian(sequelize);
   initJenisPenilaianBobot(sequelize);
+  initKelasMda(sequelize);
+  initKelasFormal(sequelize);
 
   // associate
   associateAppRole();
@@ -164,6 +174,8 @@ export function initializeModels(sequelize: Sequelize) {
   associateInventarisAsetHarian();
   associateKelompokPelajaran();
   associateJenisPenilaianBobot();
+  associateKelasMda();
+  associateKelasFormal();
 
   addGlobalActivityHooks(sequelize);
 }

@@ -43,6 +43,10 @@ import { PenempatanKamarSantri } from './penempatan.kamar.santri/penempatan.kama
 import { inventarisUmum } from './inventaris.umum/inventaris.umum.controller';
 import { inventarisAsetHarian } from './inventaris.aset.harian/inventaris.aset.harian.controller';
 import { JenisPenilaianBobot } from './jenis.penilaian.bobot/jenis.penilaian.bobot.controller';
+import { kelasMda } from './kelas.mda/kelas.mda.controller';
+import { kelasMdaSchema } from './kelas.mda/kelas.mda.schema';
+import { kelasFormal } from './kelas.formal/kelas.formal.controller';
+import { kelasFormalSchema } from './kelas.formal/kelas.formal.schema';
 
 const router: Router = Router();
 
@@ -630,6 +634,46 @@ router.delete(
   '/inventaris-aset-harian/:id',
   auth.checkBearerToken,
   inventarisAsetHarian.delete
+);
+
+router.get(
+  '/kelas-mda/all-data',
+  auth.checkBearerToken,
+  kelasMda.list
+);
+router.get('/kelas-mda', auth.checkBearerToken, kelasMda.index);
+router.get('/kelas-mda/:id', auth.checkBearerToken, kelasMda.detail);
+router.post('/kelas-mda', auth.checkBearerToken, sanitizeBody, validate(kelasMdaSchema), kelasMda.create);
+router.put('/kelas-mda/:id', auth.checkBearerToken, sanitizeBody, validate(kelasMdaSchema), kelasMda.update);
+router.delete(
+  '/kelas-mda/:id',
+  auth.checkBearerToken,
+  kelasMda.delete
+);
+router.post(
+  '/kelas-mda/export',
+  auth.checkBearerToken,
+  kelasMda.export
+);
+
+router.get(
+  '/kelas-formal/all-data',
+  auth.checkBearerToken,
+  kelasFormal.list
+);
+router.get('/kelas-formal', auth.checkBearerToken, kelasFormal.index);
+router.get('/kelas-formal/:id', auth.checkBearerToken, kelasFormal.detail);
+router.post('/kelas-formal', auth.checkBearerToken, sanitizeBody, validate(kelasFormalSchema), kelasFormal.create);
+router.put('/kelas-formal/:id', auth.checkBearerToken, sanitizeBody, validate(kelasFormalSchema), kelasFormal.update);
+router.delete(
+  '/kelas-formal/:id',
+  auth.checkBearerToken,
+  kelasFormal.delete
+);
+router.post(
+  '/kelas-formal/export',
+  auth.checkBearerToken,
+  kelasFormal.export
 );
 
 export default router;
