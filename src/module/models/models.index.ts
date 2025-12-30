@@ -93,6 +93,10 @@ import {
   initInventarisAsetHarian,
   associateInventarisAsetHarian,
 } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
+import {
+  initKelasMda,
+  associateKelasMda,
+} from '../app/kelas.mda/kelas.mda.model';
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -132,6 +136,7 @@ export function initializeModels(sequelize: Sequelize) {
   initPegawai(sequelize);
   initInventarisUmum(sequelize);
   initInventarisAsetHarian(sequelize);
+  initKelasMda(sequelize);
 
   // associate
   associateAppRole();
@@ -158,6 +163,7 @@ export function initializeModels(sequelize: Sequelize) {
   associatePegawai();
   associateInventarisAsetHarian();
   associateKelompokPelajaran();
+  associateKelasMda();
 
   addGlobalActivityHooks(sequelize);
 }

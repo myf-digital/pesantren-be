@@ -40,6 +40,8 @@ import { LembagaPendidikanFormal } from './lembaga.pendidikan.formal/lembaga.pen
 import { Pegawai } from './pegawai/pegawai.controller';
 import { inventarisUmum } from './inventaris.umum/inventaris.umum.controller';
 import { inventarisAsetHarian } from './inventaris.aset.harian/inventaris.aset.harian.controller';
+import { kelasMda } from './kelas.mda/kelas.mda.controller';
+import { kelasMdaSchema } from './kelas.mda/kelas.mda.schema';
 
 const router: Router = Router();
 
@@ -606,6 +608,26 @@ router.delete(
   '/inventaris-aset-harian/:id',
   auth.checkBearerToken,
   inventarisAsetHarian.delete
+);
+
+router.get(
+  '/kelas-mda/all-data',
+  auth.checkBearerToken,
+  kelasMda.list
+);
+router.get('/kelas-mda', auth.checkBearerToken, kelasMda.index);
+router.get('/kelas-mda/:id', auth.checkBearerToken, kelasMda.detail);
+router.post('/kelas-mda', auth.checkBearerToken, sanitizeBody, validate(kelasMdaSchema), kelasMda.create);
+router.put('/kelas-mda/:id', auth.checkBearerToken, sanitizeBody, validate(kelasMdaSchema), kelasMda.update);
+router.delete(
+  '/kelas-mda/:id',
+  auth.checkBearerToken,
+  kelasMda.delete
+);
+router.post(
+  '/kelas-mda/export',
+  auth.checkBearerToken,
+  kelasMda.export
 );
 
 export default router;
