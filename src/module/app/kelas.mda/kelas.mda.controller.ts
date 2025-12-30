@@ -35,7 +35,7 @@ const generateDataExcel = (sheet: any, details: any) => {
       details[i]?.lembaga?.nama_lembaga || '',
       details[i]?.tahun_ajaran?.tahun_ajaran || '',
       details[i]?.tingkat?.tingkat || '',
-      details[i]?.pegawai?.nama_pegawai || '',
+      details[i]?.pegawai?.nama_lengkap || '',
       details[i]?.status,
       details[i]?.keterangan || '',
     ]);
@@ -103,27 +103,20 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
-      const { nama_kelas_mda, id_lembaga, id_tahunajaran } = req?.body;
+      const { nama_kelas_mda, id_lembaga, id_tahunajaran, id_tingkat, id_wali_kelas } = req?.body;
 
       const idLembaga = id_lembaga?.value || null;
       const idTahunajaran = id_tahunajaran?.value || null;
+      const idTingkat = id_tingkat?.value || null;
+      const idWaliKelas = id_wali_kelas?.value || null;
       const check = await repository.detail({ nama_kelas_mda, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran });
-            console.log(check)
+
       if (check) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
       const result = await repository.create({
-        payload: { ...data },
+        payload: { ...data, id_tingkat: idTingkat, id_wali_kelas: idWaliKelas, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran },
       });
-      if (result.status === 'Aktif') {
-        const query = `UPDATE kelas_mda SET status='Nonaktif' WHERE id_kelas_mda != :id_kelas_mda AND status != 'Arsip'`;
-        const conn = await rawQuery.getConnection();
-        await conn.query(query, {
-          type: QueryTypes.UPDATE,
-          replacements: {
-            id_kelas_mda: result.id_kelas_mda,
-          },
-        });
-      }
+
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
       return helper.catchError(
@@ -137,9 +130,11 @@ export default class Controller {
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const { nama_kelas_mda, id_lembaga, id_tahunajaran, status } = req?.body;
-      const idLembaga = id_lembaga?.value || null;
-      const idTahunajaran = id_tahunajaran?.value || null;
+      const { nama_kelas_mda, id_lembaga, id_tahunajaran, status, id_tingkat, id_wali_kelas } = req?.body;
+      const idLembaga = id_lembaga?.value;
+      const idTahunajaran = id_tahunajaran?.value;
+      const idTingkat = id_tingkat?.value;
+      const idWaliKelas = id_wali_kelas?.value;
       const check = await repository.detail({ id_kelas_mda: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
 
@@ -158,20 +153,17 @@ export default class Controller {
       }
 
       await repository.update({
-        payload: { ...data, ...newData },
+        payload: { 
+          ...data, 
+          ...newData, 
+          id_tahunajaran: idTahunajaran || check?.getDataValue('id_tahunajaran'), 
+          id_tingkat: idTingkat || check?.getDataValue('id_tingkat'), 
+          id_wali_kelas: idWaliKelas || check?.getDataValue('id_wali_kelas'), 
+          id_lembaga: idLembaga || check?.getDataValue('id_lembaga') 
+        },
         condition: { id_kelas_mda: id },
       });
 
-      if (status === 'Aktif') {
-        const query = `UPDATE kelas_mda SET status='Nonaktif' WHERE id_kelas_mda != :id_kelas_mda AND status != 'Arsip'`;
-        const conn = await rawQuery.getConnection();
-        await conn.query(query, {
-          type: QueryTypes.UPDATE,
-          replacements: {
-            id_kelas_mda: id,
-          },
-        });
-      }
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
       return helper.catchError(

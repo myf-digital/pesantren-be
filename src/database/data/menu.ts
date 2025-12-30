@@ -123,6 +123,14 @@ export default class DataMenu {
         seq_number: 11,
         status: 1,
       },
+       {
+        parent_id: 2,
+        menu_name: 'Kelas MDA',
+        menu_icon: 'tabler-circle',
+        module_name: '/app/kelas-mda/list',
+        seq_number: 12,
+        status: 1,
+      },
       {
         parent_id: 3,
         menu_name: 'User',
