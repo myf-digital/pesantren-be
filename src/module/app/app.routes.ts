@@ -38,6 +38,8 @@ import { orangTuaWali } from './orang.tua.wali/orang.tua.wali.controller';
 import { orangTuaWaliSchema } from './orang.tua.wali/orang.tua.wali.schema';
 import { LembagaPendidikanFormal } from './lembaga.pendidikan.formal/lembaga.pendidikan.formal.controller';
 import { Pegawai } from './pegawai/pegawai.controller';
+import { Kamar } from './kamar/kamar.controller';
+import { PenempatanKamarSantri } from './penempatan.kamar.santri/penempatan.kamar.santri..controller';
 import { inventarisUmum } from './inventaris.umum/inventaris.umum.controller';
 import { inventarisAsetHarian } from './inventaris.aset.harian/inventaris.aset.harian.controller';
 import { kelasMda } from './kelas.mda/kelas.mda.controller';
@@ -466,6 +468,20 @@ router.get('/pegawai/:id', auth.checkBearerToken, Pegawai.detail);
 router.post('/pegawai', auth.checkBearerToken, Pegawai.create);
 router.put('/pegawai/:id', auth.checkBearerToken, Pegawai.update);
 router.delete('/pegawai/:id', auth.checkBearerToken, Pegawai.delete);
+
+router.get('/kamar/all-data', auth.checkBearerToken, Kamar.list);
+router.get('/kamar', auth.checkBearerToken, Kamar.index);
+router.get('/kamar/:id', auth.checkBearerToken, Kamar.detail);
+router.post('/kamar', auth.checkBearerToken, Kamar.create);
+router.put('/kamar/:id', auth.checkBearerToken, Kamar.update);
+router.delete('/kamar/:id', auth.checkBearerToken, Kamar.delete);
+
+router.get('/penempatan-kamar/all-data', auth.checkBearerToken, PenempatanKamarSantri.list);
+router.get('/penempatan-kamar', auth.checkBearerToken, PenempatanKamarSantri.index);
+router.get('/penempatan-kamar/:id', auth.checkBearerToken, PenempatanKamarSantri.detail);
+router.post('/penempatan-kamar', auth.checkBearerToken, PenempatanKamarSantri.create);
+router.put('/penempatan-kamar/:id', auth.checkBearerToken, PenempatanKamarSantri.update);
+router.delete('/penempatan-kamar/:id', auth.checkBearerToken, PenempatanKamarSantri.delete);
 
 router.get(
   '/kegiatan-akademik/all-data',

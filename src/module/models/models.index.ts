@@ -80,11 +80,10 @@ import ActivityLog, {
   associateActivityLog,
 } from '../global/activity.log.model';
 import { getUserLogin } from '../../context/userContext';
-import {
-  associateLembagaPendidikanFormal,
-  initLembagaPendidikanFormal,
-} from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
+import { associateLembagaPendidikanFormal, initLembagaPendidikanFormal } from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 import { initPegawai, associatePegawai } from '../app/pegawai/pegawai.model';
+import { associateKamar, initKamar } from '../app/kamar/kamar.model';
+import { associatePenempatanKamarSantri, initPenempatanKamarSantri } from '../app/penempatan.kamar.santri/penempatan.kamar.santri.model';
 import {
   initInventarisUmum,
   associateInventarisUmum,
@@ -134,6 +133,8 @@ export function initializeModels(sequelize: Sequelize) {
   initAreaSubDistrict(sequelize);
   initActivityLog(sequelize);
   initPegawai(sequelize);
+  initKamar(sequelize);
+  initPenempatanKamarSantri(sequelize);
   initInventarisUmum(sequelize);
   initInventarisAsetHarian(sequelize);
   initKelasMda(sequelize);
@@ -161,6 +162,8 @@ export function initializeModels(sequelize: Sequelize) {
   associateAreaSubDistrict();
   associateActivityLog();
   associatePegawai();
+  associateKamar();
+  associatePenempatanKamarSantri();
   associateInventarisAsetHarian();
   associateKelompokPelajaran();
   associateKelasMda();
