@@ -15,6 +15,9 @@ import {
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
 import moment from 'moment';
+import { sequelize } from '../../../database/connection';
+import Tingkat from './tingkat.model';
+import fs from 'fs/promises';
 
 const date: string = helper.date();
 
@@ -48,6 +51,32 @@ const generateDataExcel = (sheet: any, details: any) => {
   }
 
   return sheet;
+};
+
+const normalizeRow = (row: any) => ({
+  tingkat: String(row['Tingkat'] || '').trim(),
+  tingkat_type: String(row['Tipe'] || '').trim(),
+  nomor_urut:
+    row['Nomor Urut'] !== undefined ? Number(row['Nomor Urut']) : null,
+  keterangan: String(row['Keterangan'] || '').trim(),
+  __row: row.__row,
+});
+
+const validateRow = (row: any) => {
+  const errors: string[] = [];
+  if (!row.tingkat) {
+    errors.push('Tingkat wajib diisi');
+  }
+  if (!row.tingkat_type) {
+    errors.push('Tipe wajib diisi');
+  }
+  if (!['FORMAL', 'PESANTREN'].includes(row.tingkat_type)) {
+    errors.push('Tipe wajib FORMAL/PESANTREN');
+  }
+  if (row.nomor_urut !== null && Number.isNaN(row.nomor_urut)) {
+    errors.push('Nomor Urut harus angka');
+  }
+  return errors;
 };
 
 export default class Controller {
@@ -184,6 +213,164 @@ export default class Controller {
         500,
         res
       );
+    }
+  }
+
+  public async import(req: Request, res: Response) {
+    const mode: 'preview' | 'commit' = req.body?.mode ?? 'preview';
+    const uploaded = req.files?.file_import;
+
+    if (!uploaded) {
+      return response.success('File tidak valid', null, res, false);
+    }
+
+    const trx = mode === 'commit' ? await sequelize.transaction() : null;
+
+    try {
+      let buffer: Buffer;
+      const file = Array.isArray(uploaded) ? uploaded[0] : uploaded;
+      if (file.tempFilePath) {
+        buffer = await fs.readFile(file.tempFilePath);
+      } else if (file.data) {
+        buffer = file.data;
+      } else {
+        return response.success(
+          'File kosong atau gagal dibaca',
+          null,
+          res,
+          false
+        );
+      }
+
+      const results: any[] = [];
+      const rows = await helper.parseImportFile({
+        name: file.name,
+        data: buffer,
+      });
+
+      for (const raw of rows) {
+        const row = normalizeRow(raw);
+        const errors = validateRow(row);
+
+        const tingkat = row.tingkat;
+        const tingkat_type = row.tingkat_type;
+        const nomor_urut = row.nomor_urut;
+
+        if (!errors.find(e => e.split(' ').includes('Tipe'))) {
+          const tingkatExist = await repository.detail({ tingkat, tingkat_type });
+          if (tingkatExist && tingkatExist.getDataValue('nomor_urut') !== nomor_urut) {
+            const nomorIsExist = await repository.detail({ nomor_urut });
+
+            if (nomorIsExist) {
+              errors.push(`Nomor Urut ${nomor_urut} sudah ada`);
+            }
+          }
+        }
+
+        const valid = errors.length === 0;
+
+        const payload = {
+          tingkat: row.tingkat,
+          tingkat_type: row.tingkat_type,
+          nomor_urut: row.nomor_urut,
+          keterangan: row.keterangan ?? null,
+        };
+
+        results.push({
+          row: row.__row,
+          valid,
+          error: errors.length ? errors.join(', ') : null,
+          payload: {
+            ...payload,
+          },
+        });
+
+        if (mode === 'preview' || !valid) continue;
+
+        const existing = await repository.detail({ tingkat, tingkat_type });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+          }, { transaction: trx! });
+        } else {
+          await Tingkat.create({
+            ...payload,
+          }, { transaction: trx! });
+        }
+      }
+
+      let dataRes = {
+        mode,
+        total: results.length,
+        valid: results.filter((r) => r.valid).length,
+        invalid: results.filter((r) => !r.valid).length,
+      };
+
+      if (trx) {
+        await trx.commit();
+        return response.success(
+          'import tingkat berhasil',
+          dataRes,
+          res
+        );
+      }
+
+      return response.success(
+        'preview import tingkat',
+        {
+          ...dataRes,
+          data: results,
+        },
+        res
+      );
+    } catch (err: any) {
+      if (trx) await trx.rollback();
+
+      //console.error(err);
+      return helper.catchError(
+        `import excel tingkat: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async insert(req: Request, res: Response) {
+    const payloads = req.body?.data as any[];
+
+    if (!Array.isArray(payloads) || payloads.length === 0) {
+      return response.success('Data import kosong', null, res, false);
+    }
+
+    const trx = await sequelize.transaction();
+    try {
+      for (const payload of payloads) {
+        const existing = await repository.detail({
+          tingkat: payload.tingkat,
+          tingkat_type: payload.tingkat_type,
+        });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+          }, { transaction: trx });
+        } else {
+          await Tingkat.create({
+            ...payload,
+          }, { transaction: trx });
+        }
+      }
+      await trx.commit();
+
+      return response.success(
+        'Import batch tingkat berhasil',
+        { total: payloads.length },
+        res
+      );
+    } catch (err: any) {
+      await trx.rollback();
+      return helper.catchError(`Import batch gagal: ${err.message}`, 500, res);
     }
   }
 }

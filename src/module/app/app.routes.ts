@@ -118,6 +118,16 @@ router.put(
 );
 router.delete('/tingkat/:id', auth.checkBearerToken, tingkat.delete);
 router.post('/tingkat/export', auth.checkBearerToken, tingkat.export);
+router.post(
+  '/tingkat/import',
+  auth.checkBearerToken,
+  tingkat.import
+);
+router.post(
+  '/tingkat/insert',
+  auth.checkBearerToken,
+  tingkat.insert
+);
 
 router.get('/tahun-ajaran/all-data', auth.checkBearerToken, tahunAjaran.list);
 router.get('/tahun-ajaran', auth.checkBearerToken, tahunAjaran.index);
