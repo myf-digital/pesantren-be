@@ -5,14 +5,12 @@ services:
     container_name: pesantren-api
     build:
       context: .
-      dockerfile: Dockerfile.runner
+      dockerfile: Dockerfile
     restart: always
     ports:
       - "${PORT:-5000}:${PORT:-5000}"
     volumes:
       - ./.env:/app/.env
-      - ./tmp:/app/tmp
-      - ./dist:/app/dist
     environment:
       - PORT=${PORT:-5000}
     networks:
