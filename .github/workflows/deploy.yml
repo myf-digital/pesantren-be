@@ -35,19 +35,14 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install RAR
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rar
-
-      - name: Create RAR artifact
-        run: rar a pesantren-be-dist.rar dist
+      - name: Create TAR artifact
+        run: tar -czf dist.tar.gz dist
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: pesantren-be-dist
-          path: pesantren-be-dist.rar
+          path: dist.tar.gz
           retention-days: 7
 
   deploy:
@@ -84,7 +79,7 @@ jobs:
           port: ${{ env.SSH_PORT }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          source: ".env,docker-compose.yml,pesantren-be-dist.rar"
+          source: ".env,docker-compose.yml,dist.tar.gz"
           target: "${{ env.DEPLOY_DIR }}"
           overwrite: true
 
@@ -105,17 +100,8 @@ jobs:
             mkdir -p backups
             if [ -f docker-compose.yml ]; then cp -f docker-compose.yml "backups/docker-compose.yml.$timestamp"; fi
             if [ -d dist ]; then tar -czf "backups/dist.$timestamp.tar.gz" dist; fi
-            if ! command -v unrar >/dev/null 2>&1; then
-              if command -v apt-get >/dev/null 2>&1; then
-                sudo apt-get update && sudo apt-get install -y unrar
-              elif command -v apk >/dev/null 2>&1; then
-                sudo apk add --no-cache unrar
-              elif command -v yum >/dev/null 2>&1; then
-                sudo yum install -y unrar
-              fi
-            fi
             rm -rf dist
-            unrar x -o+ pesantren-be-dist.rar
+            tar -xzf dist.tar.gz
             if docker compose version >/dev/null 2>&1; then
               DCMD="docker compose"
             else

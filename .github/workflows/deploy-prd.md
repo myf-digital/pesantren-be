@@ -5,7 +5,7 @@ Dokumen ini menjelaskan alur deploy produksi untuk aplikasi ini tanpa menggunaka
 ## Prasyarat
 - Server tujuan memiliki akses SSH (user, host, port, key).
 - Docker dan Docker Compose terpasang di server.
-- Unrar terpasang di server (apt-get/yum/apk).
+- Tar tersedia di server (umumnya sudah terpasang).
 - Direktori workspace di server: `/home/apps/<nama-aplikasi>`.
 - Repository Variable/Secret disiapkan:
   - SSH_HOST_PRD, SSH_PORT_PRD, SSH_USER_PRD, SSH_KEY_PRD
@@ -20,20 +20,19 @@ Dokumen ini menjelaskan alur deploy produksi untuk aplikasi ini tanpa menggunaka
 3. Jalankan:
    - `npm install`
    - `npm run build`
-4. Buat artifact RAR dari folder `dist`:
-   - Install `rar` di runner: `sudo apt-get update && sudo apt-get install -y rar`
-   - `rar a pesantren-be-dist.rar dist`
+4. Buat artifact TAR dari folder `dist`:
+   - `tar -czf dist.tar.gz dist`
 
 ## Persiapan Berkas Deploy
 1. Tulis `.env` dari variable `CONFIG_ENV_PRD` ke file `.env`.
 2. Siapkan `docker-compose.yml` dari repository (menggunakan service `app` saja).
-3. Siapkan artifact `pesantren-be-dist.rar`.
+3. Siapkan artifact `dist.tar.gz`.
 
 ## Transfer ke Server
 Gunakan SCP untuk mengirim berkas ke server:
 - `.env`
 - `docker-compose.yml`
-- `pesantren-be-dist.rar`
+- `dist.tar.gz`
 
 Target direktori: `${DEPLOY_DIR_PRD}` atau default `/home/apps/<APP_NAME_PRD>`.
 
@@ -49,18 +48,8 @@ mkdir -p backups
 if [ -f docker-compose.yml ]; then cp -f docker-compose.yml "backups/docker-compose.yml.$timestamp"; fi
 if [ -d dist ]; then tar -czf "backups/dist.$timestamp.tar.gz" dist; fi
 
-if ! command -v unrar >/dev/null 2>&1; then
-  if command -v apt-get >/dev/null 2>&1; then
-    sudo apt-get update && sudo apt-get install -y unrar
-  elif command -v apk >/dev/null 2>&1; then
-    sudo apk add --no-cache unrar
-  elif command -v yum >/dev/null 2>&1; then
-    sudo yum install -y unrar
-  fi
-fi
-
 rm -rf dist
-unrar x -o+ pesantren-be-dist.rar
+tar -xzf dist.tar.gz
 
 if docker compose version >/dev/null 2>&1; then
   DCMD="docker compose"
