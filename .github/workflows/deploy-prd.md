@@ -3,12 +3,12 @@
 Dokumen ini menjelaskan alur deploy produksi untuk aplikasi ini tanpa menggunakan file workflow YAML. Gunakan langkah-langkah berikut di GitHub Actions atau jalankan manual sesuai kebutuhan.
 
 ## Prasyarat
-- Server tujuan memiliki akses SSH (user, host, port, key/password).
+- Server tujuan memiliki akses SSH (user, host, port, key).
 - Docker dan Docker Compose terpasang di server.
 - Unrar terpasang di server (apt-get/yum/apk).
 - Direktori workspace di server: `/home/apps/<nama-aplikasi>`.
 - Repository Variable/Secret disiapkan:
-  - SSH_HOST_PRD, SSH_PORT_PRD, SSH_USER_PRD, SSH_KEY_PRD atau SSH_PASSWORD_PRD
+  - SSH_HOST_PRD, SSH_PORT_PRD, SSH_USER_PRD, SSH_KEY_PRD
   - CONFIG_ENV_PRD berisi isi lengkap file `.env` produksi
   - APP_NAME_PRD (opsional; default nama repository)
   - DEPLOY_DIR_PRD (opsional; default `/home/apps/<APP_NAME_PRD>`)
@@ -18,7 +18,7 @@ Dokumen ini menjelaskan alur deploy produksi untuk aplikasi ini tanpa menggunaka
 1. Checkout repository lengkap (history dan submodules).
 2. Setup Node.js 22.
 3. Jalankan:
-   - `npm ci`
+   - `npm install`
    - `npm run build`
 4. Buat artifact RAR dari folder `dist`:
    - Install `rar` di runner: `sudo apt-get update && sudo apt-get install -y rar`

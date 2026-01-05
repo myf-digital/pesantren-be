@@ -6,6 +6,16 @@ on:
       - docker-dev
   workflow_dispatch:
 
+env:
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_PORT: ${{ secrets.SSH_PORT }}
+  SSH_USER: ${{ secrets.SSH_USER }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
+  DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+  APP_NAME: ${{ secrets.APP_NAME }}
+  CONFIG_ENV: ${{ secrets.CONFIG_ENV }}
+  PORT: ${{ secrets.PORT }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -45,16 +55,6 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    env:
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_PORT: ${{ secrets.SSH_PORT }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
-      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-      DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
-      APP_NAME: ${{ secrets.APP_NAME }}
-      CONFIG_ENV: ${{ secrets.CONFIG_ENV }}
-      PORT: ${{ secrets.PORT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -88,7 +88,6 @@ jobs:
           port: ${{ env.SSH_PORT }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          password: ${{ env.SSH_PASSWORD }}
           source: ".env,docker-compose.yml,pesantren-be-dist.rar"
           target: "${{ env.DEPLOY_DIR }}"
           overwrite: true
@@ -100,7 +99,6 @@ jobs:
           port: ${{ env.SSH_PORT }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          password: ${{ env.SSH_PASSWORD }}
           script_stop: true
           script: |
             set -e
