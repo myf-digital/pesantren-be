@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: pesantren-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${PORT:-5000}:${PORT:-5000}"
+    volumes:
+      - ./.env:/app/.env
+      - ./tmp:/app/tmp
+      - ./dist:/app/dist
+    environment:
+      - PORT=${PORT:-5000}
+    networks:
+      - pesantren-network
+
+networks:
+  pesantren-network:
+    driver: bridge
