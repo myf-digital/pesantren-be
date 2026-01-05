@@ -85,11 +85,16 @@ jobs:
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+          DEPLOY_DIR: ${{ env.DEPLOY_DIR }}
+          PORT: ${{ env.PORT }}
         with:
           host: ${{ env.SSH_HOST }}
           port: ${{ env.SSH_PORT }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
+          envs: APP_NAME,DEPLOY_DIR,PORT
           script_stop: true
           script: |
             set -e
