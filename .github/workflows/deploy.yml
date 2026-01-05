@@ -80,7 +80,7 @@ jobs:
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
           source: ".env,docker-compose.yml,dist.tar.gz"
-          target: "${{ env.DEPLOY_DIR }}"
+          target: "/home/apps/${{ github.event.repository.name }}"
           overwrite: true
 
       - name: Deploy on server
