@@ -7,6 +7,7 @@ RUN npm install
 
 # Build TypeScript to dist/
 COPY tsconfig.json ./
+COPY types ./types
 COPY src ./src
 RUN npm run build
 
