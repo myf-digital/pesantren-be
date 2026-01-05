@@ -11,8 +11,6 @@ env:
   SSH_PORT: ${{ secrets.SSH_PORT }}
   SSH_USER: ${{ secrets.SSH_USER }}
   SSH_KEY: ${{ secrets.SSH_KEY }}
-  DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
-  APP_NAME: ${{ secrets.APP_NAME }}
   CONFIG_ENV: ${{ secrets.CONFIG_ENV }}
   PORT: ${{ secrets.PORT }}
 
@@ -74,9 +72,7 @@ jobs:
       - name: Set default deploy dir
         run: |
           REPO_NAME="${{ github.event.repository.name }}"
-          if [ -z "${APP_NAME}" ]; then
-            echo "APP_NAME=${REPO_NAME}" >> $GITHUB_ENV
-          fi
+          echo "APP_NAME=${REPO_NAME}" >> $GITHUB_ENV
           if [ -z "${DEPLOY_DIR}" ]; then
             echo "DEPLOY_DIR=/home/apps/${APP_NAME:-$REPO_NAME}" >> $GITHUB_ENV
           fi
