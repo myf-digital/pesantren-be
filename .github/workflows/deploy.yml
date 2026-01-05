@@ -58,8 +58,7 @@ jobs:
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         env:
-          APP_NAME: ${{ env.APP_NAME }}
-          DEPLOY_DIR: ${{ env.DEPLOY_DIR }}
+          APP_NAME: ${{ github.event.repository.name }}
           PORT: ${{ env.PORT }}
           CONFIG_ENV: ${{ env.CONFIG_ENV }}
           IMAGE_TAG: ${{ github.sha }}
@@ -68,11 +67,11 @@ jobs:
           port: ${{ env.SSH_PORT }}
           username: ${{ env.SSH_USER }}
           key: ${{ env.SSH_KEY }}
-          envs: APP_NAME,DEPLOY_DIR,PORT,CONFIG_ENV,IMAGE_TAG
+          envs: APP_NAME,PORT,CONFIG_ENV,IMAGE_TAG
           script_stop: true
           script: |
             set -e
-            DEPLOY_DIR=${DEPLOY_DIR:-/home/apps/${APP_NAME}}
+            DEPLOY_DIR=/home/apps/${APP_NAME}
             echo "Deploying to $DEPLOY_DIR with Image Tag: $IMAGE_TAG"
             
             # Ensure directory exists
