@@ -28,12 +28,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: PrintSSH
-        run: |
-          echo "${{ env.SSH_USER }}" > ssh-user.txt
-          cat ssh-user.txt
-
+          
       # 3. Build Docker Image (Multi-stage)
       - name: Build Docker Image
         run: |
