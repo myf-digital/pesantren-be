@@ -29,6 +29,10 @@ jobs:
         with:
           node-version: '22'
 
+      - name: PrintSSH
+        run: |
+          echo "${{ env.SSH_USER }}"
+
       # 3. Build Docker Image (Multi-stage)
       - name: Build Docker Image
         run: |
