@@ -1,98 +1,77 @@
-# Panduan Deploy Produksi
+# Dokumentasi Pipeline Deployment (GitHub Actions)
 
-Dokumen ini menjelaskan alur deploy produksi untuk aplikasi ini tanpa menggunakan file workflow YAML. Gunakan langkah-langkah berikut di GitHub Actions atau jalankan manual sesuai kebutuhan.
+Dokumen ini menjelaskan alur kerja file `.github/workflows/deploy.yml` yang digunakan untuk otomatisasi deployment aplikasi ke server.
 
-## Prasyarat
-- Server tujuan memiliki akses SSH (user, host, port, key).
-- Docker dan Docker Compose terpasang di server.
-- Tar tersedia di server (umumnya sudah terpasang).
-- Direktori workspace di server: `/home/apps/<nama-aplikasi>`.
-- Repository Variable/Secret disiapkan:
-  - SSH_HOST_PRD, SSH_PORT_PRD, SSH_USER_PRD, SSH_KEY_PRD
-  - CONFIG_ENV_PRD berisi isi lengkap file `.env` produksi
-  - APP_NAME_PRD (opsional; default nama repository)
-  - DEPLOY_DIR_PRD (opsional; default `/home/apps/<APP_NAME_PRD>`)
-  - PORT_PRD (opsional; default 5000 untuk health check)
+## Trigger
+Pipeline ini berjalan otomatis saat:
+- Push ke branch `docker-dev`.
+- Dijalankan manual via tab Actions (workflow_dispatch).
 
-## Build
-1. Checkout repository lengkap (history dan submodules).
-2. Setup Node.js 22.
-3. Jalankan:
-   - `npm install`
-   - `npm run build`
-4. Buat artifact TAR dari folder `dist`:
-   - `tar -czf dist.tar.gz dist`
+## Environment Variables & Secrets
+Pipeline membutuhkan GitHub Secrets berikut:
+- `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_KEY`: Akses SSH ke server.
+- `CONFIG_ENV`: Isi lengkap file `.env` produksi (termasuk DB config, JWT secret, dll).
+- `PORT`: Port aplikasi yang akan di-expose (misal: 5000).
 
-## Persiapan Berkas Deploy
-1. Tulis `.env` dari variable `CONFIG_ENV_PRD` ke file `.env`.
-2. Siapkan `docker-compose.yml` dari repository (menggunakan service `app` saja).
-3. Siapkan artifact `dist.tar.gz`.
+## Tahapan Pipeline (Jobs)
 
-## Transfer ke Server
-Gunakan SCP untuk mengirim berkas ke server:
-- `.env`
-- `docker-compose.yml`
-- `dist.tar.gz`
+### 1. Build
+- **Checkout Code**: Mengambil source code terbaru.
+- **Setup Node**: Menggunakan Node.js versi 22.
+- **Build Docker Image**:
+  - Membuat image `pesantren-be:${GITHUB_SHA}` menggunakan `Dockerfile` (multi-stage build).
+  - Menyimpan image ke file arsip `app-image.tar.gz`.
+- **Upload Artifact**: Menyimpan `app-image.tar.gz` sebagai artifact build (backup).
 
-Target direktori: `${DEPLOY_DIR_PRD}` atau default `/home/apps/<APP_NAME_PRD>`.
+### 2. Copy Files (SCP)
+Mengirim file berikut ke server direktori `/home/apps/<repo-name>`:
+- `app-image.tar.gz`: Image Docker aplikasi.
+- `docker-compose.yml`: Konfigurasi orkestrasi container.
 
-## Eksekusi di Server
-Jalankan perintah berikut via SSH:
+### 3. Deploy (SSH)
+Menjalankan script deployment di server via SSH:
+
+#### A. Persiapan
+1.  Masuk ke direktori aplikasi `/home/apps/<repo-name>`.
+2.  Membuat file `.env` dari secret `CONFIG_ENV` dan menambahkan `IMAGE_TAG` (SHA commit).
+3.  Load image Docker dari `app-image.tar.gz`.
+4.  Menghapus file arsip `app-image.tar.gz` untuk menghemat ruang.
+
+#### B. Backup (Rollback Prep)
+1.  Backup file `docker-compose.yml` saat ini.
+2.  Mencatat Image Tag dari container yang sedang berjalan (`PREV_IMAGE`) untuk keperluan rollback jika deploy gagal.
+
+#### C. Database Migration
+Menjalankan migrasi database di dalam container sementara:
+```bash
+docker compose run --rm -v $(pwd)/.env:/app/.env app npm run db:migrate
 ```
-set -e
-DEPLOY_DIR=${DEPLOY_DIR_PRD:-/home/apps/${APP_NAME_PRD}}
-mkdir -p "$DEPLOY_DIR"
-cd "$DEPLOY_DIR"
-timestamp=$(date +%Y%m%d%H%M%S)
-mkdir -p backups
-if [ -f docker-compose.yml ]; then cp -f docker-compose.yml "backups/docker-compose.yml.$timestamp"; fi
-if [ -d dist ]; then tar -czf "backups/dist.$timestamp.tar.gz" dist; fi
+*Note: Menggunakan volume mount `.env` agar konfigurasi DB terbaca.*
 
-rm -rf dist
-tar -xzf dist.tar.gz
-
-if docker compose version >/dev/null 2>&1; then
-  DCMD="docker compose"
-else
-  DCMD="docker-compose"
-fi
-
-$DCMD down
-$DCMD up -d
+#### D. Start Application
+Menjalankan container baru dengan strategi rolling update (tanpa down time total):
+```bash
+docker compose up -d --no-build
 ```
+*Note: Tidak menjalankan `docker compose down` agar network external tidak terhapus.*
 
-## Health Check dan Rollback
-Lakukan pengecekan kesehatan aplikasi:
-```
-set +e
-ok=0
-attempts=0
-port=${PORT_PRD:-5000}
-until [ $attempts -ge 10 ]; do
-  if curl -fsS "http://localhost:${port}/health" >/dev/null 2>&1; then
-    ok=1
-    break
-  fi
-  attempts=$((attempts+1))
-  sleep 5
-done
-set -e
-```
+#### E. Health Check & Verification
+Melakukan pengecekan endpoint `/health` (via `http://127.0.0.1:PORT/health`):
+- Menunggu 10 detik awal (startup time).
+- Melakukan retry hingga 30 kali dengan jeda 5 detik.
+- Jika sukses: Lanjut ke cleanup.
+- Jika gagal: Masuk ke prosedur Rollback.
 
-Jika gagal:
-```
-$DCMD down
-rm -rf dist
-if [ -f "backups/dist.$timestamp.tar.gz" ]; then tar -xzf "backups/dist.$timestamp.tar.gz"; fi
-if [ -f "backups/docker-compose.yml.$timestamp" ]; then cp -f "backups/docker-compose.yml.$timestamp" docker-compose.yml; fi
-$DCMD up -d
-exit 1
-```
+#### F. Cleanup (Jika Sukses)
+- Menghapus image lama, hanya menyisakan **3 versi terakhir** untuk rollback manual jika diperlukan.
+- Menjalankan `docker image prune` untuk membersihkan dangling images.
 
-## Catatan
-- Pastikan `.env` sesuai environment produksi (lihat `.env.example` untuk referensi key).
-- Jika menggunakan database eksternal, set `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` pada `.env` produksi.
-- Endpoint health tersedia di `/health` pada port aplikasi.
+#### G. Rollback (Jika Gagal)
+Jika health check gagal:
+1.  Menampilkan 50 baris log terakhir container.
+2.  Mengembalikan `IMAGE_TAG` di `.env` ke versi sebelumnya (`PREV_TAG`).
+3.  Menjalankan redeploy versi lama: `docker compose up -d`.
 
-
-# test
+## Catatan Penting
+1.  **Network**: Pastikan network Docker `pesantren-network` sudah dibuat di server (`docker network create pesantren-network`) karena `docker-compose.yml` menggunakannya sebagai network external.
+2.  **Database**: Konfigurasi database (PostgreSQL) diambil dari `.env` yang di-inject saat deploy.
