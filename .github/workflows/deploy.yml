@@ -132,7 +132,7 @@ jobs:
             if ! command -v docker &> /dev/null; then echo "Docker not found"; exit 1; fi
             
             echo "Running migrations..."
-            $DCMD run --rm app npm run db:migrate
+            $DCMD run --rm -v $(pwd)/.env:/app/.env app npm run db:migrate
             
             echo "Starting deployment..."
             # $DCMD down (Removed to prevent network deletion)
@@ -146,7 +146,9 @@ jobs:
             health_check
             if [ $? -eq 0 ]; then
                echo "Deployment successful!"
-               # Cleanup old images (optional, careful in prod)
+               # Cleanup old images (keep last 3 versions)
+               echo "Cleaning up old images..."
+               docker images -q pesantren-be | tail -n +4 | xargs -r docker rmi || true
                docker image prune -f
             else
                echo "Deployment failed! Rolling back..."
