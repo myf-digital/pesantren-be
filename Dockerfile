@@ -23,6 +23,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/types ./types
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY .sequelizerc ./.sequelizerc
 
 # Ensure temp and static directories exist
 RUN mkdir -p ./tmp ./public
