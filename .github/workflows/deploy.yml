@@ -98,18 +98,23 @@ jobs:
 
             # Health Check Function
             health_check() {
-              local url="http://localhost:${PORT}/health"
-              local max_retries=12
+              # Ensure PORT is set, default to 5000
+              local TARGET_PORT=${PORT:-5000}
+              local url="http://127.0.0.1:${TARGET_PORT}/health"
+              local max_retries=30
               local count=0
               
-              echo "Waiting for service to be healthy at $url..."
+              echo "Waiting 10s for service to start..."
+              sleep 10
+              
+              echo "Checking health at $url..."
               until curl -s -f "$url" > /dev/null; do
                 count=$((count + 1))
                 if [ $count -ge $max_retries ]; then
-                  echo "Health check failed."
+                  echo "Health check failed after $max_retries attempts."
                   return 1
                 fi
-                echo "Attempt $count/$max_retries..."
+                echo "Attempt $count/$max_retries... (Status: $?)"
                 sleep 5
               done
               echo "Service is healthy!"
