@@ -16,4 +16,4 @@ services:
 
 networks:
   pesantren-network:
-    driver: bridge
+    external: true
