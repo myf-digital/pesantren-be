@@ -76,6 +76,7 @@ jobs:
           script_stop: true
           script: |
             set -e
+            whoami
             DEPLOY_DIR=/home/apps/${APP_NAME}
             echo "Deploying to $DEPLOY_DIR with Image Tag: $IMAGE_TAG"
             
