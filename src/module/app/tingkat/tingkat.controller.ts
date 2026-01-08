@@ -18,6 +18,7 @@ import moment from 'moment';
 import { sequelize } from '../../../database/connection';
 import Tingkat from './tingkat.model';
 import fs from 'fs/promises';
+import { tingkatSchema } from './tingkat.schema';
 
 const date: string = helper.date();
 
@@ -64,18 +65,14 @@ const normalizeRow = (row: any) => ({
 
 const validateRow = (row: any) => {
   const errors: string[] = [];
-  if (!row.tingkat) {
-    errors.push('Tingkat wajib diisi');
+  const valid = tingkatSchema.safeParse(row);
+
+  if (!valid.success) {
+    for (const e of valid.error.issues) {
+      errors.push(e.message);
+    }
   }
-  if (!row.tingkat_type) {
-    errors.push('Tipe wajib diisi');
-  }
-  if (!['FORMAL', 'PESANTREN'].includes(row.tingkat_type)) {
-    errors.push('Tipe wajib FORMAL/PESANTREN');
-  }
-  if (row.nomor_urut !== null && Number.isNaN(row.nomor_urut)) {
-    errors.push('Nomor Urut harus angka');
-  }
+
   return errors;
 };
 

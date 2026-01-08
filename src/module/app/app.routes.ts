@@ -148,6 +148,16 @@ router.put(
 );
 router.delete('/tahun-ajaran/:id', auth.checkBearerToken, tahunAjaran.delete);
 router.post('/tahun-ajaran/export', auth.checkBearerToken, tahunAjaran.export);
+router.post(
+  '/tahun-ajaran/import',
+  auth.checkBearerToken,
+  tahunAjaran.import
+);
+router.post(
+  '/tahun-ajaran/insert',
+  auth.checkBearerToken,
+  tahunAjaran.insert
+);
 
 router.get('/semester/all-data', auth.checkBearerToken, semester.list);
 router.get('/semester', auth.checkBearerToken, semester.index);
