@@ -14,7 +14,7 @@ import { tingkat } from './tingkat/tingkat.controller';
 import { tingkatSchema } from './tingkat/tingkat.schema';
 import { tahunAjaran } from './tahun.ajaran/tahun.ajaran.controller';
 import { tahunAjaranSchema } from './tahun.ajaran/tahun.ajaran.schema';
-import { semester } from './semester/semester.ajaran.controller';
+import { semester } from './semester/semester.controller';
 import { semesterSchema } from './semester/semester.schema';
 import { statusAwalSantri } from './status.awal.santri/status.awal.santri.controller';
 import { statusAwalSantriSchema } from './status.awal.santri/status.awal.santri.schema';
@@ -178,6 +178,16 @@ router.put(
 );
 router.delete('/semester/:id', auth.checkBearerToken, semester.delete);
 router.post('/semester/export', auth.checkBearerToken, semester.export);
+router.post(
+  '/semester/import',
+  auth.checkBearerToken,
+  semester.import
+);
+router.post(
+  '/semester/insert',
+  auth.checkBearerToken,
+  semester.insert
+);
 
 router.get(
   '/status-awal-santri/all-data',
