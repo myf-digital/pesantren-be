@@ -228,6 +228,16 @@ router.post(
   auth.checkBearerToken,
   statusAwalSantri.export
 );
+router.post(
+  '/status-awal-santri/import',
+  auth.checkBearerToken,
+  statusAwalSantri.import
+);
+router.post(
+  '/status-awal-santri/insert',
+  auth.checkBearerToken,
+  statusAwalSantri.insert
+);
 
 router.get(
   '/jenis-beasiswa/all-data',
@@ -259,6 +269,16 @@ router.post(
   '/jenis-beasiswa/export',
   auth.checkBearerToken,
   jenisBeasiswa.export
+);
+router.post(
+  '/jenis-beasiswa/import',
+  auth.checkBearerToken,
+  jenisBeasiswa.import
+);
+router.post(
+  '/jenis-beasiswa/insert',
+  auth.checkBearerToken,
+  jenisBeasiswa.insert
 );
 
 router.get(
