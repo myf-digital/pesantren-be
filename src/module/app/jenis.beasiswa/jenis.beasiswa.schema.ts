@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+export const status = ['Aktif', 'Nonaktif']
 export const jenisBeasiswaSchema = z.object({
   kode_beasiswa: z
     .string()
@@ -14,5 +15,5 @@ export const jenisBeasiswaSchema = z.object({
     message: 'Panjang teks Nama Beasiswa maksimal 150 karakter',
   }),
   keterangan: z.any(),
-  status: z.string().nonempty('Status wajib diisi'),
+  status: z.enum(status, `Status wajib ${status.join('/')}`),
 });

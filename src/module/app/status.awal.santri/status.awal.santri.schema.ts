@@ -1,5 +1,5 @@
 import { z } from 'zod';
-
+export const status = ['Aktif', 'Nonaktif']
 export const statusAwalSantriSchema = z.object({
   kode_status_awal: z
     .string()
@@ -12,5 +12,5 @@ export const statusAwalSantriSchema = z.object({
     }),
   nama_status_awal: z.string().nonempty('Nama Status Awal wajib diisi'),
   keterangan: z.any(),
-  status: z.string().nonempty('Status wajib diisi'),
+  status: z.enum(status, `Status wajib ${status.join('/')}`),
 });

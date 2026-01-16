@@ -15,6 +15,10 @@ import {
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
 import moment from 'moment';
+import { statusAwalSantriSchema } from './status.awal.santri.schema';
+import { sequelize } from '../../../database/connection';
+import fs from 'fs/promises';
+import StatusAwalSantri from './status.awal.santri.model';
 
 const date: string = helper.date();
 
@@ -54,6 +58,27 @@ const generateDataExcel = (sheet: any, details: any) => {
   }
 
   return sheet;
+};
+
+const normalizeRow = (row: any) => ({
+  kode_status_awal: String(row['Kode Status Awal'] || '').trim(),
+  nama_status_awal: String(row['Nama Status Awal'] || '').trim(),
+  status: String(row['Status'] || '').trim(),
+  keterangan: String(row['Keterangan'] || '').trim(),
+  __row: row.__row,
+});
+
+const validateRow = (row: any) => {
+  const errors: string[] = [];
+  const valid = statusAwalSantriSchema.safeParse(row);
+
+  if (!valid.success) {
+    for (const e of valid.error.issues) {
+      errors.push(e.message);
+    }
+  }
+
+  return errors;
 };
 
 export default class Controller {
@@ -208,6 +233,155 @@ export default class Controller {
         500,
         res
       );
+    }
+  }
+
+  public async import(req: Request, res: Response) {
+    const mode: 'preview' | 'commit' = req.body?.mode ?? 'preview';
+    const uploaded = req.files?.file_import;
+
+    if (!uploaded) {
+      return response.success('File tidak valid', null, res, false);
+    }
+
+    const trx = mode === 'commit' ? await sequelize.transaction() : null;
+
+    try {
+      let buffer: Buffer;
+      const file = Array.isArray(uploaded) ? uploaded[0] : uploaded;
+      if (file.tempFilePath) {
+        buffer = await fs.readFile(file.tempFilePath);
+      } else if (file.data) {
+        buffer = file.data;
+      } else {
+        return response.success(
+          'File kosong atau gagal dibaca',
+          null,
+          res,
+          false
+        );
+      }
+
+      const results: any[] = [];
+      const rows = await helper.parseImportFile({
+        name: file.name,
+        data: buffer,
+      });
+
+      let data = null;
+      for (const raw of rows) {
+        const row = normalizeRow(raw);
+        const errors = validateRow(row);
+
+        const kode_status_awal = row.kode_status_awal;
+
+        const valid = errors.length === 0;
+
+        const payload = {
+          kode_status_awal: row.kode_status_awal,
+          nama_status_awal: row.nama_status_awal,
+          status: row.status,
+          keterangan: row.keterangan ?? null,
+        };
+
+        results.push({
+          row: row.__row,
+          valid,
+          error: errors.length ? errors.join(', ') : null,
+          payload: {
+            ...payload,
+          },
+        });
+
+        if (mode === 'preview' || !valid) continue;
+
+        const existing = await repository.detail({ kode_status_awal });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+          }, { transaction: trx! });
+        } else {
+          let newCreate = await StatusAwalSantri.create({
+            ...payload,
+          }, { transaction: trx! });
+        }
+      }
+
+      let dataRes = {
+        mode,
+        total: results.length,
+        valid: results.filter((r) => r.valid).length,
+        invalid: results.filter((r) => !r.valid).length,
+      };
+
+      if (trx) {
+
+        await trx.commit();
+        
+        return response.success(
+          'import status awal santri berhasil',
+          dataRes,
+          res
+        );
+      }
+
+      return response.success(
+        'preview import status awal santri',
+        {
+          ...dataRes,
+          data: results,
+        },
+        res
+      );
+    } catch (err: any) {
+      if (trx) await trx.rollback();
+
+      //console.error(err);
+      return helper.catchError(
+        `import excel status awal santri: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async insert(req: Request, res: Response) {
+    const payloads = req.body?.data as any[];
+
+    if (!Array.isArray(payloads) || payloads.length === 0) {
+      return response.success('Data import kosong', null, res, false);
+    }
+
+    const trx = await sequelize.transaction();
+    try {
+      let data = null;
+      for (const payload of payloads) {
+        const existing = await repository.detail({
+          kode_status_awal: payload.kode_status_awal
+        });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+          }, { transaction: trx });
+        } else {
+          let newCreate = await StatusAwalSantri.create({
+            ...payload,
+          }, { transaction: trx });
+        }
+      }
+
+      await trx.commit();
+
+      return response.success(
+        'Import batch status awal santri berhasil',
+        { total: payloads.length },
+        res
+      );
+    } catch (err: any) {
+      await trx.rollback();
+      return helper.catchError(`Import batch gagal: ${err.message}`, 500, res);
     }
   }
 }
