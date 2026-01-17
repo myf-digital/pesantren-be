@@ -56,6 +56,9 @@ router.get('/role/:id', auth.checkBearerToken, role.detail);
 router.post('/role', auth.checkBearerToken, role.create);
 router.put('/role/:id', auth.checkBearerToken, role.update);
 router.delete('/role/:id', auth.checkBearerToken, role.delete);
+router.post('/role/export', auth.checkBearerToken, role.export);
+router.post('/role/import', auth.checkBearerToken, role.import);
+router.post('/role/insert', auth.checkBearerToken, role.insert);
 
 router.get('/menu/all-data', auth.checkBearerToken, menu.list);
 router.get('/menu', auth.checkBearerToken, menu.index);
@@ -63,6 +66,9 @@ router.get('/menu/:id', auth.checkBearerToken, menu.detail);
 router.post('/menu', auth.checkBearerToken, menu.create);
 router.put('/menu/:id', auth.checkBearerToken, menu.update);
 router.delete('/menu/:id', auth.checkBearerToken, menu.delete);
+router.post('/menu/export', auth.checkBearerToken, menu.export);
+router.post('/menu/import', auth.checkBearerToken, menu.import);
+router.post('/menu/insert', auth.checkBearerToken, menu.insert);
 
 router.get('/role-menu/all-data', auth.checkBearerToken, roleMenu.list);
 router.get('/role-menu', auth.checkBearerToken, roleMenu.index);

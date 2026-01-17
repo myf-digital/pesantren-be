@@ -4,9 +4,10 @@ import { Op } from 'sequelize';
 import Model from './role.model';
 
 export default class Repository {
-  public list() {
+  public list(condition: any = {}) {
     return Model.findAll({
       where: {
+        ...condition,
         status: { [Op.ne]: 9 },
       },
       order: [['role_id', 'DESC']],
