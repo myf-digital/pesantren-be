@@ -1,35 +1,40 @@
 FROM node:22-slim AS builder
+
 WORKDIR /app
 
-# Install dependencies (including dev for TypeScript compile)
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Build TypeScript to dist/
 COPY tsconfig.json ./
 COPY types ./types
 COPY src ./src
+
 RUN npm run build
 
-# Runtime image
+
+
 FROM node:22-slim AS runner
+
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Use the built node_modules from builder to ensure runtime libs are present
-COPY --from=builder /app/node_modules ./node_modules
-COPY package.json ./
+RUN groupadd -r nodeapp && useradd -r -g nodeapp nodeapp
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev \
+ && npm cache clean --force
+
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/types ./types
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY .sequelizerc ./.sequelizerc
+COPY types ./types
+COPY .sequelizerc ./
 
-# Ensure temp and static directories exist
-RUN mkdir -p ./tmp ./public
+RUN mkdir -p /app/tmp /app/public \
+ && chown -R nodeapp:nodeapp /app \
+ && chmod -R 755 /app
 
-# Default port (can be overridden by env)
+
+USER nodeapp
+
 EXPOSE 5000
 
 CMD ["node", "dist/server.js"]
-
