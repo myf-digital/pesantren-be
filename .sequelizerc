@@ -1,7 +1,10 @@
 const path = require('path');
 
+const isProd = process.env.NODE_ENV === 'production';
+const baseDir = isProd ? 'dist' : 'src';
+
 module.exports = {
-  'config': path.resolve('src', 'database/sequelize.js'),
-  'seeders-path': path.resolve('src', 'database/seeders'),
-  'migrations-path': path.resolve('src', 'database/migrations'),
+  config: path.resolve(baseDir, 'database/sequelize.js'),
+  'seeders-path': path.resolve(baseDir, 'database/seeders'),
+  'migrations-path': path.resolve(baseDir, 'database/migrations'),
 };
