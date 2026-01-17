@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
+    "start-with-migrate": "npm run migrate && npm start",
     "dev": "concurrently \"tsc --watch\" \"nodemon -q dist/server.js\"",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
@@ -16,7 +17,8 @@
     "db:migrate-undo": "ts-node ./node_modules/sequelize-cli/lib/sequelize db:migrate:undo:all",
     "make:seed": "sequelize-cli seed:generate --name",
     "db:seed": "ts-node ./node_modules/sequelize-cli/lib/sequelize db:seed:all",
-    "db:seed-undo": "ts-node ./node_modules/sequelize-cli/lib/sequelize db:seed:undo:all"
+    "db:seed-undo": "ts-node ./node_modules/sequelize-cli/lib/sequelize db:seed:undo:all",
+    "migrate": "npm run db:migrate"
   },
   "keywords": [],
   "author": "YH",

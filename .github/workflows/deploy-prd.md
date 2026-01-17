@@ -41,14 +41,20 @@ Menjalankan script deployment di server via SSH:
 1.  Backup file `docker-compose.yml` saat ini.
 2.  Mencatat Image Tag dari container yang sedang berjalan (`PREV_IMAGE`) untuk keperluan rollback jika deploy gagal.
 
-#### C. Database Migration
-Menjalankan migrasi database di dalam container sementara:
-```bash
-docker compose run --rm -v $(pwd)/.env:/app/.env app npm run db:migrate
+#### C. Start Application + Database Migration
+Migrasi database sekarang dijalankan di dalam container utama saat start melalui script:
+```json
+"start-with-migrate": "npm run migrate && npm start"
 ```
-*Note: Menggunakan volume mount `.env` agar konfigurasi DB terbaca.*
+dan dikaitkan di `Dockerfile` sebagai:
+```dockerfile
+CMD ["sh", "-c", "npm run start-with-migrate"]
+```
 
-#### D. Start Application
+Saat perintah berikut dijalankan, urutan yang terjadi adalah:
+- Jalankan migrasi (`npm run migrate` → `npm run db:migrate`).
+- Jika migrasi sukses, aplikasi dijalankan (`npm start` → `node dist/server.js`).
+
 Menjalankan container baru dengan strategi rolling update (tanpa down time total):
 ```bash
 docker compose up -d --no-build

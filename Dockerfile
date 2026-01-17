@@ -36,4 +36,4 @@ RUN mkdir -p /app/tmp /app/public \
 
 USER nodeapp
 EXPOSE 5000
-CMD ["node", "dist/server.js"]
+CMD ["sh", "-c", "npm run start-with-migrate"]
