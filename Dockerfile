@@ -29,8 +29,9 @@ RUN npm ci --omit=dev \
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/src/database/sequelize.js ./dist/database/sequelize.js
 COPY types ./types
-COPY .sequelizerc ./
+COPY .sequelizerc ./***
 
 RUN mkdir -p /app/tmp /app/public \
  && chown -R nodeapp:nodeapp /app \
