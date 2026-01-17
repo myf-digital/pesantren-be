@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "start-with-migrate": "npm run migrate && npm start",
+    "start-with-migrate_old": "npm run migrate && npm start",
+    "start-with-migrate": "npm start",
     "dev": "concurrently \"tsc --watch\" \"nodemon -q dist/server.js\"",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
