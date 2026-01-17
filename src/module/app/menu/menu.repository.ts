@@ -4,13 +4,31 @@ import { Op } from 'sequelize';
 import Model from './menu.model';
 
 export default class Repository {
-  public list(condition: any = {}) {
+  public list(condition: any = {}, useInclude = false) {
+    let include = {};
+    if (useInclude) {
+      include = {
+        include: [
+          {
+            model: Model,
+            as: 'parent',
+            required: false,
+          },
+          {
+            model: Model,
+            as: 'children',
+            required: false,
+          },
+        ],
+      };
+    }
     return Model.findAll({
       where: {
         ...condition,
         status: { [Op.ne]: 9 },
       },
       order: [['seq_number', 'ASC']],
+      ...include,
     });
   }
 
