@@ -20,7 +20,7 @@ export const up: Migration = async () => {
 
   const menus = datamenu.menu();
   const childmenu = datamenu.childmenu();
-  const resource = await repoResource.detail({ username: 'adminuser' }, '');
+  const resource = await repoResource.detail({ username: 'admin@user' }, '');
 
   for (let i in menus) {
     const check = await Model.findOne({

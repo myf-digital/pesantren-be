@@ -24,7 +24,7 @@ export const up: Migration = async () => {
   const role = await repoRole.detail({
     role_name: { [Op.like]: `%${ROLE_ADMIN}%` },
   });
-  const resource = await repoResource.detail({ username: 'adminuser' }, '');
+  const resource = await repoResource.detail({ username: 'admin@user' }, '');
 
   let bulkInsert = [];
   for (let i in menus) {
