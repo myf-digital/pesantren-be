@@ -82,6 +82,9 @@ router.get('/param-global/:id', auth.checkBearerToken, paramGlobal.detailById);
 router.post('/param-global', auth.checkBearerToken, paramGlobal.create);
 router.put('/param-global/:id', auth.checkBearerToken, paramGlobal.update);
 router.delete('/param-global/:id', auth.checkBearerToken, paramGlobal.delete);
+router.post('/param-global/export', auth.checkBearerToken, paramGlobal.export);
+router.post('/param-global/import', auth.checkBearerToken, paramGlobal.import);
+router.post('/param-global/insert', auth.checkBearerToken, paramGlobal.insert);
 
 router.get('/resource', auth.checkBearerToken, resource.index);
 router.get('/resource/check/:username', auth.checkBearerToken, resource.check);

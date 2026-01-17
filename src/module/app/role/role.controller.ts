@@ -4,6 +4,7 @@ import moment from 'moment';
 import ExcelJS from 'exceljs';
 import fs from 'fs/promises';
 import { Op } from 'sequelize';
+import AppRole from './role.model';
 import { variable } from './role.variable';
 import { Request, Response } from 'express';
 import { repository } from './role.repository';
@@ -18,7 +19,6 @@ import {
   SUCCESS_SAVED,
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
-import AppRole from './role.model';
 
 const date: string = helper.date();
 
@@ -69,7 +69,6 @@ const validateRow = (row: any) => {
   }
   return errors;
 };
-
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
