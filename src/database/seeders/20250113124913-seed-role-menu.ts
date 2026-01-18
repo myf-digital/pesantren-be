@@ -49,6 +49,8 @@ export const up: Migration = async () => {
         delete: 1,
         approve: 1,
         status: 1,
+        import: 1,
+        export: 1,
         created_by: resource?.getDataValue('resource_id'),
       });
     }
