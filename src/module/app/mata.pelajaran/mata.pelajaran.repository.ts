@@ -69,7 +69,7 @@ export default class Repository {
           model: KelompokPelajaran,
           as: 'kelompok_pelajaran',
           required: false,
-          attributes: ['nama_kelpelajaran', 'keterangan'],
+          attributes: ['id_kelpelajaran', 'nama_kelpelajaran', 'keterangan'],
         },
         {
           model: LembagaPendidikanFormal,
@@ -91,7 +91,13 @@ export default class Repository {
           model: KelompokPelajaran,
           as: 'kelompok_pelajaran',
           required: false,
-          attributes: ['nama_kelpelajaran', 'keterangan'],
+          attributes: ['id_kelpelajaran', 'nama_kelpelajaran', 'keterangan'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
         },
       ],
     });

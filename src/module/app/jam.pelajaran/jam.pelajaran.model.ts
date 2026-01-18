@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { DataTypes, Model, Sequelize } from 'sequelize';
 import JenisJamPelajaran from '../jenis.jampel/jenis.jampel.model';
+import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 
 export class JamPelajaran extends Model {
   public id_jampel!: string;
@@ -29,6 +30,9 @@ export function initJamPelajaran(sequelize: Sequelize) {
         type: DataTypes.STRING,
       },
       id_lembaga: {
+        type: DataTypes.STRING,
+      },
+      lembaga_type: {
         type: DataTypes.STRING,
       },
       nama_jampel: {
@@ -85,6 +89,10 @@ export function associateJamPelajaran() {
   JamPelajaran.belongsTo(JenisJamPelajaran, {
     as: 'jenis_jam_pelajaran',
     foreignKey: 'id_jenisjam',
+  });
+  JamPelajaran.belongsTo(LembagaPendidikanFormal, {
+    as: 'lembaga_formal',
+    foreignKey: 'id_lembaga',
   });
 }
 

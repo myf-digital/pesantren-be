@@ -3,6 +3,7 @@
 import { Op, Sequelize } from 'sequelize';
 import Model from './jam.pelajaran.model';
 import JenisJamPelajaran from '../jenis.jampel/jenis.jampel.model';
+import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 
 export default class Repository {
   public list(data: any) {
@@ -24,7 +25,13 @@ export default class Repository {
           model: JenisJamPelajaran,
           as: 'jenis_jam_pelajaran',
           required: false,
-          attributes: ['nama_jenis_jam', 'keterangan'],
+          attributes: ['id_jenisjam', 'nama_jenis_jam', 'keterangan'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
         },
       ],
     });
@@ -43,12 +50,11 @@ export default class Repository {
           [Op.or]: [
             { nama_jampel: { [Op.like]: `%${data?.keyword}%` } },
             Sequelize.where(
-              Sequelize.cast(Sequelize.col('JamPelajaran.nomor_urut'), 'TEXT'),
+              Sequelize.col('jenis_jam_pelajaran.nama_jenis_jam'),
               { [Op.like]: `%${data?.keyword}%` }
             ),
-            { keterangan: { [Op.like]: `%${data?.keyword}%` } },
             Sequelize.where(
-              Sequelize.col('jenis_jam_pelajaran.nama_jenis_jam'),
+              Sequelize.col('lembaga_formal.nama_lembaga'),
               { [Op.like]: `%${data?.keyword}%` }
             ),
           ],
@@ -62,7 +68,13 @@ export default class Repository {
           model: JenisJamPelajaran,
           as: 'jenis_jam_pelajaran',
           required: false,
-          attributes: ['nama_jenis_jam', 'keterangan'],
+          attributes: ['id_jenisjam', 'nama_jenis_jam', 'keterangan'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
         },
       ],
     });
@@ -78,7 +90,13 @@ export default class Repository {
           model: JenisJamPelajaran,
           as: 'jenis_jam_pelajaran',
           required: false,
-          attributes: ['nama_jenis_jam', 'keterangan'],
+          attributes: ['id_jenisjam', 'nama_jenis_jam', 'keterangan'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
         },
       ],
     });

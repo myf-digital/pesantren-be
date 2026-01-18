@@ -391,12 +391,27 @@ router.post(
   mataPelajaran.insert
 );
 
-router.get('/jampel/all-data', auth.checkBearerToken, jamPelajaran.list);
-router.get('/jampel', auth.checkBearerToken, jamPelajaran.index);
-router.get('/jampel/:id', auth.checkBearerToken, jamPelajaran.detail);
-router.post('/jampel', auth.checkBearerToken, jamPelajaran.create);
-router.put('/jampel/:id', auth.checkBearerToken, jamPelajaran.update);
-router.delete('/jampel/:id', auth.checkBearerToken, jamPelajaran.delete);
+router.get('/jam-pelajaran/all-data', auth.checkBearerToken, jamPelajaran.list);
+router.get('/jam-pelajaran', auth.checkBearerToken, jamPelajaran.index);
+router.get('/jam-pelajaran/:id', auth.checkBearerToken, jamPelajaran.detail);
+router.post('/jam-pelajaran', auth.checkBearerToken, jamPelajaran.create);
+router.put('/jam-pelajaran/:id', auth.checkBearerToken, jamPelajaran.update);
+router.delete('/jam-pelajaran/:id', auth.checkBearerToken, jamPelajaran.delete);
+router.post(
+  '/jam-pelajaran/export',
+  auth.checkBearerToken,
+  jamPelajaran.export
+);
+router.post(
+  '/jam-pelajaran/import',
+  auth.checkBearerToken,
+  jamPelajaran.import
+);
+router.post(
+  '/jam-pelajaran/insert',
+  auth.checkBearerToken,
+  jamPelajaran.insert
+);
 
 router.get('/cabang/all-data', auth.checkBearerToken, cabang.list);
 router.get('/cabang', auth.checkBearerToken, cabang.index);

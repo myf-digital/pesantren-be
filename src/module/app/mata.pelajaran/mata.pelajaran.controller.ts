@@ -27,7 +27,7 @@ const generateDataExcel = (sheet: any, details: any) => {
     'No',
     'Kode',
     'Nama',
-    'Lembaga Type',
+    'Tipe',
     'Lembaga',
     'Kelompok',
     'KKM',
@@ -71,7 +71,7 @@ const generateDataExcel = (sheet: any, details: any) => {
 const normalizeRow = (row: any) => ({
   kode_mapel: String(row['Kode'] || '').trim(),
   nama_mapel: String(row['Nama'] || '').trim(),
-  lembaga_type: String(row['Lembaga Type'] || '').trim(),
+  lembaga_type: String(row['Tipe'] || '').trim(),
   nama_lembaga: String(row['Lembaga'] || '').trim(),
   nama_kelpelajaran: String(row['Kelompok'] || '').trim(),
   kkm: String(row['KKM'] || '').trim(),
@@ -98,7 +98,7 @@ const validateRow = (row: any) => {
     errors.push('Kelompok Pelajaran wajib diisi');
   }
   if (row.kkm !== null && Number.isNaN(row.kkm)) {
-    errors.push('Nomor Urut harus angka');
+    errors.push('KKM harus angka');
   }
   return errors;
 };
@@ -336,8 +336,6 @@ export default class Controller {
           keterangan: row.keterangan ?? null,
           status: row.status ?? 'A',
           lembaga_type: row.lembaga_type,
-          nama_kelpelajaran: row.nama_kelpelajaran,
-          nama_lembaga: row.nama_lembaga,
           id_kelpelajaran,
           id_lembaga,
         };
