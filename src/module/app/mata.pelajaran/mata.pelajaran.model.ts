@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { DataTypes, Model, Sequelize } from 'sequelize';
 import KelompokPelajaran from '../kelompok.pelajaran/kelompok.pelajaran.model';
+import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 
 export class MataPelajaran extends Model {
   public id_mapel!: string;
@@ -28,6 +29,9 @@ export function initMataPelajaran(sequelize: Sequelize) {
         type: DataTypes.STRING,
       },
       id_lembaga: {
+        type: DataTypes.STRING,
+      },
+      lembaga_type: {
         type: DataTypes.STRING,
       },
       kode_mapel: {
@@ -81,6 +85,10 @@ export function associateMataPelajaran() {
   MataPelajaran.belongsTo(KelompokPelajaran, {
     as: 'kelompok_pelajaran',
     foreignKey: 'id_kelpelajaran',
+  });
+  MataPelajaran.belongsTo(LembagaPendidikanFormal, {
+    as: 'lembaga_formal',
+    foreignKey: 'id_lembaga',
   });
 }
 

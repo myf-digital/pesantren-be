@@ -11,6 +11,7 @@ export default class Variable {
       'status',
       'id_lembaga',
       'id_kelpelajaran',
+      'lembaga_type',
     ];
     return field;
   }

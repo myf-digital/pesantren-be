@@ -3,7 +3,6 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
 export const up = async (queryInterface: QueryInterface) => {
-
   await queryInterface.addColumn('orang_tua_wali', 'keterangan', {
     type: DataTypes.TEXT,
     allowNull: true,
@@ -15,23 +14,58 @@ export const up = async (queryInterface: QueryInterface) => {
   });
 
   await queryInterface.changeColumn('orang_tua_wali', 'pendidikan', {
-    type: DataTypes.ENUM('Tidak Sekolah','SD / MI','SMP / MTs','SMA / MA','SMK','D1','D2','D3','S1','S2','S3','Lainnya'),
+    type: DataTypes.ENUM(
+      'Tidak Sekolah',
+      'SD / MI',
+      'SMP / MTs',
+      'SMA / MA',
+      'SMK',
+      'D1',
+      'D2',
+      'D3',
+      'S1',
+      'S2',
+      'S3',
+      'Lainnya'
+    ),
     allowNull: true,
   });
 
   await queryInterface.changeColumn('orang_tua_wali', 'pekerjaan', {
-    type: DataTypes.ENUM('Tidak Bekerja','Ibu Rumah Tangga','Petani','Buruh Harian','Nelayan','Wiraswasta','Pedagang','Karyawan Swasta','PNS','TNI / POLRI','Guru / Dosen','Pekerja Migran','Pensiunan','Lainnya'),
+    type: DataTypes.ENUM(
+      'Tidak Bekerja',
+      'Ibu Rumah Tangga',
+      'Petani',
+      'Buruh Harian',
+      'Nelayan',
+      'Wiraswasta',
+      'Pedagang',
+      'Karyawan Swasta',
+      'PNS',
+      'TNI / POLRI',
+      'Guru / Dosen',
+      'Pekerja Migran',
+      'Pensiunan',
+      'Lainnya'
+    ),
     allowNull: true,
   });
 
   await queryInterface.addColumn('orang_tua_wali', 'penghasilan', {
-    type: DataTypes.ENUM('< 1 juta','1–2 juta','2–3 juta','3–5 juta','> 5 juta','Tidak berpenghasilan'),
+    type: DataTypes.ENUM(
+      '< 1 juta',
+      '1–2 juta',
+      '2–3 juta',
+      '3–5 juta',
+      '> 5 juta',
+      'Tidak berpenghasilan'
+    ),
     allowNull: true,
   });
 
   await queryInterface.addColumn('orang_tua_wali', 'deleted_at', {
     allowNull: true,
-    type: DataTypes.DATE
+    type: DataTypes.DATE,
   });
 
   await queryInterface.addColumn('orang_tua_wali', 'is_deleted', {
@@ -59,11 +93,9 @@ export const up = async (queryInterface: QueryInterface) => {
     type: DataTypes.STRING,
     allowNull: true,
   });
-  
 };
 
 export const down = async (queryInterface: QueryInterface) => {
-
   await queryInterface.removeColumn('orang_tua_wali', 'keterangan');
   await queryInterface.removeColumn('orang_tua_wali', 'deleted_at');
   await queryInterface.removeColumn('orang_tua_wali', 'is_deleted');

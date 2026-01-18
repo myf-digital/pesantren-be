@@ -3,12 +3,22 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
 export const up = async (queryInterface: QueryInterface) => {
-  await queryInterface.createTable('kelas_formal', {
-    id_kelas: {
+  await queryInterface.createTable('guru_mapel', {
+    id_gmapel: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
       unique: true,
+    },
+    id_guru: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'pegawai',
+        key: 'id_pegawai',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
     },
     id_lembaga: {
       type: DataTypes.STRING,
@@ -30,22 +40,12 @@ export const up = async (queryInterface: QueryInterface) => {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL',
     },
-    id_tahunajaran: {
+    id_mapel: {
       type: DataTypes.STRING,
       allowNull: true,
       references: {
-        model: 'tahun_ajaran',
-        key: 'id_tahunajaran',
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL',
-    },
-    id_wali_kelas: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      references: {
-        model: 'pegawai',
-        key: 'id_pegawai',
+        model: 'mata_pelajaran',
+        key: 'mapel',
       },
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL',
@@ -86,23 +86,23 @@ export const up = async (queryInterface: QueryInterface) => {
     },
   });
 
-  await queryInterface.addConstraint('kelas_formal', {
+  await queryInterface.addConstraint('guru_mapel', {
     fields: ['id_lembaga', 'id_tahunajaran', 'nama_kelas'],
     type: 'unique',
-    name: 'unique_kelas_formal_id_lembaga_id_tahunajaran_nama_kelas',
+    name: 'unique_guru_mapel_id_lembaga_id_tahunajaran_nama_kelas',
   });
 };
 
 export const down = async (queryInterface: QueryInterface) => {
-  await queryInterface.dropTable('kelas_formal');
+  await queryInterface.dropTable('guru_mapel');
   try {
     await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_kelas_formal_status";'
+      'DROP TYPE IF EXISTS "enum_guru_mapel_status";'
     );
   } catch (e) {}
   try {
     await queryInterface.sequelize.query(
-      'DROP CONSTRAINT IF EXISTS "unique_kelas_formal_id_lembaga_id_tahunajaran_nama_kelas";'
+      'DROP CONSTRAINT IF EXISTS "unique_guru_mapel_id_lembaga_id_tahunajaran_nama_kelas";'
     );
   } catch (e) {}
 };

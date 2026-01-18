@@ -97,13 +97,13 @@ interface KelPelajaranTree extends KelPelajaran {
 const buildKelPelajaranTree = (data: KelPelajaran[]): KelPelajaranTree[] => {
   const map = new Map<string, KelPelajaranTree>();
 
-  data.forEach(item => {
+  data.forEach((item) => {
     map.set(item.id_kelpelajaran, { ...item, children: [] });
   });
 
   const tree: KelPelajaranTree[] = [];
 
-  map.forEach(item => {
+  map.forEach((item) => {
     if (!item.parent_id) {
       tree.push(item);
     } else {
@@ -114,7 +114,7 @@ const buildKelPelajaranTree = (data: KelPelajaran[]): KelPelajaranTree[] => {
 
   const sortRecursive = (nodes: KelPelajaranTree[]) => {
     nodes.sort((a, b) => a.nomor_urut - b.nomor_urut);
-    nodes.forEach(n => {
+    nodes.forEach((n) => {
       if (n.children.length > 0) {
         sortRecursive(n.children);
       }
@@ -127,22 +127,20 @@ const buildKelPelajaranTree = (data: KelPelajaran[]): KelPelajaranTree[] => {
 };
 
 const flattenKelPelajaranTree = (datas: any[], level = 0): any[] => {
-  let result: any[] = []
+  let result: any[] = [];
 
-  datas.forEach(data => {
+  datas.forEach((data) => {
     result.push({
       ...data,
-      __level: level
-    })
+      __level: level,
+    });
 
     if (data.children?.length) {
-      result = result.concat(
-        flattenKelPelajaranTree(data.children, level + 1)
-      )
+      result = result.concat(flattenKelPelajaranTree(data.children, level + 1));
     }
-  })
+  });
 
-  return result
+  return result;
 };
 
 export default class Controller {
@@ -298,8 +296,8 @@ export default class Controller {
       }
 
       const rawData = result.map((d: any) => d.get({ plain: true }));
-      const tree = buildKelPelajaranTree(rawData)
-      const flatValues = flattenKelPelajaranTree(tree)
+      const tree = buildKelPelajaranTree(rawData);
+      const flatValues = flattenKelPelajaranTree(tree);
 
       const { dir, path } = await helper.checkDirExport('excel');
 
@@ -398,15 +396,21 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            updated_at: helper.date(),
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+              updated_at: helper.date(),
+            },
+            { transaction: trx! }
+          );
         } else {
-          await KelompokPelajaran.create({
-            ...payload,
-            created_at: helper.date(),
-          }, { transaction: trx! });
+          await KelompokPelajaran.create(
+            {
+              ...payload,
+              created_at: helper.date(),
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -461,15 +465,21 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            updated_at: helper.date(),
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+              updated_at: helper.date(),
+            },
+            { transaction: trx }
+          );
         } else {
-          await KelompokPelajaran.create({
-            ...payload,
-            created_at: helper.date(),
-          }, { transaction: trx });
+          await KelompokPelajaran.create(
+            {
+              ...payload,
+              created_at: helper.date(),
+            },
+            { transaction: trx }
+          );
         }
       }
       await trx.commit();

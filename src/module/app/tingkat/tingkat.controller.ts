@@ -253,9 +253,15 @@ export default class Controller {
         const tingkat_type = row.tingkat_type;
         const nomor_urut = row.nomor_urut;
 
-        if (!errors.find(e => e.split(' ').includes('Tipe'))) {
-          const tingkatExist = await repository.detail({ tingkat, tingkat_type });
-          if (tingkatExist && tingkatExist.getDataValue('nomor_urut') !== nomor_urut) {
+        if (!errors.find((e) => e.split(' ').includes('Tipe'))) {
+          const tingkatExist = await repository.detail({
+            tingkat,
+            tingkat_type,
+          });
+          if (
+            tingkatExist &&
+            tingkatExist.getDataValue('nomor_urut') !== nomor_urut
+          ) {
             const nomorIsExist = await repository.detail({ nomor_urut });
 
             if (nomorIsExist) {
@@ -287,13 +293,19 @@ export default class Controller {
         const existing = await repository.detail({ tingkat, tingkat_type });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
         } else {
-          await Tingkat.create({
-            ...payload,
-          }, { transaction: trx! });
+          await Tingkat.create(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -306,11 +318,7 @@ export default class Controller {
 
       if (trx) {
         await trx.commit();
-        return response.success(
-          'import tingkat berhasil',
-          dataRes,
-          res
-        );
+        return response.success('import tingkat berhasil', dataRes, res);
       }
 
       return response.success(
@@ -349,13 +357,19 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
         } else {
-          await Tingkat.create({
-            ...payload,
-          }, { transaction: trx });
+          await Tingkat.create(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
         }
       }
       await trx.commit();

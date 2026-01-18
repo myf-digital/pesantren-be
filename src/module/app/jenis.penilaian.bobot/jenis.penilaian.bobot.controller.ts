@@ -25,11 +25,7 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(
-        `list: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`list: ${err?.message}`, 500, res);
     }
   }
 
@@ -45,11 +41,7 @@ export default class Controller {
         res
       );
     } catch (err: any) {
-      return helper.catchError(
-        `index: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`index: ${err?.message}`, 500, res);
     }
   }
 
@@ -62,11 +54,7 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(
-        `detail: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`detail: ${err?.message}`, 500, res);
     }
   }
 
@@ -82,7 +70,7 @@ export default class Controller {
       } else {
         data = helper.only(variable.fillable(), data);
 
-        const isUpdated =  await updateExistingBobot(data);
+        const isUpdated = await updateExistingBobot(data);
         await validateBobot([data]);
 
         if (!isUpdated)
@@ -93,11 +81,7 @@ export default class Controller {
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `create: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`create: ${err?.message}`, 500, res);
     }
   }
 
@@ -107,7 +91,7 @@ export default class Controller {
       const check = await repository.detail({ id_bobot: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
       const data: Object = helper.only(variable.fillable(), req?.body, true);
-      
+
       await validateBobot([data], true);
 
       await repository.update({

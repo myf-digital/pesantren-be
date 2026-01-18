@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
 export const kelasFormalSchema = z.object({
-  nama_kelas: z
-    .string()
-    .nonempty('Nama Kelas wajib diisi'),
+  nama_kelas: z.string().nonempty('Nama Kelas wajib diisi'),
   id_lembaga: z.any(),
   id_tingkat: z.any(),
   id_tahunajaran: z.any(),

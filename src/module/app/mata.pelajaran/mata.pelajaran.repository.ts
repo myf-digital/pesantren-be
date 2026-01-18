@@ -3,17 +3,18 @@
 import { Op, Sequelize } from 'sequelize';
 import Model from './mata.pelajaran.model';
 import KelompokPelajaran from '../kelompok.pelajaran/kelompok.pelajaran.model';
+import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 
 export default class Repository {
   public list(data: any) {
     let query: Object = {
       order: [['nomor_urut', 'DESC']],
     };
-    if (data?.nama_jampel !== undefined && data?.nama_jampel != null) {
+    if (data?.nama_mapel !== undefined && data?.nama_mapel != null) {
       query = {
         ...query,
         where: {
-          nama_jampel: { [Op.like]: `%${data?.nama_jampel}%` },
+          nama_mapel: { [Op.like]: `%${data?.nama_mapel}%` },
         },
       };
     }
@@ -24,7 +25,13 @@ export default class Repository {
           model: KelompokPelajaran,
           as: 'kelompok_pelajaran',
           required: false,
-          attributes: ['nama_kelpelajaran', 'keterangan'],
+          attributes: ['id_kelpelajaran', 'nama_kelpelajaran', 'keterangan'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
         },
       ],
     });
@@ -44,12 +51,11 @@ export default class Repository {
             { kode_mapel: { [Op.like]: `%${data?.keyword}%` } },
             { nama_mapel: { [Op.like]: `%${data?.keyword}%` } },
             Sequelize.where(
-              Sequelize.cast(Sequelize.col('MataPelajaran.nomor_urut'), 'TEXT'),
+              Sequelize.col('kelompok_pelajaran.nama_kelpelajaran'),
               { [Op.like]: `%${data?.keyword}%` }
             ),
-            { keterangan: { [Op.like]: `%${data?.keyword}%` } },
             Sequelize.where(
-              Sequelize.col('kelompok_pelajaran.nama_kelpelajaran'),
+              Sequelize.col('lembaga_formal.nama_lembaga'),
               { [Op.like]: `%${data?.keyword}%` }
             ),
           ],
@@ -64,6 +70,12 @@ export default class Repository {
           as: 'kelompok_pelajaran',
           required: false,
           attributes: ['nama_kelpelajaran', 'keterangan'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
         },
       ],
     });

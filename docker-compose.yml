@@ -6,7 +6,7 @@ services:
     image: pesantren-be:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${PORT}:${PORT}"
+      - '127.0.0.1:${PORT}:${PORT}'
     volumes:
       - ./.env:/app/.env
       - ./public:/app/public

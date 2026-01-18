@@ -20,7 +20,7 @@ import {
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
 
-const PARENT = '00000000-0000-0000-0000-000000000000'
+const PARENT = '00000000-0000-0000-0000-000000000000';
 
 const generateDataExcel = (sheet: any, details: any) => {
   sheet.addRow([
@@ -70,8 +70,7 @@ const normalizeRow = (row: any) => ({
   menu_name: String(row['Nama Menu'] || '').trim(),
   menu_parent: String(row['Nama Induk'] || '').trim(),
   status: row['Status'] === 'Aktif' ? 1 : 0,
-  seq_number:
-    row['Nomor Urut'] !== undefined ? Number(row['Nomor Urut']) : 1,
+  seq_number: row['Nomor Urut'] !== undefined ? Number(row['Nomor Urut']) : 1,
   menu_icon: String(row['Icon'] || '').trim(),
   module_name: String(row['Url'] || '').trim(),
   __row: row.__row,
@@ -105,13 +104,13 @@ interface MenuTree extends Menu {
 const buildMenuTree = (data: Menu[]): MenuTree[] => {
   const map = new Map<string, MenuTree>();
 
-  data.forEach(item => {
+  data.forEach((item) => {
     map.set(item.menu_id, { ...item, children: [] });
   });
 
   const tree: MenuTree[] = [];
 
-  map.forEach(item => {
+  map.forEach((item) => {
     if (item.parent_id === PARENT) {
       tree.push(item);
     } else {
@@ -122,7 +121,7 @@ const buildMenuTree = (data: Menu[]): MenuTree[] => {
 
   const sortRecursive = (nodes: MenuTree[]) => {
     nodes.sort((a, b) => a.seq_number - b.seq_number);
-    nodes.forEach(n => {
+    nodes.forEach((n) => {
       if (n.children.length > 0) {
         sortRecursive(n.children);
       }
@@ -135,22 +134,20 @@ const buildMenuTree = (data: Menu[]): MenuTree[] => {
 };
 
 const flattenMenuTree = (datas: any[], level = 0): any[] => {
-  let result: any[] = []
+  let result: any[] = [];
 
-  datas.forEach(data => {
+  datas.forEach((data) => {
     result.push({
       ...data,
-      __level: level
-    })
+      __level: level,
+    });
 
     if (data.children?.length) {
-      result = result.concat(
-        flattenMenuTree(data.children, level + 1)
-      )
+      result = result.concat(flattenMenuTree(data.children, level + 1));
     }
-  })
+  });
 
-  return result
+  return result;
 };
 
 export default class Controller {
@@ -208,8 +205,7 @@ export default class Controller {
       const data: Object = helper.only(variable.fillable(), req?.body);
 
       let parent_id: string = req?.body?.parent_id || '';
-      if (!parent_id || parent_id == undefined)
-        parent_id = PARENT;
+      if (!parent_id || parent_id == undefined) parent_id = PARENT;
 
       await repository.create({
         payload: {
@@ -233,8 +229,7 @@ export default class Controller {
       const data: Object = helper.only(variable.fillable(), req?.body, true);
 
       let parent_id: string = req?.body?.parent_id || '';
-      if (!parent_id || parent_id == undefined)
-        parent_id = PARENT;
+      if (!parent_id || parent_id == undefined) parent_id = PARENT;
 
       await repository.update({
         payload: {
@@ -297,8 +292,8 @@ export default class Controller {
       }
 
       const rawMenus = result.map((d: any) => d.get({ plain: true }));
-      const tree = buildMenuTree(rawMenus)
-      const flatValues = flattenMenuTree(tree)
+      const tree = buildMenuTree(rawMenus);
+      const flatValues = flattenMenuTree(tree);
 
       const { dir, path } = await helper.checkDirExport('excel');
 
@@ -313,11 +308,7 @@ export default class Controller {
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel menu', urlExcel, res);
     } catch (err: any) {
-      return helper.catchError(
-        `export excel menu: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`export excel menu: ${err?.message}`, 500, res);
     }
   }
 
@@ -398,19 +389,25 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            parent_id: payload?.parent_id || PARENT,
-            modified_by: req?.user?.id,
-            modified_date: helper.date(),
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+              parent_id: payload?.parent_id || PARENT,
+              modified_by: req?.user?.id,
+              modified_date: helper.date(),
+            },
+            { transaction: trx! }
+          );
         } else {
-          await AppMenu.create({
-            ...payload,
-            parent_id: payload?.parent_id || PARENT,
-            created_by: req?.user?.id,
-            created_date: helper.date(),
-          }, { transaction: trx! });
+          await AppMenu.create(
+            {
+              ...payload,
+              parent_id: payload?.parent_id || PARENT,
+              created_by: req?.user?.id,
+              created_date: helper.date(),
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -423,11 +420,7 @@ export default class Controller {
 
       if (trx) {
         await trx.commit();
-        return response.success(
-          'import menu berhasil',
-          dataRes,
-          res
-        );
+        return response.success('import menu berhasil', dataRes, res);
       }
 
       return response.success(
@@ -442,11 +435,7 @@ export default class Controller {
       if (trx) await trx.rollback();
 
       console.error(err);
-      return helper.catchError(
-        `import excel menu: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`import excel menu: ${err?.message}`, 500, res);
     }
   }
 
@@ -465,19 +454,25 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            parent_id: payload?.parent_id || PARENT,
-            modified_by: req?.user?.id,
-            modified_date: helper.date(),
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+              parent_id: payload?.parent_id || PARENT,
+              modified_by: req?.user?.id,
+              modified_date: helper.date(),
+            },
+            { transaction: trx }
+          );
         } else {
-          await AppMenu.create({
-            ...payload,
-            parent_id: payload?.parent_id || PARENT,
-            created_by: req?.user?.id,
-            created_date: helper.date(),
-          }, { transaction: trx });
+          await AppMenu.create(
+            {
+              ...payload,
+              parent_id: payload?.parent_id || PARENT,
+              created_by: req?.user?.id,
+              created_date: helper.date(),
+            },
+            { transaction: trx }
+          );
         }
       }
       await trx.commit();

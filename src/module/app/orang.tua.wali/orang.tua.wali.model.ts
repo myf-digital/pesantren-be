@@ -41,13 +41,48 @@ export function initOrangTuaWali(sequelize: Sequelize) {
         type: DataTypes.STRING(255),
       },
       pendidikan: {
-        type: DataTypes.ENUM('Tidak Sekolah','SD / MI','SMP / MTs','SMA / MA','SMK','D1','D2','D3','S1','S2','S3','Lainnya'),
+        type: DataTypes.ENUM(
+          'Tidak Sekolah',
+          'SD / MI',
+          'SMP / MTs',
+          'SMA / MA',
+          'SMK',
+          'D1',
+          'D2',
+          'D3',
+          'S1',
+          'S2',
+          'S3',
+          'Lainnya'
+        ),
       },
       pekerjaan: {
-        type: DataTypes.ENUM('Tidak Bekerja','Ibu Rumah Tangga','Petani','Buruh Harian','Nelayan','Wiraswasta','Pedagang','Karyawan Swasta','PNS','TNI / POLRI','Guru / Dosen','Pekerja Migran','Pensiunan','Lainnya'),
+        type: DataTypes.ENUM(
+          'Tidak Bekerja',
+          'Ibu Rumah Tangga',
+          'Petani',
+          'Buruh Harian',
+          'Nelayan',
+          'Wiraswasta',
+          'Pedagang',
+          'Karyawan Swasta',
+          'PNS',
+          'TNI / POLRI',
+          'Guru / Dosen',
+          'Pekerja Migran',
+          'Pensiunan',
+          'Lainnya'
+        ),
       },
       penghasilan: {
-        type: DataTypes.ENUM('< 1 juta','1–2 juta','2–3 juta','3–5 juta','> 5 juta','Tidak berpenghasilan'),
+        type: DataTypes.ENUM(
+          '< 1 juta',
+          '1–2 juta',
+          '2–3 juta',
+          '3–5 juta',
+          '> 5 juta',
+          'Tidak berpenghasilan'
+        ),
       },
       no_hp: {
         type: DataTypes.STRING(255),

@@ -70,7 +70,7 @@ export default class Controller {
   public async create(req: Request, res: Response) {
     try {
       let data = req?.body;
-      
+
       if (Array.isArray(data)) {
         data = data.map((item) => helper.only(variable.fillable(), item));
         await repository.create({

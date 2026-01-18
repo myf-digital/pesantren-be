@@ -80,10 +80,16 @@ import ActivityLog, {
   associateActivityLog,
 } from '../global/activity.log.model';
 import { getUserLogin } from '../../context/userContext';
-import { associateLembagaPendidikanFormal, initLembagaPendidikanFormal } from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
+import {
+  associateLembagaPendidikanFormal,
+  initLembagaPendidikanFormal,
+} from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 import { initPegawai, associatePegawai } from '../app/pegawai/pegawai.model';
 import { associateKamar, initKamar } from '../app/kamar/kamar.model';
-import { associatePenempatanKamarSantri, initPenempatanKamarSantri } from '../app/penempatan.kamar.santri/penempatan.kamar.santri.model';
+import {
+  associatePenempatanKamarSantri,
+  initPenempatanKamarSantri,
+} from '../app/penempatan.kamar.santri/penempatan.kamar.santri.model';
 import {
   initInventarisUmum,
   associateInventarisUmum,
@@ -92,7 +98,10 @@ import {
   initInventarisAsetHarian,
   associateInventarisAsetHarian,
 } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
-import { associateJenisPenilaianBobot, initJenisPenilaianBobot } from '../app/jenis.penilaian.bobot/jenis.penilaian.bobot.model';
+import {
+  associateJenisPenilaianBobot,
+  initJenisPenilaianBobot,
+} from '../app/jenis.penilaian.bobot/jenis.penilaian.bobot.model';
 import {
   initKelasMda,
   associateKelasMda,

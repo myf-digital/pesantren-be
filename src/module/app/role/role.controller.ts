@@ -23,11 +23,7 @@ import {
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
-  sheet.addRow([
-    'No',
-    'Nama Role',
-    'Status',
-  ]);
+  sheet.addRow(['No', 'Nama Role', 'Status']);
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -190,11 +186,7 @@ export default class Controller {
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel role', urlExcel, res);
     } catch (err: any) {
-      return helper.catchError(
-        `export excel role: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`export excel role: ${err?.message}`, 500, res);
     }
   }
 
@@ -253,17 +245,23 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            modified_by: req?.user?.id,
-            modified_date: helper.date(),
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+              modified_by: req?.user?.id,
+              modified_date: helper.date(),
+            },
+            { transaction: trx! }
+          );
         } else {
-          await AppRole.create({
-            ...payload,
-            created_by: req?.user?.id,
-            created_date: helper.date(),
-          }, { transaction: trx! });
+          await AppRole.create(
+            {
+              ...payload,
+              created_by: req?.user?.id,
+              created_date: helper.date(),
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -276,11 +274,7 @@ export default class Controller {
 
       if (trx) {
         await trx.commit();
-        return response.success(
-          'import role berhasil',
-          dataRes,
-          res
-        );
+        return response.success('import role berhasil', dataRes, res);
       }
 
       return response.success(
@@ -295,11 +289,7 @@ export default class Controller {
       if (trx) await trx.rollback();
 
       console.error(err);
-      return helper.catchError(
-        `import excel role: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`import excel role: ${err?.message}`, 500, res);
     }
   }
 
@@ -318,17 +308,23 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            modified_by: req?.user?.id,
-            modified_date: helper.date(),
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+              modified_by: req?.user?.id,
+              modified_date: helper.date(),
+            },
+            { transaction: trx }
+          );
         } else {
-          await AppRole.create({
-            ...payload,
-            created_by: req?.user?.id,
-            created_date: helper.date(),
-          }, { transaction: trx });
+          await AppRole.create(
+            {
+              ...payload,
+              created_by: req?.user?.id,
+              created_date: helper.date(),
+            },
+            { transaction: trx }
+          );
         }
       }
       await trx.commit();

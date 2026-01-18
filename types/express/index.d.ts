@@ -1,4 +1,4 @@
-import { User } from "../../src/module/app/user/user.model"; // Adjust path if needed
+import { User } from '../../src/module/app/user/user.model'; // Adjust path if needed
 declare global {
   namespace Express {
     interface Request {
@@ -6,4 +6,3 @@ declare global {
     }
   }
 }
-

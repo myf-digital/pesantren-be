@@ -323,16 +323,29 @@ export default class Controller {
         const status = row.status;
         const nomor_urut = row.nomor_urut;
 
-        const tahunAjaranExist = await tahunAjaranRepository.detail({ tahun_ajaran });
+        const tahunAjaranExist = await tahunAjaranRepository.detail({
+          tahun_ajaran,
+        });
         if (!tahunAjaranExist) {
           errors.push(`Tahun Ajaran ${tahun_ajaran} tidak ditemukan`);
         } else {
-          const semesterExist = await repository.detail({ nama_semester, id_tahunajaran: tahunAjaranExist?.id_tahunajaran });
-          if (semesterExist && semesterExist.getDataValue('nomor_urut') !== nomor_urut) {
-            const nomorIsExist = await repository.detail({ nomor_urut, id_tahunajaran: tahunAjaranExist?.id_tahunajaran });
+          const semesterExist = await repository.detail({
+            nama_semester,
+            id_tahunajaran: tahunAjaranExist?.id_tahunajaran,
+          });
+          if (
+            semesterExist &&
+            semesterExist.getDataValue('nomor_urut') !== nomor_urut
+          ) {
+            const nomorIsExist = await repository.detail({
+              nomor_urut,
+              id_tahunajaran: tahunAjaranExist?.id_tahunajaran,
+            });
 
             if (nomorIsExist) {
-              errors.push(`Tahun Ajaran ${tahunAjaranExist?.tahun_ajaran} dengan Nomor Urut ${nomor_urut} sudah ada`);
+              errors.push(
+                `Tahun Ajaran ${tahunAjaranExist?.tahun_ajaran} dengan Nomor Urut ${nomor_urut} sudah ada`
+              );
             }
           }
         }
@@ -359,19 +372,28 @@ export default class Controller {
 
         if (mode === 'preview' || !valid) continue;
 
-        const existing = await repository.detail({ nama_semester, id_tahunajaran: tahunAjaranExist?.id_tahunajaran });
+        const existing = await repository.detail({
+          nama_semester,
+          id_tahunajaran: tahunAjaranExist?.id_tahunajaran,
+        });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
           if (status === 'Aktif') {
             data = existing;
           }
         } else {
-          let newCreate = await Semester.create({
-            ...payload,
-          }, { transaction: trx! });
+          let newCreate = await Semester.create(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
           if (status === 'Aktif') {
             data = newCreate;
           }
@@ -386,7 +408,6 @@ export default class Controller {
       };
 
       if (trx) {
-
         await trx.commit();
 
         if (data) {
@@ -399,12 +420,8 @@ export default class Controller {
             },
           });
         }
-        
-        return response.success(
-          'import semester berhasil',
-          dataRes,
-          res
-        );
+
+        return response.success('import semester berhasil', dataRes, res);
       }
 
       return response.success(
@@ -444,16 +461,22 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
           if (payload.status === 'Aktif') {
             data = existing;
           }
         } else {
-          let newCreate = await Semester.create({
-            ...payload,
-          }, { transaction: trx });
+          let newCreate = await Semester.create(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
           if (payload.status === 'Aktif') {
             data = newCreate;
           }

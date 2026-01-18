@@ -298,13 +298,19 @@ export default class Controller {
         const existing = await repository.detail({ kode_status_awal });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
         } else {
-          let newCreate = await StatusAwalSantri.create({
-            ...payload,
-          }, { transaction: trx! });
+          let newCreate = await StatusAwalSantri.create(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -316,9 +322,8 @@ export default class Controller {
       };
 
       if (trx) {
-
         await trx.commit();
-        
+
         return response.success(
           'import status awal santri berhasil',
           dataRes,
@@ -358,17 +363,23 @@ export default class Controller {
       let data = null;
       for (const payload of payloads) {
         const existing = await repository.detail({
-          kode_status_awal: payload.kode_status_awal
+          kode_status_awal: payload.kode_status_awal,
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
         } else {
-          let newCreate = await StatusAwalSantri.create({
-            ...payload,
-          }, { transaction: trx });
+          let newCreate = await StatusAwalSantri.create(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
         }
       }
 

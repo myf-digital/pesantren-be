@@ -10,7 +10,7 @@ export default class Variable {
       'tanggal_masuk',
       'tanggal_keluar',
       'status',
-      'keterangan'
+      'keterangan',
     ];
     return field;
   }

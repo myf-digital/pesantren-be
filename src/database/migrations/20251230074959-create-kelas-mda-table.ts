@@ -100,7 +100,7 @@ export const down = async (queryInterface: QueryInterface) => {
       'DROP TYPE IF EXISTS "enum_kelas_mda_status";'
     );
   } catch (e) {}
-   try {
+  try {
     await queryInterface.sequelize.query(
       'DROP CONSTRAINT IF EXISTS "unique_kelas_mda_id_lembaga_id_tahunajaran_nama_kelas_mda";'
     );

@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
 export const kelasMdaSchema = z.object({
-  nama_kelas_mda: z
-    .string()
-    .nonempty('Nama Kelas MDA wajib diisi'),
+  nama_kelas_mda: z.string().nonempty('Nama Kelas MDA wajib diisi'),
   id_lembaga: z.any(),
   id_tingkat: z.any(),
   id_tahunajaran: z.any(),

@@ -23,13 +23,7 @@ import {
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
-  sheet.addRow([
-    'No',
-    'Key',
-    'Value',
-    'Keterangan',
-    'Status',
-  ]);
+  sheet.addRow(['No', 'Key', 'Value', 'Keterangan', 'Status']);
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -203,7 +197,7 @@ export default class Controller {
       );
     }
   }
-  
+
   public async export(req: Request, res: Response) {
     try {
       let condition: any = {};
@@ -301,17 +295,23 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            modified_by: req?.user?.id,
-            modified_date: helper.date(),
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+              modified_by: req?.user?.id,
+              modified_date: helper.date(),
+            },
+            { transaction: trx! }
+          );
         } else {
-          await ParamGlobal.create({
-            ...payload,
-            created_by: req?.user?.id,
-            created_date: helper.date(),
-          }, { transaction: trx! });
+          await ParamGlobal.create(
+            {
+              ...payload,
+              created_by: req?.user?.id,
+              created_date: helper.date(),
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -324,11 +324,7 @@ export default class Controller {
 
       if (trx) {
         await trx.commit();
-        return response.success(
-          'import param global berhasil',
-          dataRes,
-          res
-        );
+        return response.success('import param global berhasil', dataRes, res);
       }
 
       return response.success(
@@ -366,17 +362,23 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            modified_by: req?.user?.id,
-            modified_date: helper.date(),
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+              modified_by: req?.user?.id,
+              modified_date: helper.date(),
+            },
+            { transaction: trx }
+          );
         } else {
-          await ParamGlobal.create({
-            ...payload,
-            created_by: req?.user?.id,
-            created_date: helper.date(),
-          }, { transaction: trx });
+          await ParamGlobal.create(
+            {
+              ...payload,
+              created_by: req?.user?.id,
+              created_date: helper.date(),
+            },
+            { transaction: trx }
+          );
         }
       }
       await trx.commit();
