@@ -22,7 +22,7 @@ import { jenisBeasiswa } from './jenis.beasiswa/jenis.beasiswa.controller';
 import { jenisBeasiswaSchema } from './jenis.beasiswa/jenis.beasiswa.schema';
 import { kelompokPejaran } from './kelompok.pelajaran/kelompok.pelajaran.controller';
 import { jenisJamPelajaran } from './jenis.jampel/jenis.jampel.controller';
-import { jenisGuru } from './jenis.guru/jenis.guru.controller';
+import { guruMapel } from './jenis.guru/jenis.guru.controller';
 import { mataPelajaran } from './mata.pelajaran/mata.pelajaran.controller';
 import { jamPelajaran } from './jam.pelajaran/jam.pelajaran.controller';
 import { cabang } from './cabang/cabang.controller';
@@ -354,12 +354,32 @@ router.post(
   jenisJamPelajaran.insert
 );
 
-router.get('/guru-mapel/all-data', auth.checkBearerToken, jenisGuru.list);
-router.get('/guru-mapel', auth.checkBearerToken, jenisGuru.index);
-router.get('/guru-mapel/:id', auth.checkBearerToken, jenisGuru.detail);
-router.post('/guru-mapel', auth.checkBearerToken, jenisGuru.create);
-router.put('/guru-mapel/:id', auth.checkBearerToken, jenisGuru.update);
-router.delete('/guru-mapel/:id', auth.checkBearerToken, jenisGuru.delete);
+router.get('/guru-mata-pelajaran/all-data', auth.checkBearerToken, guruMapel.list);
+router.get('/guru-mata-pelajaran', auth.checkBearerToken, guruMapel.index);
+router.get('/guru-mata-pelajaran/:id', auth.checkBearerToken, guruMapel.detail);
+router.post('/guru-mata-pelajaran', auth.checkBearerToken, guruMapel.create);
+router.put('/guru-mata-pelajaran/:id', auth.checkBearerToken, guruMapel.update);
+router.delete('/guru-mata-pelajaran/:id', auth.checkBearerToken, guruMapel.delete);
+router.delete(
+  '/guru-mata-pelajaran/:id',
+  auth.checkBearerToken,
+  guruMapel.delete
+);
+router.post(
+  '/guru-mata-pelajaran/export',
+  auth.checkBearerToken,
+  guruMapel.export
+);
+router.post(
+  '/guru-mata-pelajaran/import',
+  auth.checkBearerToken,
+  guruMapel.import
+);
+router.post(
+  '/guru-mata-pelajaran/insert',
+  auth.checkBearerToken,
+  guruMapel.insert
+);
 
 router.get(
   '/mata-pelajaran/all-data',

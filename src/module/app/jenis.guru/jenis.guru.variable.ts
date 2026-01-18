@@ -7,6 +7,11 @@ export default class Variable {
       'nomor_urut',
       'keterangan',
       'status',
+      'id_guru',
+      'id_mapel',
+      'id_lembaga',
+      'lembaga_type',
+      'id_tingkat',
     ];
     return field;
   }

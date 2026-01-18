@@ -41,7 +41,7 @@ import {
   associateKelompokPelajaran,
 } from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
 import { initJenisJamPelajaran } from '../app/jenis.jampel/jenis.jampel.model';
-import { initJenisGuru } from '../app/jenis.guru/jenis.guru.model';
+import { initJenisGuru, associateJenisGuru } from '../app/jenis.guru/jenis.guru.model';
 import {
   initMataPelajaran,
   associateMataPelajaran,
@@ -185,6 +185,7 @@ export function initializeModels(sequelize: Sequelize) {
   associateJenisPenilaianBobot();
   associateKelasMda();
   associateKelasFormal();
+  associateJenisGuru();
 
   addGlobalActivityHooks(sequelize);
 }
