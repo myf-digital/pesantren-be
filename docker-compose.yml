@@ -5,6 +5,7 @@ services:
     container_name: pesantren-api
     image: pesantren-be:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    user: "${UID}:${GID}"
     ports:
       - '127.0.0.1:${PORT}:${PORT}'
     volumes:
