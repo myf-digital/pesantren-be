@@ -705,6 +705,16 @@ router.post(
   auth.checkBearerToken,
   kelasMda.export
 );
+router.post(
+  '/kelas-mda/import',
+  auth.checkBearerToken,
+  kelasMda.import
+);
+router.post(
+  '/kelas-mda/insert',
+  auth.checkBearerToken,
+  kelasMda.insert
+);
 
 router.get(
   '/kelas-formal/all-data',

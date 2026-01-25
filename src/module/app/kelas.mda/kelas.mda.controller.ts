@@ -14,14 +14,18 @@ import {
   SUCCESS_SAVED,
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
-import { rawQuery } from '../../../helpers/rawQuery';
-import { QueryTypes } from 'sequelize';
 import moment from 'moment';
+import { kelasMdaSchema } from './kelas.mda.schema';
+import { sequelize } from '../../../database/connection';
+import fs from 'fs/promises';
+import KelasMda from './kelas.mda.model';
+import { repository as tahunAjaranRepository } from '../tahun.ajaran/tahun.ajaran.repository';
+import { repository as lembagaRepository } from '../lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.repository';
 
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
-  sheet.addRow(['No', 'Nama Kelas MDA', 'Lembaga', 'Tahun Ajaran', 'Tingkat', 'Wali Kelas', 'Status', 'Keterangan']);
+  sheet.addRow(['No', 'Nama Kelas MDA', 'Lembaga', 'Tahun Ajaran', 'Tingkat', 'Wali Kelas', 'Status', 'Nomor Urut', 'Keterangan']);
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -37,6 +41,7 @@ const generateDataExcel = (sheet: any, details: any) => {
       details[i]?.tingkat?.tingkat || '',
       details[i]?.pegawai?.nama_lengkap || '',
       details[i]?.status,
+      details[i]?.nomor_urut,
       details[i]?.keterangan || '',
     ]);
   }
@@ -53,6 +58,32 @@ const generateDataExcel = (sheet: any, details: any) => {
   }
 
   return sheet;
+};
+
+const normalizeRow = (row: any) => ({
+  nama_kelas_mda: String(row['Nama Kelas MDA'] || '').trim(),
+  nama_lembaga: String(row['Lembaga'] || '').trim(),
+  tahun_ajaran: String(row['Tahun Ajaran'] || '').trim(),
+  tingkat: String(row['Tingkat'] || '').trim(),
+  nama_lengkap: String(row['Wali Kelas'] || '').trim(),
+  status: String(row['Status'] || '').trim(),
+  nomor_urut:
+    row['Nomor Urut'] !== undefined ? Number(row['Nomor Urut']) : null,
+  keterangan: String(row['Keterangan'] || '').trim(),
+  __row: row.__row,
+});
+
+const validateRow = (row: any) => {
+  const errors: string[] = [];
+  const valid = kelasMdaSchema.safeParse(row);
+
+  if (!valid.success) {
+    for (const e of valid.error.issues) {
+      errors.push(e.message);
+    }
+  }
+
+  return errors;
 };
 
 export default class Controller {
@@ -223,6 +254,175 @@ export default class Controller {
         500,
         res
       );
+    }
+  }
+
+  public async import(req: Request, res: Response) {
+    const mode: 'preview' | 'commit' = req.body?.mode ?? 'preview';
+    const uploaded = req.files?.file_import;
+
+    if (!uploaded) {
+      return response.success('File tidak valid', null, res, false);
+    }
+
+    const trx = mode === 'commit' ? await sequelize.transaction() : null;
+
+    try {
+      let buffer: Buffer;
+      const file = Array.isArray(uploaded) ? uploaded[0] : uploaded;
+      if (file.tempFilePath) {
+        buffer = await fs.readFile(file.tempFilePath);
+      } else if (file.data) {
+        buffer = file.data;
+      } else {
+        return response.success(
+          'File kosong atau gagal dibaca',
+          null,
+          res,
+          false
+        );
+      }
+
+      const results: any[] = [];
+      const rows = await helper.parseImportFile({
+        name: file.name,
+        data: buffer,
+      });
+
+      let data = null;
+      for (const raw of rows) {
+        const row = normalizeRow(raw);
+        const errors = validateRow(row);
+
+        const nama_kelas_mda = row.nama_kelas_mda;
+        const tahun_ajaran = row.tahun_ajaran;
+        const nama_lembaga = row.nama_lembaga;
+
+        const tahunAjaranExist = await tahunAjaranRepository.detail({ tahun_ajaran });
+        if (!tahunAjaranExist) {
+          errors.push(`Tahun Ajaran ${tahun_ajaran} tidak ditemukan`);
+        }
+
+        const lembagaExist = await lembagaRepository.detail({ nama_lembaga });
+        if (!lembagaExist) {
+          errors.push(`Lembaga ${nama_lembaga} tidak ditemukan`);
+        }
+
+        const valid = errors.length === 0;
+
+        const payload = {
+          id_tahunajaran: tahunAjaranExist?.id_tahunajaran,
+          id_lembaga: lembagaExist?.id_lembaga,
+          nama_kelas_mda: row.nama_kelas_mda,
+          lembaga: row.nama_lembaga,
+          tahun_ajaran: row.tahun_ajaran,
+          tingkat: row.tingkat,
+          wali_kelas: row.nama_lengkap,
+          status: row.status,
+          nomor_urut: row.nomor_urut,
+          keterangan: row.keterangan ?? null,
+        };
+
+        results.push({
+          row: row.__row,
+          valid,
+          error: errors.length ? errors.join(', ') : null,
+          payload: {
+            ...payload,
+          },
+        });
+
+        if (mode === 'preview' || !valid) continue;
+
+        const existing = await repository.detail({ nama_kelas_mda, id_tahunajaran: tahunAjaranExist?.id_tahunajaran, id_lembaga: lembagaExist?.id_lembaga });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+          }, { transaction: trx! });
+        } else {
+          let newCreate = await KelasMda.create({
+            ...payload,
+          }, { transaction: trx! });
+        }
+      }
+
+      let dataRes = {
+        mode,
+        total: results.length,
+        valid: results.filter((r) => r.valid).length,
+        invalid: results.filter((r) => !r.valid).length,
+      };
+
+      if (trx) {
+
+        await trx.commit();
+        
+        return response.success(
+          'import kelas mda berhasil',
+          dataRes,
+          res
+        );
+      }
+
+      return response.success(
+        'preview import kelas mda',
+        {
+          ...dataRes,
+          data: results,
+        },
+        res
+      );
+    } catch (err: any) {
+      if (trx) await trx.rollback();
+
+      //console.error(err);
+      return helper.catchError(
+        `import excel kelas mda: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async insert(req: Request, res: Response) {
+    const payloads = req.body?.data as any[];
+
+    if (!Array.isArray(payloads) || payloads.length === 0) {
+      return response.success('Data import kosong', null, res, false);
+    }
+
+    const trx = await sequelize.transaction();
+    try {
+      let data = null;
+      for (const payload of payloads) {
+        const existing = await repository.detail({
+          nama_kelas_mda: payload.nama_kelas_mda,
+          id_tahunajaran: payload.id_tahunajaran,
+          id_lembaga: payload.id_lembaga
+        });
+
+        if (existing) {
+          await existing.update({
+            ...payload,
+          }, { transaction: trx });
+        } else {
+          let newCreate = await KelasMda.create({
+            ...payload,
+          }, { transaction: trx });
+        }
+      }
+
+      await trx.commit();
+
+      return response.success(
+        'Import batch kelas mda berhasil',
+        { total: payloads.length },
+        res
+      );
+    } catch (err: any) {
+      await trx.rollback();
+      return helper.catchError(`Import batch gagal: ${err.message}`, 500, res);
     }
   }
 }
