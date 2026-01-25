@@ -17,7 +17,7 @@ export class Kamar extends Model {
   public updated_at!: Date;
 
   // Relasi
-  public asrama?: Asrama
+  public asrama?: Asrama;
   public waliAsuh?: Pegawai;
 }
 
@@ -31,7 +31,7 @@ export function initKamar(sequelize: Sequelize) {
       },
       id_asrama: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       nama_kamar: {
         type: DataTypes.STRING(100),
@@ -43,14 +43,14 @@ export function initKamar(sequelize: Sequelize) {
       },
       kapasitas: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: true,
       },
       id_wali_asuh: {
         type: DataTypes.STRING,
         allowNull: true,
       },
       status: {
-        type: DataTypes.ENUM("Aktif", "Non-Aktif"),
+        type: DataTypes.ENUM('Aktif', 'Non-Aktif'),
         allowNull: true,
       },
       keterangan: {
@@ -111,15 +111,15 @@ export function associateKamar() {
     foreignKey: 'id_asrama',
     as: 'asrama',
     onUpdate: 'CASCADE',
-    onDelete: 'SET NULL'
+    onDelete: 'SET NULL',
   });
 
   Kamar.belongsTo(Pegawai, {
     foreignKey: 'id_wali_asuh',
     as: 'waliAsuh',
     onUpdate: 'CASCADE',
-    onDelete: 'SET NULL'
-  })
+    onDelete: 'SET NULL',
+  });
 }
 
 export default Kamar;

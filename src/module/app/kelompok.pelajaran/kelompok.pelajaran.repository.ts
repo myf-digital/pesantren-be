@@ -14,6 +14,11 @@ export default class Repository {
             as: 'children',
             required: false,
           },
+          {
+            model: Model,
+            as: 'parent',
+            required: false,
+          },
         ],
       };
     }

@@ -14,26 +14,26 @@ export const up = async (queryInterface: QueryInterface) => {
       type: DataTypes.STRING,
       allowNull: false,
       references: {
-        model: "jenis_penilaian",
-        key: "id_penilaian"
+        model: 'jenis_penilaian',
+        key: 'id_penilaian',
       },
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL',
     },
     lembaga_type: {
-      type: DataTypes.ENUM("FORMAL", "PESANTREN"),
-      allowNull: false
+      type: DataTypes.ENUM('FORMAL', 'PESANTREN'),
+      allowNull: false,
     },
     id_lembaga: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
     },
     id_tingkat: {
       type: DataTypes.STRING,
       allowNull: true,
       references: {
-        model: "tingkat",
-        key: "id_tingkat"
+        model: 'tingkat',
+        key: 'id_tingkat',
       },
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL',
@@ -42,8 +42,8 @@ export const up = async (queryInterface: QueryInterface) => {
       type: DataTypes.STRING,
       allowNull: false,
       references: {
-        model: "tahun_ajaran",
-        key: "id_tahunajaran"
+        model: 'tahun_ajaran',
+        key: 'id_tahunajaran',
       },
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL',
@@ -53,8 +53,8 @@ export const up = async (queryInterface: QueryInterface) => {
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM("Aktif", "Nonaktif"),
-      allowNull: false
+      type: DataTypes.ENUM('Aktif', 'Nonaktif'),
+      allowNull: false,
     },
   });
 

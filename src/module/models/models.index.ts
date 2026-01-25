@@ -41,7 +41,7 @@ import {
   associateKelompokPelajaran,
 } from '../app/kelompok.pelajaran/kelompok.pelajaran.model';
 import { initJenisJamPelajaran } from '../app/jenis.jampel/jenis.jampel.model';
-import { initJenisGuru } from '../app/jenis.guru/jenis.guru.model';
+import { initJenisGuru, associateJenisGuru } from '../app/jenis.guru/jenis.guru.model';
 import {
   initMataPelajaran,
   associateMataPelajaran,
@@ -80,10 +80,16 @@ import ActivityLog, {
   associateActivityLog,
 } from '../global/activity.log.model';
 import { getUserLogin } from '../../context/userContext';
-import { associateLembagaPendidikanFormal, initLembagaPendidikanFormal } from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
+import {
+  associateLembagaPendidikanFormal,
+  initLembagaPendidikanFormal,
+} from '../app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 import { initPegawai, associatePegawai } from '../app/pegawai/pegawai.model';
 import { associateKamar, initKamar } from '../app/kamar/kamar.model';
-import { associatePenempatanKamarSantri, initPenempatanKamarSantri } from '../app/penempatan.kamar.santri/penempatan.kamar.santri.model';
+import {
+  associatePenempatanKamarSantri,
+  initPenempatanKamarSantri,
+} from '../app/penempatan.kamar.santri/penempatan.kamar.santri.model';
 import {
   initInventarisUmum,
   associateInventarisUmum,
@@ -92,7 +98,10 @@ import {
   initInventarisAsetHarian,
   associateInventarisAsetHarian,
 } from '../app/inventaris.aset.harian/inventaris.aset.harian.model';
-import { associateJenisPenilaianBobot, initJenisPenilaianBobot } from '../app/jenis.penilaian.bobot/jenis.penilaian.bobot.model';
+import {
+  associateJenisPenilaianBobot,
+  initJenisPenilaianBobot,
+} from '../app/jenis.penilaian.bobot/jenis.penilaian.bobot.model';
 import {
   initKelasMda,
   associateKelasMda,
@@ -176,6 +185,7 @@ export function initializeModels(sequelize: Sequelize) {
   associateJenisPenilaianBobot();
   associateKelasMda();
   associateKelasFormal();
+  associateJenisGuru();
 
   addGlobalActivityHooks(sequelize);
 }

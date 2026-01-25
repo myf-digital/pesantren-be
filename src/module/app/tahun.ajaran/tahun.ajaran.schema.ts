@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const status = ['Aktif', 'Nonaktif', 'Arsip']
+export const status = ['Aktif', 'Nonaktif', 'Arsip'];
 export const tahunAjaranSchema = z.object({
   tahun_ajaran: z
     .string()

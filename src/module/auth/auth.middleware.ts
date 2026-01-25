@@ -111,7 +111,7 @@ export default class Middleware {
       if (typeof auth == 'string')
         return response.failed('Invalid token', 400, res);
 
-      const id: string = req?.params?.id;
+      const id: string = req?.params?.id || '';
       if (id && id != undefined) {
         if (!helper.isValidUUID(id))
           return response.failed(`id: ${id} ${INVALID}`, 400, res);

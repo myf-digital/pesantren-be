@@ -20,6 +20,18 @@ import AppResource from '../module/app/resource/resource.model';
 import { validate as uuidValidate, version as uuidVersion } from 'uuid';
 
 const month: string = moment().format('YYYY-MM');
+const parseTimeToSeconds = (time: string): number => {
+  if (!time) return 0
+
+  const normalized = time.replace(/\./g, ':')
+  const parts = normalized.split(':').map(Number)
+
+  const h = parts[0] ?? 0
+  const m = parts[1] ?? 0
+  const s = parts[2] ?? 0
+
+  return h * 3600 + m * 60 + s
+}
 
 export default class Helper {
   public date() {
@@ -332,17 +344,16 @@ export default class Helper {
   }
 
   public calDurationTime(start: string, end: string): number {
-    if (!start || !end) return 0;
+    if (!start || !end) return 0
 
-    const [h1, m1, s1] = start.split(':').map(Number);
-    const [h2, m2, s2] = end.split(':').map(Number);
+    const totalStart = parseTimeToSeconds(start)
+    const totalEnd = parseTimeToSeconds(end)
 
-    const totalStart = h1 * 3600 + m1 * 60 + s1;
-    const totalEnd = h2 * 3600 + m2 * 60 + s2;
+    let duration = (totalEnd - totalStart) / 3600
 
-    let duration = (totalEnd - totalStart) / 3600;
-    if (duration < 0) duration += 24;
-    return duration;
+    if (duration < 0) duration += 24
+
+    return duration
   }
 
   public getOriginUrl(req: Request) {

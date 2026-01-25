@@ -20,16 +20,8 @@ import {
   SUCCESS_UPDATED,
 } from '../../../utils/constant';
 
-
 const generateDataExcel = (sheet: any, details: any) => {
-  sheet.addRow([
-    'No',
-    'Nama',
-    'Tipe',
-    'Status',
-    'Nomor Urut',
-    'Keterangan',
-  ]);
+  sheet.addRow(['No', 'Nama', 'Tipe', 'Status', 'Nomor Urut', 'Keterangan']);
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -79,7 +71,7 @@ const validateRow = (row: any) => {
   if (!row.lembaga_type) {
     errors.push('Tipe wajib diisi');
   }
-  if (row.lembaga_type && !['FORMAL','PESANTREN'].includes(row.lembaga_type)) {
+  if (row.lembaga_type && !['FORMAL', 'PESANTREN'].includes(row.lembaga_type)) {
     errors.push('Tipe hanya diisi (FORMAL / PESANTREN)');
   }
   if (row.nomor_urut !== null && Number.isNaN(row.nomor_urut)) {
@@ -236,7 +228,11 @@ export default class Controller {
 
       generateDataExcel(sheet, result);
       await workbook.xlsx.writeFile(`${path}/${filename}`);
-      return response.success('export excel jenis jam pelajaran', urlExcel, res);
+      return response.success(
+        'export excel jenis jam pelajaran',
+        urlExcel,
+        res
+      );
     } catch (err: any) {
       return helper.catchError(
         `export excel jenis jam pelajaran: ${err?.message}`,
@@ -304,15 +300,21 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            updated_at: helper.date(),
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+              updated_at: helper.date(),
+            },
+            { transaction: trx! }
+          );
         } else {
-          await JenisJamPelajaran.create({
-            ...payload,
-            created_at: helper.date(),
-          }, { transaction: trx! });
+          await JenisJamPelajaran.create(
+            {
+              ...payload,
+              created_at: helper.date(),
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -367,15 +369,21 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            updated_at: helper.date(),
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+              updated_at: helper.date(),
+            },
+            { transaction: trx }
+          );
         } else {
-          await JenisJamPelajaran.create({
-            ...payload,
-            created_at: helper.date(),
-          }, { transaction: trx });
+          await JenisJamPelajaran.create(
+            {
+              ...payload,
+              created_at: helper.date(),
+            },
+            { transaction: trx }
+          );
         }
       }
       await trx.commit();

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "typeRoots": ["./types"],
+    "typeRoots": ["./types", "./node_modules/@types"],
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
     /* Projects */
@@ -109,9 +109,5 @@
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
-  "exclude": [
-    "src/database/data",
-    "src/database/migrations",
-    "src/database/seeders"
-  ]
+  "exclude": ["src/database/data"]
 }

@@ -1,9 +1,24 @@
 'use strict';
 
-import { QueryInterface, DataTypes } from 'sequelize';
+import { QueryInterface } from 'sequelize';
 
 export const up = async (queryInterface: QueryInterface) => {
-  await queryInterface.addConstraint('app_resource', {
+  const addConstraintSafe = async (
+    table: string,
+    options: Parameters<QueryInterface['addConstraint']>[1]
+  ) => {
+    try {
+      await queryInterface.addConstraint(table, options);
+    } catch (error: any) {
+      const code = error?.original?.code;
+      const message = String(error?.message || '');
+      if (code !== '42710' && !message.includes('already exists')) {
+        throw error;
+      }
+    }
+  };
+
+  await addConstraintSafe('app_resource', {
     fields: ['role_id'],
     type: 'foreign key',
     name: 'fk_app_resource_role_id',
@@ -14,7 +29,7 @@ export const up = async (queryInterface: QueryInterface) => {
     onUpdate: 'CASCADE',
     onDelete: 'SET NULL',
   });
-  await queryInterface.addConstraint('app_resource', {
+  await addConstraintSafe('app_resource', {
     fields: ['area_province_id'],
     type: 'foreign key',
     name: 'fk_app_resource_area_province_id',
@@ -25,7 +40,7 @@ export const up = async (queryInterface: QueryInterface) => {
     onUpdate: 'CASCADE',
     onDelete: 'SET NULL',
   });
-  await queryInterface.addConstraint('app_resource', {
+  await addConstraintSafe('app_resource', {
     fields: ['area_regencies_id'],
     type: 'foreign key',
     name: 'fk_app_resource_area_regencies_id',

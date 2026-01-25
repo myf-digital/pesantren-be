@@ -2,6 +2,10 @@
 
 import { Op, Sequelize } from 'sequelize';
 import Model from './jenis.guru.model';
+import Pegawai from '../pegawai/pegawai.model';
+import Tingkat from '../tingkat/tingkat.model';
+import MataPelajaran from '../mata.pelajaran/mata.pelajaran.model';
+import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 
 export default class Repository {
   public list(data: any) {
@@ -16,7 +20,35 @@ export default class Repository {
         },
       };
     }
-    return Model.findAll(query);
+    return Model.findAll({
+      ...query,
+      include: [
+        {
+          model: Pegawai,
+          as: 'pegawai',
+          required: false,
+          attributes: ['id_pegawai', 'nama_lengkap', 'nip'],
+        },
+        {
+          model: Tingkat,
+          as: 'tingkat',
+          required: false,
+          attributes: ['id_tingkat', 'tingkat'],
+        },
+        {
+          model: MataPelajaran,
+          as: 'mata_pelajaran',
+          required: false,
+          attributes: ['id_mapel', 'nama_mapel'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
+        },
+      ],
+    });
   }
 
   public index(data: any) {
@@ -32,22 +64,85 @@ export default class Repository {
           [Op.or]: [
             { nama_jenis_guru: { [Op.like]: `%${data?.keyword}%` } },
             Sequelize.where(
-              Sequelize.cast(Sequelize.col('nomor_urut'), 'TEXT'),
+              Sequelize.col('pegawai.nama_lengkap'),
               { [Op.like]: `%${data?.keyword}%` }
             ),
-            { keterangan: { [Op.like]: `%${data?.keyword}%` } },
+            Sequelize.where(
+              Sequelize.col('tingkat.tingkat'),
+              { [Op.like]: `%${data?.keyword}%` }
+            ),
+            Sequelize.where(
+              Sequelize.col('mata_pelajaran.nama_mapel'),
+              { [Op.like]: `%${data?.keyword}%` }
+            ),
+            Sequelize.where(
+              Sequelize.col('lembaga_formal.nama_lembaga'),
+              { [Op.like]: `%${data?.keyword}%` }
+            ),
           ],
         },
       };
     }
-    return Model.findAndCountAll(query);
+    return Model.findAndCountAll({
+      ...query,
+      include: [
+        {
+          model: Pegawai,
+          as: 'pegawai',
+          required: false,
+          attributes: ['id_pegawai', 'nama_lengkap', 'nip'],
+        },
+        {
+          model: Tingkat,
+          as: 'tingkat',
+          required: false,
+          attributes: ['id_tingkat', 'tingkat'],
+        },
+        {
+          model: MataPelajaran,
+          as: 'mata_pelajaran',
+          required: false,
+          attributes: ['id_mapel', 'nama_mapel'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
+        },
+      ],
+    });
   }
 
   public detail(condition: any) {
     return Model.findOne({
-      where: {
-        ...condition,
-      },
+      where: condition,
+      include: [
+        {
+          model: Pegawai,
+          as: 'pegawai',
+          required: false,
+          attributes: ['id_pegawai', 'nama_lengkap', 'nip'],
+        },
+        {
+          model: Tingkat,
+          as: 'tingkat',
+          required: false,
+          attributes: ['id_tingkat', 'tingkat'],
+        },
+        {
+          model: MataPelajaran,
+          as: 'mata_pelajaran',
+          required: false,
+          attributes: ['id_mapel', 'nama_mapel'],
+        },
+        {
+          model: LembagaPendidikanFormal,
+          as: 'lembaga_formal',
+          required: false,
+          attributes: ['id_lembaga', 'nama_lembaga'],
+        },
+      ],
     });
   }
 

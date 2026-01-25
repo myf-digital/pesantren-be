@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const status = ['Aktif', 'Nonaktif']
+export const status = ['Aktif', 'Nonaktif'];
 export const jenisBeasiswaSchema = z.object({
   kode_beasiswa: z
     .string()

@@ -82,6 +82,11 @@ export function associateAppMenu() {
     foreignKey: 'parent_id',
     targetKey: 'menu_id',
   });
+  AppMenu.hasMany(AppMenu, {
+    as: 'children',
+    foreignKey: 'parent_id',
+    sourceKey: 'menu_id',
+  });
 }
 
 export default AppMenu;

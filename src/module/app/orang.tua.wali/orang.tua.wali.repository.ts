@@ -8,7 +8,6 @@ import AreaDistrict from '../../area/districts.model';
 import AreaSubDistrict from '../../area/subdistricts.model';
 //import Santri from '../santri/santri.model';
 
-
 export default class Repository {
   public list(data: any) {
     let query: Object = {
@@ -111,25 +110,25 @@ export default class Repository {
           model: AreaProvince,
           as: 'province',
           required: true,
-          attributes: ['id','name'],
+          attributes: ['id', 'name'],
         },
         {
           model: AreaRegency,
           as: 'city',
           required: true,
-          attributes: ['id','name'],
+          attributes: ['id', 'name'],
         },
         {
           model: AreaDistrict,
           as: 'district',
           required: true,
-          attributes: ['id','name'],
+          attributes: ['id', 'name'],
         },
         {
           model: AreaSubDistrict,
           as: 'sub_district',
           required: true,
-          attributes: ['id','name'],
+          attributes: ['id', 'name'],
         },
       ],
     });

@@ -308,18 +308,24 @@ export default class Controller {
         if (mode === 'preview' || !valid) continue;
 
         const existing = await repository.detail({ tahun_ajaran });
-        
+
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
           if (status === 'Aktif') {
             data = existing;
           }
         } else {
-          let newCreate = await TahunAjaran.create({
-            ...payload,
-          }, { transaction: trx! });
+          let newCreate = await TahunAjaran.create(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
           if (status === 'Aktif') {
             data = newCreate;
           }
@@ -334,7 +340,6 @@ export default class Controller {
       };
 
       if (trx) {
-
         await trx.commit();
 
         if (data) {
@@ -347,12 +352,8 @@ export default class Controller {
             },
           });
         }
-        
-        return response.success(
-          'import tahun ajaran berhasil',
-          dataRes,
-          res
-        );
+
+        return response.success('import tahun ajaran berhasil', dataRes, res);
       }
 
       return response.success(
@@ -391,16 +392,22 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
           if (payload.status === 'Aktif') {
             data = existing;
           }
         } else {
-          let newCreate = await TahunAjaran.create({
-            ...payload,
-          }, { transaction: trx });
+          let newCreate = await TahunAjaran.create(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
           if (payload.status === 'Aktif') {
             data = newCreate;
           }

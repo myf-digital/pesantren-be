@@ -37,31 +37,31 @@ export function initJenisPenilaianBobot(sequelize: Sequelize) {
       },
       id_penilaian: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
       },
       lembaga_type: {
-        type: DataTypes.ENUM("FORMAL", "PESANTREN"),
-        allowNull: false
+        type: DataTypes.ENUM('FORMAL', 'PESANTREN'),
+        allowNull: false,
       },
       id_lembaga: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
       },
       id_tingkat: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       id_tahunajaran: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
       },
       bobot: {
         type: DataTypes.DECIMAL(5, 2),
         allowNull: false,
       },
       status: {
-        type: DataTypes.ENUM("Aktif", "Nonaktif"),
-        allowNull: false
+        type: DataTypes.ENUM('Aktif', 'Nonaktif'),
+        allowNull: false,
       },
       created_at: {
         type: DataTypes.DATE,
@@ -113,25 +113,25 @@ export function initJenisPenilaianBobot(sequelize: Sequelize) {
 
 export function associateJenisPenilaianBobot() {
   JenisPenilaianBobot.belongsTo(JenisPenilaian, {
-    foreignKey: "id_penilaian",
-    as: "jenisPenilaian",
-    onUpdate: "CASCADE",
-    onDelete: "SET NULL"
+    foreignKey: 'id_penilaian',
+    as: 'jenisPenilaian',
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
   });
 
   JenisPenilaianBobot.belongsTo(Tingkat, {
-    foreignKey: "id_tingkat",
-    as: "tingkat",
-    onUpdate: "CASCADE",
-    onDelete: "SET NULL"
+    foreignKey: 'id_tingkat',
+    as: 'tingkat',
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
   });
 
   JenisPenilaianBobot.belongsTo(TahunAjaran, {
-    foreignKey: "id_tahunajaran",
-    as: "tahunAjaran",
-    onUpdate: "CASCADE",
-    onDelete: "SET NULL"
-  })
+    foreignKey: 'id_tahunajaran',
+    as: 'tahunAjaran',
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
+  });
 }
 
 export default JenisPenilaianBobot;

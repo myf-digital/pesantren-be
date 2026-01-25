@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const status = ['Aktif', 'Nonaktif']
+export const status = ['Aktif', 'Nonaktif'];
 export const statusAwalSantriSchema = z.object({
   kode_status_awal: z
     .string()

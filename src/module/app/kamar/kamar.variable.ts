@@ -9,7 +9,7 @@ export default class Variable {
       'kapasitas',
       'id_wali_asuh',
       'status',
-      'keterangan'
+      'keterangan',
     ];
     return field;
   }

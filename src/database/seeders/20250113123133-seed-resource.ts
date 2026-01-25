@@ -20,7 +20,7 @@ export const up: Migration = async () => {
   const sequelize = await initializeDatabase(dataConfig?.database);
   initializeModels(sequelize);
 
-  const password = await helper.hashIt('adminuser');
+  const password = await helper.hashIt('Pas2w0rd!');
   const role = await repoRole.detail({
     role_name: { [Op.like]: `%${ROLE_ADMIN}%` },
   });
@@ -32,15 +32,15 @@ export const up: Migration = async () => {
   });
 
   const check = await Model.findOne({
-    where: { username: 'adminuser' },
+    where: { username: 'admin@user' },
   });
   if (check) {
-    console.log(`⚠️ User adminuser already exists, skipping...`);
+    console.log(`⚠️ User admin@user already exists, skipping...`);
   } else {
     await Model.create({
       resource_id: uuidv4(),
       role_id: role?.getDataValue('role_id'),
-      username: 'adminuser',
+      username: 'admin@user',
       email: 'admin.user@yopmail.com',
       password: password,
       full_name: 'Super Admin',

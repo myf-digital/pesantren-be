@@ -25,7 +25,20 @@ import { repository as lembagaRepository } from '../lembaga.pendidikan.kepesantr
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
+<<<<<<< HEAD
   sheet.addRow(['No', 'Nama Kelas MDA', 'Lembaga', 'Tahun Ajaran', 'Tingkat', 'Wali Kelas', 'Status', 'Nomor Urut', 'Keterangan']);
+=======
+  sheet.addRow([
+    'No',
+    'Nama Kelas MDA',
+    'Lembaga',
+    'Tahun Ajaran',
+    'Tingkat',
+    'Wali Kelas',
+    'Status',
+    'Keterangan',
+  ]);
+>>>>>>> 615d15a6dbd1067c6891b2618a04b2b70ee1c140
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
@@ -124,44 +137,59 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
-      return helper.catchError(
-        `kelas mda detail: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`kelas mda detail: ${err?.message}`, 500, res);
     }
   }
 
   public async create(req: Request, res: Response) {
     try {
-      const { nama_kelas_mda, id_lembaga, id_tahunajaran, id_tingkat, id_wali_kelas } = req?.body;
+      const {
+        nama_kelas_mda,
+        id_lembaga,
+        id_tahunajaran,
+        id_tingkat,
+        id_wali_kelas,
+      } = req?.body;
 
       const idLembaga = id_lembaga?.value || null;
       const idTahunajaran = id_tahunajaran?.value || null;
       const idTingkat = id_tingkat?.value || null;
       const idWaliKelas = id_wali_kelas?.value || null;
-      const check = await repository.detail({ nama_kelas_mda, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran });
+      const check = await repository.detail({
+        nama_kelas_mda,
+        id_lembaga: idLembaga,
+        id_tahunajaran: idTahunajaran,
+      });
 
       if (check) return response.failed(ALREADY_EXIST, 400, res);
       const data: Object = helper.only(variable.fillable(), req?.body);
       const result = await repository.create({
-        payload: { ...data, id_tingkat: idTingkat, id_wali_kelas: idWaliKelas, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran },
+        payload: {
+          ...data,
+          id_tingkat: idTingkat,
+          id_wali_kelas: idWaliKelas,
+          id_lembaga: idLembaga,
+          id_tahunajaran: idTahunajaran,
+        },
       });
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `kelas mda create: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`kelas mda create: ${err?.message}`, 500, res);
     }
   }
 
   public async update(req: Request, res: Response) {
     try {
       const id: string = req?.params?.id || '';
-      const { nama_kelas_mda, id_lembaga, id_tahunajaran, status, id_tingkat, id_wali_kelas } = req?.body;
+      const {
+        nama_kelas_mda,
+        id_lembaga,
+        id_tahunajaran,
+        status,
+        id_tingkat,
+        id_wali_kelas,
+      } = req?.body;
       const idLembaga = id_lembaga?.value;
       const idTahunajaran = id_tahunajaran?.value;
       const idTingkat = id_tingkat?.value;
@@ -169,8 +197,16 @@ export default class Controller {
       const check = await repository.detail({ id_kelas_mda: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
 
-      if (nama_kelas_mda !== check.nama_kelas_mda || idLembaga !== check.id_lembaga || idTahunajaran !== check.id_tahunajaran) {
-        const duplicate = await repository.detail({ nama_kelas_mda, id_lembaga: idLembaga, id_tahunajaran: idTahunajaran });
+      if (
+        nama_kelas_mda !== check.nama_kelas_mda ||
+        idLembaga !== check.id_lembaga ||
+        idTahunajaran !== check.id_tahunajaran
+      ) {
+        const duplicate = await repository.detail({
+          nama_kelas_mda,
+          id_lembaga: idLembaga,
+          id_tahunajaran: idTahunajaran,
+        });
 
         if (duplicate) {
           return response.failed(ALREADY_EXIST, 400, res);
@@ -184,24 +220,21 @@ export default class Controller {
       }
 
       await repository.update({
-        payload: { 
-          ...data, 
-          ...newData, 
-          id_tahunajaran: idTahunajaran || check?.getDataValue('id_tahunajaran'), 
-          id_tingkat: idTingkat || check?.getDataValue('id_tingkat'), 
-          id_wali_kelas: idWaliKelas || check?.getDataValue('id_wali_kelas'), 
-          id_lembaga: idLembaga || check?.getDataValue('id_lembaga') 
+        payload: {
+          ...data,
+          ...newData,
+          id_tahunajaran:
+            idTahunajaran || check?.getDataValue('id_tahunajaran'),
+          id_tingkat: idTingkat || check?.getDataValue('id_tingkat'),
+          id_wali_kelas: idWaliKelas || check?.getDataValue('id_wali_kelas'),
+          id_lembaga: idLembaga || check?.getDataValue('id_lembaga'),
         },
         condition: { id_kelas_mda: id },
       });
 
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `kelas mda update: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`kelas mda update: ${err?.message}`, 500, res);
     }
   }
 
@@ -215,11 +248,7 @@ export default class Controller {
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
-      return helper.catchError(
-        `kelas mda delete: ${err?.message}`,
-        500,
-        res
-      );
+      return helper.catchError(`kelas mda delete: ${err?.message}`, 500, res);
     }
   }
 

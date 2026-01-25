@@ -55,7 +55,7 @@ export default class Controller {
 
   public async check(req: Request, res: Response) {
     try {
-      const username: string = req?.params?.username;
+      const username: string = req?.params?.username || '';
       const result: Object | any = await repository.detail({
         username: username,
       });

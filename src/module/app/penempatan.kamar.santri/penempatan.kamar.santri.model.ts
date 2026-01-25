@@ -36,7 +36,7 @@ export function initPenempatanKamarSantri(sequelize: Sequelize) {
       },
       id_santri: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       id_asrama: {
         type: DataTypes.STRING,
@@ -48,7 +48,7 @@ export function initPenempatanKamarSantri(sequelize: Sequelize) {
       },
       id_tahunajaran: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       tanggal_masuk: {
         type: DataTypes.DATE,
@@ -77,7 +77,7 @@ export function initPenempatanKamarSantri(sequelize: Sequelize) {
         },
       },
       status: {
-        type: DataTypes.ENUM("Aktif", "Non-Aktif"),
+        type: DataTypes.ENUM('Aktif', 'Non-Aktif'),
         allowNull: true,
       },
       keterangan: {
@@ -145,21 +145,21 @@ export function associatePenempatanKamarSantri() {
     foreignKey: 'id_asrama',
     as: 'asrama',
     onUpdate: 'CASCADE',
-    onDelete: 'SET NULL'
+    onDelete: 'SET NULL',
   });
 
   PenempatanKamarSantri.belongsTo(Kamar, {
     foreignKey: 'id_kamar',
     as: 'kamar',
     onUpdate: 'CASCADE',
-    onDelete: 'SET NULL'
+    onDelete: 'SET NULL',
   });
 
   PenempatanKamarSantri.belongsTo(TahunAjaran, {
     foreignKey: 'id_tahunajaran',
     as: 'tahunAjaran',
     onUpdate: 'CASCADE',
-    onDelete: 'SET NULL'
+    onDelete: 'SET NULL',
   });
 }
 

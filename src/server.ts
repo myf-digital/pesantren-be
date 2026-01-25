@@ -58,9 +58,11 @@ async function bootstrap() {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(express.static('public'));
-  app.use(xss({
-    allowedKeys: ['penghasilan']
-  }));
+  app.use(
+    xss({
+      allowedKeys: ['penghasilan'],
+    })
+  );
   app.use(cors(options));
   app.use((req, res, next) => {
     runWithUser(null, next);

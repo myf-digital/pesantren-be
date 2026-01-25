@@ -296,13 +296,19 @@ export default class Controller {
         const existing = await repository.detail({ kode_beasiswa });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
         } else {
-          let newCreate = await JenisBeasiswa.create({
-            ...payload,
-          }, { transaction: trx! });
+          let newCreate = await JenisBeasiswa.create(
+            {
+              ...payload,
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -314,14 +320,9 @@ export default class Controller {
       };
 
       if (trx) {
-
         await trx.commit();
-        
-        return response.success(
-          'import jenis beasiswa berhasil',
-          dataRes,
-          res
-        );
+
+        return response.success('import jenis beasiswa berhasil', dataRes, res);
       }
 
       return response.success(
@@ -356,17 +357,23 @@ export default class Controller {
       let data = null;
       for (const payload of payloads) {
         const existing = await repository.detail({
-          kode_beasiswa: payload.kode_beasiswa
+          kode_beasiswa: payload.kode_beasiswa,
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
         } else {
-          let newCreate = await JenisBeasiswa.create({
-            ...payload,
-          }, { transaction: trx });
+          let newCreate = await JenisBeasiswa.create(
+            {
+              ...payload,
+            },
+            { transaction: trx }
+          );
         }
       }
 

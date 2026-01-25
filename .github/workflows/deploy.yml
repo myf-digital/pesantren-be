@@ -1,0 +1,179 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - docker-dev
+  workflow_dispatch:
+
+env:
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_PORT: ${{ secrets.SSH_PORT }}
+  SSH_USER: ${{ secrets.SSH_USER }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
+  CONFIG_ENV: ${{ secrets.CONFIG_ENV }}
+  PORT: ${{ secrets.PORT }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 3. Build Docker Image (Multi-stage)
+      - name: Build Docker Image
+        run: |
+          docker build -t pesantren-be:${{ github.sha }} -f Dockerfile .
+          docker save pesantren-be:${{ github.sha }} | gzip > app-image.tar.gz
+
+      # 5. Upload Artifact (Optional backup)
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: app-image.tar.gz
+
+      # 6. Copy files to server via SCP
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.SSH_HOST }}
+          port: ${{ env.SSH_PORT }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          source: 'app-image.tar.gz,docker-compose.yml'
+          target: '/home/apps/${{ github.event.repository.name }}'
+          overwrite: true
+
+      # 7. Deploy via SSH
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          APP_NAME: ${{ github.event.repository.name }}
+          PORT: ${{ env.PORT }}
+          CONFIG_ENV: ${{ env.CONFIG_ENV }}
+          IMAGE_TAG: ${{ github.sha }}
+        with:
+          host: ${{ env.SSH_HOST }}
+          port: ${{ env.SSH_PORT }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          envs: APP_NAME,PORT,CONFIG_ENV,IMAGE_TAG
+          script_stop: true
+          script: |
+            set -e
+            whoami
+            DEPLOY_DIR=/home/apps/${APP_NAME}
+            echo "Deploying to $DEPLOY_DIR with Image Tag: $IMAGE_TAG"
+
+            # Ensure directory exists
+            mkdir -p "$DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+
+            # Create/Update .env file
+            echo "$CONFIG_ENV" > .env
+            echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+
+            # Load Docker Image
+            if [ -f "app-image.tar.gz" ]; then
+              echo "Loading docker image..."
+              gunzip -c app-image.tar.gz | docker load
+              rm app-image.tar.gz
+            else
+              echo "Error: app-image.tar.gz not found!"
+              exit 1
+            fi
+
+            # Export variables for docker-compose
+            export PORT=$PORT
+            export IMAGE_TAG=$IMAGE_TAG
+
+            # Health Check Function
+            health_check() {
+              # Ensure PORT is set, default to 5000
+              local TARGET_PORT=${PORT:-5000}
+              local url="http://127.0.0.1:${TARGET_PORT}/health"
+              local max_retries=30
+              local count=0
+              
+              echo "Waiting 10s for service to start..."
+              sleep 10
+              
+              echo "Checking health at $url..."
+              until curl -s -f "$url" > /dev/null; do
+                count=$((count + 1))
+                if [ $count -ge $max_retries ]; then
+                  echo "Health check failed after $max_retries attempts."
+                  return 1
+                fi
+                echo "Attempt $count/$max_retries... (Status: $?)"
+                sleep 5
+              done
+              echo "Service is healthy!"
+              return 0
+            }
+
+            # Backup current state for rollback
+            timestamp=$(date +%Y%m%d%H%M%S)
+            mkdir -p backups
+            if [ -f "docker-compose.yml" ]; then
+              cp docker-compose.yml "backups/docker-compose.yml.$timestamp"
+            fi
+            # Note: We can't easily backup the previous running container's image tag unless we stored it.
+            # But we can check if there's a running container and get its image ID/Tag.
+            PREV_IMAGE=$(docker ps --filter "name=pesantren-api" --format "{{.Image}}")
+            echo "Previous Image: $PREV_IMAGE"
+
+            # Deploy
+            DCMD="docker compose"
+            if ! command -v docker &> /dev/null; then echo "Docker not found"; exit 1; fi
+
+            echo "Starting deployment..."
+            # Using --no-build to ensure we use the loaded image
+            # Variables are already exported above
+            $DCMD up -d --no-build
+
+            # Verify
+            set +e
+            health_check
+            if [ $? -eq 0 ]; then
+               echo "Deployment successful!"
+               # Cleanup old images (keep last 3 versions)
+               echo "Cleaning up old images..."
+               docker images -q pesantren-be | tail -n +4 | xargs -r docker rmi || true
+               docker image prune -f
+            else
+               echo "Deployment failed! Rolling back..."
+               $DCMD logs --tail 50
+               
+               # Rollback Attempt
+               if [ -n "$PREV_IMAGE" ]; then
+                 echo "Reverting to previous image: $PREV_IMAGE"
+                 # We need to set the IMAGE_TAG in .env back or just override env
+                 # Assuming PREV_IMAGE contains the tag
+                 # Extract tag from PREV_IMAGE if it is like repo:tag
+                 # If PREV_IMAGE is just ID, it might be tricky with compose expecting name:tag.
+                 # Simplified rollback: Just try to up with previous config if backed up?
+                 # Or just echo "Please check logs and rollback manually".
+                 # Automating rollback without registry is tricky if we deleted the image.
+                 # But we didn't delete the old image yet (prune is after success).
+                 
+                 # Try to parse tag
+                 PREV_TAG=$(echo $PREV_IMAGE | cut -d: -f2)
+                 if [ -n "$PREV_TAG" ]; then
+                    export IMAGE_TAG=$PREV_TAG
+                    echo "IMAGE_TAG=$PREV_TAG" >> .env
+                    $DCMD up -d --no-build
+                 fi
+               fi
+               exit 1
+            fi

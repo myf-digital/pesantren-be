@@ -36,9 +36,11 @@ const generateDataExcel = (sheet: any, details: any) => {
   });
 
   for (let i in details) {
+    let spacing: string = details[i].__level ? '    ' : '';
+
     sheet.addRow([
       parseInt(i) + 1,
-      details[i]?.nama_kelpelajaran || '',
+      spacing + (details[i]?.nama_kelpelajaran || ''),
       details[i]?.parent?.nama_kelpelajaran || '',
       details[i]?.status == 'A' ? 'Aktif' : 'Tidak Aktif',
       details[i]?.nomor_urut || '',
@@ -79,6 +81,66 @@ const validateRow = (row: any) => {
     errors.push('Nomor Urut harus angka');
   }
   return errors;
+};
+
+interface KelPelajaran {
+  id_kelpelajaran: string;
+  parent_id: string;
+  nomor_urut: number;
+  [key: string]: any;
+}
+
+interface KelPelajaranTree extends KelPelajaran {
+  children: KelPelajaranTree[];
+}
+
+const buildKelPelajaranTree = (data: KelPelajaran[]): KelPelajaranTree[] => {
+  const map = new Map<string, KelPelajaranTree>();
+
+  data.forEach((item) => {
+    map.set(item.id_kelpelajaran, { ...item, children: [] });
+  });
+
+  const tree: KelPelajaranTree[] = [];
+
+  map.forEach((item) => {
+    if (!item.parent_id) {
+      tree.push(item);
+    } else {
+      const parent = map.get(item.parent_id);
+      if (parent) parent.children.push(item);
+    }
+  });
+
+  const sortRecursive = (nodes: KelPelajaranTree[]) => {
+    nodes.sort((a, b) => a.nomor_urut - b.nomor_urut);
+    nodes.forEach((n) => {
+      if (n.children.length > 0) {
+        sortRecursive(n.children);
+      }
+    });
+  };
+
+  sortRecursive(tree);
+
+  return tree;
+};
+
+const flattenKelPelajaranTree = (datas: any[], level = 0): any[] => {
+  let result: any[] = [];
+
+  datas.forEach((data) => {
+    result.push({
+      ...data,
+      __level: level,
+    });
+
+    if (data.children?.length) {
+      result = result.concat(flattenKelPelajaranTree(data.children, level + 1));
+    }
+  });
+
+  return result;
 };
 
 export default class Controller {
@@ -233,6 +295,10 @@ export default class Controller {
           return response.success(NOT_FOUND, null, res, false);
       }
 
+      const rawData = result.map((d: any) => d.get({ plain: true }));
+      const tree = buildKelPelajaranTree(rawData);
+      const flatValues = flattenKelPelajaranTree(tree);
+
       const { dir, path } = await helper.checkDirExport('excel');
 
       const name: string = 'kelompok-mata-pelajaran';
@@ -242,7 +308,7 @@ export default class Controller {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet(title);
 
-      generateDataExcel(sheet, result);
+      generateDataExcel(sheet, flatValues);
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel kelompok pelajaran', urlExcel, res);
     } catch (err: any) {
@@ -330,15 +396,21 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            updated_at: helper.date(),
-          }, { transaction: trx! });
+          await existing.update(
+            {
+              ...payload,
+              updated_at: helper.date(),
+            },
+            { transaction: trx! }
+          );
         } else {
-          await KelompokPelajaran.create({
-            ...payload,
-            created_at: helper.date(),
-          }, { transaction: trx! });
+          await KelompokPelajaran.create(
+            {
+              ...payload,
+              created_at: helper.date(),
+            },
+            { transaction: trx! }
+          );
         }
       }
 
@@ -393,15 +465,21 @@ export default class Controller {
         });
 
         if (existing) {
-          await existing.update({
-            ...payload,
-            updated_at: helper.date(),
-          }, { transaction: trx });
+          await existing.update(
+            {
+              ...payload,
+              updated_at: helper.date(),
+            },
+            { transaction: trx }
+          );
         } else {
-          await KelompokPelajaran.create({
-            ...payload,
-            created_at: helper.date(),
-          }, { transaction: trx });
+          await KelompokPelajaran.create(
+            {
+              ...payload,
+              created_at: helper.date(),
+            },
+            { transaction: trx }
+          );
         }
       }
       await trx.commit();

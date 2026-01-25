@@ -17,7 +17,7 @@ export const up: Migration = async () => {
   const sequelize = await initializeDatabase(dataConfig?.database);
   initializeModels(sequelize);
 
-  const resource = await repoResource.detail({ username: 'adminuser' }, '');
+  const resource = await repoResource.detail({ username: 'admin@user' }, '');
   const globalParam = [
     {
       id: uuidv4(),

@@ -5,13 +5,12 @@ import Model from './jenis.penilaian.bobot.model';
 import { rawQuery } from '../../../helpers/rawQuery';
 
 export default class Repository {
-	public async list(data: any) {
+  public async list(data: any) {
+    const keyword = data?.keyword ? `%${data.keyword}%` : null;
 
-		const keyword = data?.keyword ? `%${data.keyword}%` : null;
+    const whereClause = keyword ? `WHERE jp.singkatan ILIKE :keyword` : '';
 
-		const whereClause = keyword ? `WHERE jp.singkatan ILIKE :keyword` : '';
-
-		const query = `
+    const query = `
 		SELECT 
 			jpb.id_bobot,
 			jp.id_penilaian,
@@ -41,29 +40,27 @@ export default class Repository {
 		ORDER BY jpb.id_bobot DESC
     `;
 
-		const conn = await rawQuery.getConnection();
-		const results = await conn.query(query, {
-			type: QueryTypes.SELECT,
-			replacements: {
-				keyword,
-			},
-		});
+    const conn = await rawQuery.getConnection();
+    const results = await conn.query(query, {
+      type: QueryTypes.SELECT,
+      replacements: {
+        keyword,
+      },
+    });
 
-		return results;
+    return results;
+  }
 
-	}
+  public async index(data: {
+    keyword?: string;
+    offset?: number;
+    limit?: number;
+  }) {
+    const keyword = data?.keyword ? `%${data.keyword}%` : null;
 
-	public async index(data: {
-		keyword?: string;
-		offset?: number;
-		limit?: number;
-	}) {
-
-		const keyword = data?.keyword ? `%${data.keyword}%` : null;
-
-		// WHERE clause untuk filter keyword
-		const whereClause = keyword
-			? `WHERE 
+    // WHERE clause untuk filter keyword
+    const whereClause = keyword
+      ? `WHERE 
 				jp.singkatan ILIKE :keyword OR
 				jpb.lembaga_type ILIKE :keyword OR
 				t.tingkat ILIKE :keyword OR
@@ -72,15 +69,15 @@ export default class Repository {
 				jpb.status ILIKE :keyword OR
 				lf.nama_lembaga ILIKE :keyword OR
 				lp.nama_lembaga ILIKE :keyword`
-			: '';
+      : '';
 
-		// LIMIT & OFFSET
-		const limitOffset = `
+    // LIMIT & OFFSET
+    const limitOffset = `
 			${data?.limit ? `LIMIT ${data.limit}` : ''}
 			${data?.offset ? `OFFSET ${data.offset}` : ''}
 		`;
 
-		const queryData = `
+    const queryData = `
 			SELECT 
 				jpb.id_bobot,
 				jp.id_penilaian,
@@ -111,7 +108,7 @@ export default class Repository {
 			${limitOffset}
 		`;
 
-		const queryCount = `
+    const queryCount = `
 			SELECT COUNT(*) AS total
 			FROM jenis_penilaian_bobot jpb
 			LEFT JOIN jenis_penilaian jp ON jpb.id_penilaian = jp.id_penilaian
@@ -124,41 +121,41 @@ export default class Repository {
 			${whereClause}
 		`;
 
-		const conn = await rawQuery.getConnection();
+    const conn = await rawQuery.getConnection();
 
-		// Eksekusi query data dan count secara paralel
-		const [dataResult, countResult] = await Promise.all([
-			conn.query(queryData, {
-				type: QueryTypes.SELECT,
-				replacements: { keyword },
-			}),
-			conn.query<any>(queryCount, {
-				type: QueryTypes.SELECT,
-				replacements: { keyword },
-			}),
-		]);
+    // Eksekusi query data dan count secara paralel
+    const [dataResult, countResult] = await Promise.all([
+      conn.query(queryData, {
+        type: QueryTypes.SELECT,
+        replacements: { keyword },
+      }),
+      conn.query<any>(queryCount, {
+        type: QueryTypes.SELECT,
+        replacements: { keyword },
+      }),
+    ]);
 
-		const total = parseInt((countResult[0]?.total as string) || '0', 10);
-		
-		return {
-			rows: dataResult,
-			count: total,
-		};
-	}
+    const total = parseInt((countResult[0]?.total as string) || '0', 10);
 
-	public async detail(condition: { id_bobot?: string }) {
-    	let whereConditions: string[] = [];
+    return {
+      rows: dataResult,
+      count: total,
+    };
+  }
 
-		if (condition.id_bobot) {
-			whereConditions.push(`jpb.id_bobot::text = :id_bobot`);
-		}
+  public async detail(condition: { id_bobot?: string }) {
+    let whereConditions: string[] = [];
 
-		const whereClause =
-			whereConditions.length > 0
-				? `WHERE ${whereConditions.join(' AND ')}`
-				: '';
+    if (condition.id_bobot) {
+      whereConditions.push(`jpb.id_bobot::text = :id_bobot`);
+    }
 
-		const queryData = `
+    const whereClause =
+      whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(' AND ')}`
+        : '';
+
+    const queryData = `
 			SELECT 
 				jpb.id_bobot,
 				jp.id_penilaian,
@@ -189,31 +186,31 @@ export default class Repository {
 			LIMIT 1
 		`;
 
-		const conn = await rawQuery.getConnection();
-		
-		const dataResult = await conn.query(queryData, {
-			type: QueryTypes.SELECT,
-			replacements: condition,
-		});
+    const conn = await rawQuery.getConnection();
 
-		return dataResult;
-	}
+    const dataResult = await conn.query(queryData, {
+      type: QueryTypes.SELECT,
+      replacements: condition,
+    });
 
-	public async create(data: any) {
-		return Model.bulkCreate(data.payload);
-	}
+    return dataResult;
+  }
 
-	public update(data: any) {
-		return Model.update(data?.payload, {
-			where: data?.condition,
-		});
-	}
+  public async create(data: any) {
+    return Model.bulkCreate(data.payload);
+  }
 
-	public delete(data: any) {
-		return Model.destroy({
-			where: data?.condition,
-		});
-	}
+  public update(data: any) {
+    return Model.update(data?.payload, {
+      where: data?.condition,
+    });
+  }
+
+  public delete(data: any) {
+    return Model.destroy({
+      where: data?.condition,
+    });
+  }
 }
 
 export const repository = new Repository();
