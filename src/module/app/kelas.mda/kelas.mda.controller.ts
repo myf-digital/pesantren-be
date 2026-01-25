@@ -25,20 +25,7 @@ import { repository as lembagaRepository } from '../lembaga.pendidikan.kepesantr
 const date: string = helper.date();
 
 const generateDataExcel = (sheet: any, details: any) => {
-<<<<<<< HEAD
   sheet.addRow(['No', 'Nama Kelas MDA', 'Lembaga', 'Tahun Ajaran', 'Tingkat', 'Wali Kelas', 'Status', 'Nomor Urut', 'Keterangan']);
-=======
-  sheet.addRow([
-    'No',
-    'Nama Kelas MDA',
-    'Lembaga',
-    'Tahun Ajaran',
-    'Tingkat',
-    'Wali Kelas',
-    'Status',
-    'Keterangan',
-  ]);
->>>>>>> 615d15a6dbd1067c6891b2618a04b2b70ee1c140
 
   sheet.getRow(1).eachCell((cell: any) => {
     cell.font = { bold: true };
