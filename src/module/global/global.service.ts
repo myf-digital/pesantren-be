@@ -2670,6 +2670,59 @@ export default class Service {
       }
     ];
   }
+
+  public async getSummaryExecutive(
+    tanggal?: string,
+    tanggal_mulai?: string,
+    tanggal_selesai?: string,
+  ) {
+
+    let dateFilter: any;
+    let dateTimeFilter: any;
+    let startD: string;
+    let endD: string;
+
+    if (tanggal_mulai && tanggal_selesai) {
+      dateFilter = { [Op.between]: [tanggal_mulai, tanggal_selesai] };
+      dateTimeFilter = {
+        [Op.between]: [
+          `${tanggal_mulai} 00:00:00`,
+          `${tanggal_selesai} 23:59:59`,
+        ],
+      };
+      startD = tanggal_mulai;
+      endD = tanggal_selesai;
+    } else {
+      const targetDate = tanggal || moment().tz(TIMEZONE).format('YYYY-MM-DD');
+      dateFilter = targetDate;
+      dateTimeFilter = {
+        [Op.between]: [`${targetDate} 00:00:00`, `${targetDate} 23:59:59`],
+      };
+      startD = targetDate;
+      endD = targetDate;
+    }
+
+    const [
+      executiveStats,
+    ] = (await Promise.all([
+      (async () => {
+        const conn = await rawQuery.getConnection();
+
+        const summaryQuery = `SELECT tanggal, nama_pilar, score, kode_pilar 
+        FROM vw_executive_scorecard WHERE tanggal = :tanggal`;
+
+        const rows: any = await conn.query(summaryQuery, {
+          type: QueryTypes.SELECT,
+          replacements: {
+            tanggal
+          },
+        });
+        return rows;
+      })(),
+    ])) as any;
+
+    return executiveStats
+  }
 }
 
 export const service = new Service();

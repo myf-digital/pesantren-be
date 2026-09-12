@@ -19,5 +19,6 @@ router.get('/summary-lembaga-formal', auth.checkBearerToken, global.summaryLemba
 router.get('/summary-lembaga-non-formal', auth.checkBearerToken, global.summaryLembagaNonFormal);
 router.get('/summary-rumah-tangga', auth.checkBearerToken, global.summaryRumahTangga);
 router.get('/summary-khodimul', auth.checkBearerToken, global.summaryKhodimul);
+router.get('/summary-executive', auth.checkBearerToken, global.summaryExecutive);
 
 export default router;
