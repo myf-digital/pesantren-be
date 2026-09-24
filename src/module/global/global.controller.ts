@@ -529,6 +529,23 @@ export default class Controller {
     }
   }
 
+  public async rekonsiliasiJurnalKelas(req: Request, res: Response) {
+    try {
+      const result = await service.rekonsiliasiJurnalKelas();
+      return response.success(
+        'rekonsiliasi jurnal kelas successful',
+        result,
+        res
+      );
+    } catch (err: any) {
+      return helper.catchError(
+        `rekonsiliasi jurnal kelas: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
   public async summaryKepesantrenan(req: Request, res: Response) {
     try {
       const tanggal: any = req?.query?.tanggal || '';

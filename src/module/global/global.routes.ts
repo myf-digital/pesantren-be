@@ -20,5 +20,6 @@ router.get('/summary-lembaga-non-formal', auth.checkBearerToken, global.summaryL
 router.get('/summary-rumah-tangga', auth.checkBearerToken, global.summaryRumahTangga);
 router.get('/summary-khodimul', auth.checkBearerToken, global.summaryKhodimul);
 router.get('/summary-executive', auth.checkBearerToken, global.summaryExecutive);
+router.get('/rekonsiliasi-jurnal-kelas', global.rekonsiliasiJurnalKelas);
 
 export default router;

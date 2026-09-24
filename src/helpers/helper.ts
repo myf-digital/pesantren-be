@@ -19,6 +19,7 @@ import { APP_NAME, MYSQL, POSTGRES, TIMEZONE } from '../utils/constant';
 import AppResource from '../module/app/resource/resource.model';
 import KesehatanSantri from '../module/app/kesehatan.santri/kesehatan.santri.model';
 import ActivityLog from '../module/global/activity.log.model';
+import JadwalPelajaran from '../module/app/jadwal.pelajaran/jadwal.pelajaran.model';
 import { validate as uuidValidate, version as uuidVersion } from 'uuid';
 import { service } from '../module/global/global.service';
 import { rawQuery } from './rawQuery';
@@ -58,6 +59,34 @@ export default class Helper {
 
   public dateForNumber() {
     return moment().tz(TIMEZONE).locale('id').format('DDMMYYYY');
+  }
+
+  public getHari(tanggal: string): string {
+    const hariList = [
+      'Ahad',
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+    ];
+    return hariList[moment(tanggal).day()];
+  }
+
+  public async findJadwalPelajaran(data: {
+    id_kelas: string;
+    id_jam_pelajaran: string;
+    tanggal: string;
+  }) {
+    const hari = this.getHari(data.tanggal);
+    return await JadwalPelajaran.findOne({
+      where: {
+        id_kelas: data.id_kelas,
+        id_jam_pelajaran: data.id_jam_pelajaran,
+        hari,
+      },
+    });
   }
 
   public dateAdd(num: number, type: any) {

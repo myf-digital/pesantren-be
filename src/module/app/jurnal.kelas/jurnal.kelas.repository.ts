@@ -9,6 +9,7 @@ import JamPelajaran from '../jam.pelajaran/jam.pelajaran.model';
 import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 import LembagaPendidikanKepesantrenan from '../lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
 import { getUserContextData } from '../../../context/userContext';
+import JadwalPelajaran from '../jadwal.pelajaran/jadwal.pelajaran.model';
 
 export default class Repository {
   public async findActiveJurnal(criteria: {
@@ -35,6 +36,7 @@ export default class Repository {
     tanggal: string;
     jam_mulai: string;
     created_by?: string | null;
+    id_jadwal?: string | null;
   }) {
     let active = await this.findActiveJurnal({
       id_petugas: data.id_petugas,
@@ -51,6 +53,7 @@ export default class Repository {
         tanggal: data.tanggal,
         jam_mulai: data.jam_mulai,
         created_by: data.created_by,
+        id_jadwal: data.id_jadwal,
       });
     }
 
@@ -136,6 +139,10 @@ export default class Repository {
           as: 'jamPelajaran',
           attributes: ['nama_jampel', 'mulai', 'selesai'],
         },
+        {
+          model: JadwalPelajaran,
+          as: 'jadwalPelajaran',
+        },
       ],
       where: {},
     };
@@ -156,6 +163,10 @@ export default class Repository {
 
     if (data?.id_jam_pelajaran) {
       andConditions.push({ id_jam_pelajaran: data.id_jam_pelajaran });
+    }
+
+    if (data?.id_jadwal) {
+      andConditions.push({ id_jadwal: data.id_jadwal });
     }
 
     if (data?.id_lokasi) {
@@ -225,6 +236,12 @@ export default class Repository {
           ),
           Sequelize.where(
             Sequelize.fn('LOWER', Sequelize.col('jamPelajaran.nama_jampel')),
+            {
+              [Op.like]: keyword,
+            }
+          ),
+          Sequelize.where(
+            Sequelize.fn('LOWER', Sequelize.col('jadwalPelajaran.hari')),
             {
               [Op.like]: keyword,
             }

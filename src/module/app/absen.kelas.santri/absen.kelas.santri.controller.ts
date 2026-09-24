@@ -307,14 +307,23 @@ export default class Controller {
       }
 
       const id_jam_pelajaran = jamPelajarans[0].getDataValue('id_jampel');
+      const targetJamPelajaran =
+        validBody.id_jam_pelajaran || id_jam_pelajaran;
+
+      const jadwalPelajaran = await helper.findJadwalPelajaran({
+        id_kelas: validBody.id_lokasi,
+        id_jam_pelajaran: targetJamPelajaran,
+        tanggal: targetTanggal,
+      });
 
       const jurnal = await repoJurnalKelas.findOrCreateJurnal({
         id_petugas,
         id_lokasi: validBody.id_lokasi,
-        id_jam_pelajaran: validBody.id_jam_pelajaran || id_jam_pelajaran,
+        id_jam_pelajaran: targetJamPelajaran,
         tanggal: targetTanggal,
         jam_mulai: targetWaktu,
         created_by: id_petugas,
+        id_jadwal: jadwalPelajaran?.id_jadwal || null,
       });
 
       const id_jurnal = jurnal.getDataValue('id_jurnal');
@@ -628,13 +637,22 @@ export default class Controller {
       }
 
       const id_petugas = req.user?.id || null;
+      const targetJamPelajaran = id_jam_pelajaran as string;
+
+      const jadwalPelajaran = await helper.findJadwalPelajaran({
+        id_kelas: validBody.id_lokasi,
+        id_jam_pelajaran: targetJamPelajaran,
+        tanggal: targetTanggal,
+      });
+
       const jurnal = await repoJurnalKelas.findOrCreateJurnal({
         id_petugas,
         id_lokasi: validBody.id_lokasi,
-        id_jam_pelajaran: id_jam_pelajaran as string,
+        id_jam_pelajaran: targetJamPelajaran,
         tanggal: targetTanggal,
         jam_mulai: targetWaktu,
         created_by: id_petugas,
+        id_jadwal: jadwalPelajaran?.id_jadwal || null,
       });
 
       const id_jurnal = jurnal.getDataValue('id_jurnal');

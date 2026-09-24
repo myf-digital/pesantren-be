@@ -2723,6 +2723,28 @@ export default class Service {
 
     return executiveStats
   }
+
+  public async rekonsiliasiJurnalKelas() {
+    const unlinkedJurnals = await JurnalKelas.findAll({
+      where: { id_jadwal: null },
+    });
+
+    let totalUpdated = 0;
+    for (const jurnal of unlinkedJurnals) {
+      const jadwalPelajaran = await helper.findJadwalPelajaran({
+        id_kelas: jurnal.id_lokasi,
+        id_jam_pelajaran: jurnal.id_jam_pelajaran,
+        tanggal: jurnal.tanggal,
+      });
+
+      if (jadwalPelajaran && jadwalPelajaran?.id_jadwal) {
+        await jurnal.update({ id_jadwal: jadwalPelajaran?.id_jadwal });
+        totalUpdated += 1;
+      }
+    }
+
+    return { total: totalUpdated };
+  }
 }
 
 export const service = new Service();

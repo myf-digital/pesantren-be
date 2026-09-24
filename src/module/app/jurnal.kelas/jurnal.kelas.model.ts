@@ -6,6 +6,7 @@ import AppResource from '../resource/resource.model';
 import KelasFormal from '../kelas.formal/kelas.formal.model';
 import KelasMda from '../kelas.mda/kelas.mda.model';
 import JamPelajaran from '../jam.pelajaran/jam.pelajaran.model';
+import JadwalPelajaran from '../jadwal.pelajaran/jadwal.pelajaran.model';
 
 export class JurnalKelas extends Model {
   declare id_jurnal: string;
@@ -20,6 +21,7 @@ export class JurnalKelas extends Model {
   declare created_by: string | null;
   declare created_at: Date;
   declare updated_at: Date;
+  declare id_jadwal: string | null;
 
   // Relasi Ke Model Lain
   declare petugas?: AppResource;
@@ -93,6 +95,10 @@ export function initJurnalKelas(sequelize: Sequelize) {
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
+      id_jadwal: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       sequelize,
@@ -146,6 +152,13 @@ export function associateJurnalKelas() {
   JurnalKelas.belongsTo(JamPelajaran, {
     foreignKey: 'id_jam_pelajaran',
     as: 'jamPelajaran',
+    onUpdate: 'CASCADE',
+    onDelete: 'RESTRICT',
+  });
+
+  JurnalKelas.belongsTo(JadwalPelajaran, {
+    foreignKey: 'id_jadwal',
+    as: 'jadwalPelajaran',
     onUpdate: 'CASCADE',
     onDelete: 'RESTRICT',
   });
