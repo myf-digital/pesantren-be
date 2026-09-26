@@ -116,8 +116,18 @@ const validateRow = (row: any) => {
 export default class Controller {
   public async list(req: Request, res: Response) {
     try {
-      const status: any = req?.query?.status || '';
-      const result = await repository.list({ status });
+      const query = {
+        status: req?.query?.status || '',
+        id_lokasi: req?.query?.id_lokasi || '',
+        id_kelas: req?.query?.id_kelas || '',
+        id_kelas_mda: req?.query?.id_kelas_mda || '',
+        hari: req?.query?.hari || '',
+        id_pegawai: req?.query?.id_pegawai || '',
+        id_lokasi_parent: req?.query?.id_lokasi_parent || '',
+        id_tahunajaran: req?.query?.id_tahunajaran || '',
+        id_semester: req?.query?.id_semester || '',
+      };
+      const result = await repository.list(query);
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);

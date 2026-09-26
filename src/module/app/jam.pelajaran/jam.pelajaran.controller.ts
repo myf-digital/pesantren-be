@@ -135,7 +135,8 @@ export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const lembaga_type: any = req?.query?.lembaga_type || '';
-      const result = await repository.list({ lembaga_type });
+      const id_kelas: any = req?.query?.id_kelas || '';
+      const result = await repository.list({ lembaga_type, id_kelas });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);

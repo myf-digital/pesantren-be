@@ -10,40 +10,24 @@ import { getUserContextData } from '../../../context/userContext';
 
 export default class Repository {
   public list(data: any) {
-    let query: Object = {
-      order: [[Sequelize.fn('LENGTH', Sequelize.col('nama_kelas_mda')), 'ASC']],
-    };
+    let where: any = {};
 
-    let condition: any = {};
-    if (data?.id_tingkat != '') {
-      condition = {
-        id_tingkat: data?.id_tingkat,
-      };
+    if (data?.id_tingkat) {
+      where.id_tingkat = data.id_tingkat;
     }
 
-    if (data?.status != '') {
-      query = {
-        ...query,
-        where: {
-          status: { [Op.eq]: data?.status },
-          ...condition,
-        },
-      };
+    if (data?.status) {
+      where.status = data.status;
     }
 
     const userContext = getUserContextData();
     if (userContext && userContext?.id_lembaga) {
-      query = {
-        ...query,
-        where: {
-          ...condition,
-          id_lembaga: userContext?.id_lembaga,
-        },
-      };
+      where.id_lembaga = userContext.id_lembaga;
     }
 
     return Model.findAll({
-      ...query,
+      order: [[Sequelize.fn('LENGTH', Sequelize.col('nama_kelas_mda')), 'ASC'], ['nama_kelas_mda', 'ASC']],
+      where,
       include: [
         {
           model: LembagaPendidikanKepesantrenan,

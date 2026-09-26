@@ -6,28 +6,19 @@ import TahunAjaran from '../tahun.ajaran/tahun.ajaran.model';
 
 export default class Repository {
   public list(data: any) {
-    let query: Object = {
-      order: [['created_at', 'DESC']],
-    };
+    let where: any = {};
 
-    let condition: any = {};
-    if (data?.id_tahunajaran != '') {
-      condition = {
-        id_tahunajaran: data?.id_tahunajaran,
-      };
+    if (data?.id_tahunajaran) {
+      where.id_tahunajaran = data.id_tahunajaran;
     }
-    if (data?.status != '') {
-      query = {
-        ...query,
-        where: {
-          status: { [Op.eq]: data?.status },
-          ...condition,
-        },
-      };
+
+    if (data?.status) {
+      where.status = data.status;
     }
 
     return Model.findAll({
-      ...query,
+      order: [['created_at', 'DESC']],
+      where,
       include: [
         {
           model: TahunAjaran,

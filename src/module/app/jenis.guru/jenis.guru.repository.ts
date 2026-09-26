@@ -26,6 +26,16 @@ export default class Repository {
       };
     }
 
+    if (data?.lembaga_type) {
+      query.where = { ...query.where, lembaga_type: data.lembaga_type };
+    }
+    if (data?.id_tingkat) {
+      query.where = { ...query.where, id_tingkat: data.id_tingkat };
+    }
+    if (data?.id_guru) {
+      query.where = { ...query.where, id_guru: data.id_guru };
+    }
+
     const userContext = getUserContextData();
     if (userContext && userContext?.id_lembaga) {
       query = {

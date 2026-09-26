@@ -17,34 +17,50 @@ import { getUserContextData } from '../../../context/userContext';
 
 export default class Repository {
   public list(data: any) {
-    let query: any = {
-      order: [['created_at', 'DESC']],
-    };
-    if (data?.status != '') {
-      query = {
-        ...query,
-        where: {
-          status: { [Op.eq]: data?.status },
-        },
-      };
+    let where: any = {};
+
+    if (data?.status) {
+      where.status = data.status;
+    }
+    if (data?.id_lokasi) {
+      where.id_lokasi = data.id_lokasi;
+    }
+    if (data?.id_lokasi_parent) {
+      where['$lokasi.parent_id$'] = data.id_lokasi_parent;
+    }
+    if (data?.id_kelas) {
+      where.id_kelas = data.id_kelas;
+    }
+    if (data?.id_kelas_mda) {
+      where.id_kelas_mda = data.id_kelas_mda;
+    }
+    if (data?.id_tahunajaran) {
+      where.id_tahunajaran = data.id_tahunajaran;
+    }
+    if (data?.id_semester) {
+      where.id_semester = data.id_semester;
+    }
+    if (data?.hari) {
+      where.hari = data.hari;
+    }
+    if (data?.id_pegawai) {
+      where['$jenis_guru.pegawai.id_pegawai$'] = data.id_pegawai;
     }
 
     const userContext = getUserContextData();
     if (userContext && userContext?.id_lembaga) {
-      query = {
-        ...query,
-        where: {
-          ...query.where,
-          [Op.or]: [
-            { '$kelas_formal.id_lembaga$': userContext?.id_lembaga },
-            { '$kelas_mda.id_lembaga$': userContext?.id_lembaga },
-          ],
-        },
+      where = {
+        ...where,
+        [Op.or]: [
+          { '$kelas_formal.id_lembaga$': userContext?.id_lembaga },
+          { '$kelas_mda.id_lembaga$': userContext?.id_lembaga },
+        ],
       };
     }
 
     return Model.findAll({
-      ...query,
+      order: [['created_at', 'DESC']],
+      where,
       include: [
         {
           model: KelasFormal,

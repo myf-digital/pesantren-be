@@ -6,44 +6,36 @@ import JenisJamPelajaran from '../jenis.jampel/jenis.jampel.model';
 import LembagaPendidikanFormal from '../lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
 import LembagaPendidikanKepesantrenan from '../lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
 import { getUserContextData } from '../../../context/userContext';
+import { sequelize } from '../../../database/connection';
 
 export default class Repository {
   public list(data: any) {
-    let query: any = {
-      order: [['mulai', 'ASC']],
-    };
+    let where: any = {};
+
+    if (data?.nama_jampel !== undefined && data?.nama_jampel != null && data?.nama_jampel !== '') {
+      where.nama_jampel = { [Op.like]: `%${data.nama_jampel}%` };
+    }
+
+    if (data?.lembaga_type) {
+      where.lembaga_type = data.lembaga_type;
+    }
+
+    if (data?.id_kelas) {
+      where.id_jampel = {
+        [Op.in]: Sequelize.literal(
+          `(SELECT DISTINCT id_jam_pelajaran FROM jadwal_pelajaran WHERE id_kelas = ${sequelize.escape(data.id_kelas)})`
+        ),
+      };
+    }
 
     const userContext = getUserContextData();
     if (userContext && userContext?.lembaga_type) {
-      query = {
-        ...query,
-        where: {
-          ...query.where,
-          lembaga_type: userContext?.lembaga_type,
-        },
-      };
-    }
-
-    if (data?.nama_jampel !== undefined && data?.nama_jampel != null) {
-      query = {
-        ...query,
-        where: {
-          nama_jampel: { [Op.like]: `%${data?.nama_jampel}%` },
-        },
-      };
-    }
-    if (data?.lembaga_type != '') {
-      query = {
-        ...query,
-        where: {
-          ...query.where,
-          lembaga_type: data?.lembaga_type,
-        },
-      };
+      where.lembaga_type = userContext.lembaga_type;
     }
 
     return Model.findAll({
-      ...query,
+      order: [['mulai', 'ASC']],
+      where,
       include: [
         {
           model: JenisJamPelajaran,
