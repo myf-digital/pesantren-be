@@ -259,6 +259,169 @@ export default class Controller {
       );
     }
   }
+
+  public async getRekapGuru(req: Request, res: Response) {
+    try {
+      const query = helper.fetchQueryRequest(req);
+      const filterData = {
+        ...query,
+        id_lembaga: req.query.id_lembaga,
+        id_tahunajaran: req.query.id_tahunajaran,
+        id_semester: req.query.id_semester,
+        id_petugas: req.query.id_petugas,
+        id_lokasi: req.query.id_lokasi,
+        id_jam_pelajaran: req.query.id_jam_pelajaran,
+        tanggal_awal: req.query.tanggal_awal,
+        tanggal_akhir: req.query.tanggal_akhir,
+        tanggal: req.query.tanggal,
+        keyword: req.query.keyword || req.query.q,
+      };
+
+      const { count, rows, all } = await repository.rekapGuru(filterData);
+
+      // Calculate summary stats
+      const totalSesi = (all || []).reduce(
+        (sum: number, item: any) => sum + (item.mengajar || 0),
+        0
+      );
+      const totalJam = Math.round(
+        (all || []).reduce(
+          (sum: number, item: any) => sum + (Number(item.jam) || 0),
+          0
+        ) * 100
+      ) / 100;
+      const totalGuru = count || 0;
+
+      return response.success(
+        SUCCESS_RETRIEVED,
+        {
+          total: count,
+          values: rows,
+          summary: {
+            total_guru: totalGuru,
+            total_sesi: totalSesi,
+            total_jam: totalJam,
+          },
+        },
+        res
+      );
+    } catch (error: any) {
+      return helper.catchError(
+        `JurnalKelas getRekapGuru error: ${error.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async exportRekapGuru(req: Request, res: Response) {
+    try {
+      const {
+        q,
+        keyword,
+        id_lembaga,
+        id_tahunajaran,
+        id_semester,
+        id_petugas,
+        tanggal_awal,
+        tanggal_akhir,
+      } = req.body;
+
+      const filterData = {
+        keyword: keyword || q,
+        id_lembaga,
+        id_tahunajaran,
+        id_semester,
+        id_petugas,
+        tanggal_awal,
+        tanggal_akhir,
+      };
+
+      const { all } = await repository.rekapGuru(filterData);
+
+      const { dir, path } = await helper.checkDirExport('excel');
+      const filename = `rekap-jadwal-guru-${moment().tz(TIMEZONE).format('DDMMYYYY-HHmmss')}.xlsx`;
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('REKAP JADWAL GURU');
+
+      // Add Headers
+      sheet.addRow([
+        'No',
+        'NIP',
+        'Nama Guru',
+        'Mengajar (Sesi)',
+        'Asistensi',
+        'Tambahan',
+        'Jam',
+        'Kelas',
+        'Hari',
+      ]);
+
+      const columnWidths = [6, 20, 35, 16, 14, 14, 12, 12, 12];
+      columnWidths.forEach((width, index) => {
+        sheet.getColumn(index + 1).width = width;
+      });
+
+      sheet.getRow(1).eachCell((cell: any) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1F4E79' },
+        };
+      });
+
+      (all || []).forEach((row: any, idx: number) => {
+        sheet.addRow([
+          idx + 1,
+          row.nip || '-',
+          row.nama || row.nama_guru || '-',
+          row.mengajar || 0,
+          row.asistensi || 0,
+          row.tambahan || 0,
+          row.jam || 0,
+          row.kelas || 0,
+          row.hari || 0,
+        ]);
+      });
+
+      const columnCount = sheet.columns.length;
+      for (let r = 1; r <= (all?.length || 0) + 1; r++) {
+        const currentRow = sheet.getRow(r);
+        for (let col = 1; col <= columnCount; col++) {
+          const cell = currentRow.getCell(col);
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+            left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+            bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+            right: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+          };
+          if (r > 1) {
+            if (col === 1 || col >= 4) {
+              cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            } else {
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            }
+          }
+        }
+      }
+
+      await workbook.xlsx.writeFile(`${path}/${filename}`);
+
+      return response.success(
+        'export excel rekap jadwal guru',
+        `${dir}/${filename}`,
+        res
+      );
+    } catch (err: any) {
+      return helper.catchError(
+        `export excel rekap jadwal guru: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
 }
 
 export const JurnalKelasController = new Controller();

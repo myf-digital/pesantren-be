@@ -506,6 +506,11 @@ router.put('/absen-kelas-santri/:id', AbsenKelasSantriController.update);
 
 router.get('/jurnal-kelas/active', JurnalKelasController.getActiveJurnal);
 router.post('/jurnal-kelas/end', JurnalKelasController.endJurnal);
+router.get('/jurnal-kelas/rekap-guru', JurnalKelasController.getRekapGuru);
+router.post(
+  '/jurnal-kelas/rekap-guru/export',
+  JurnalKelasController.exportRekapGuru
+);
 router.get('/jurnal-kelas', JurnalKelasController.index);
 router.post('/jurnal-kelas/export', JurnalKelasController.export);
 

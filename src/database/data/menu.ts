@@ -515,6 +515,14 @@ export default class DataMenu {
       },
       {
         parent_id: 88,
+        menu_name: 'Rekap Jadwal Guru',
+        menu_icon: 'tabler-circle',
+        module_name: '/app/report/rekap-jadwal-guru/list',
+        seq_number: 8,
+        status: 1,
+      },
+      {
+        parent_id: 88,
         menu_name: 'Activity User',
         menu_icon: 'tabler-circle',
         module_name: '/app/report/activity-log/list',
