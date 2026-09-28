@@ -202,6 +202,9 @@ import {
   initKesehatanSantri,
   associateKesehatanSantri,
 } from '../app/kesehatan.santri/kesehatan.santri.model';
+import { associateMasterPelanggaranRemisi, initMasterPelanggaranRemisi } from '../app/pelanggaran.remisi.master/pelanggaran.remisi.master..model';
+import { associatePelanggaranSantri, initPelanggaranSantri } from '../app/pelanggaran.santri/pelanggaran.santri.model';
+
 
 export function initializeModels(sequelize: Sequelize) {
   // initialize
@@ -274,6 +277,8 @@ export function initializeModels(sequelize: Sequelize) {
   initGuruPengganti(sequelize);
   initKesehatanSantri(sequelize);
   initAppResourceRole(sequelize);
+  initMasterPelanggaranRemisi(sequelize);
+  initPelanggaranSantri(sequelize);
 
   // associate
   associateAppRole();
@@ -331,6 +336,8 @@ export function initializeModels(sequelize: Sequelize) {
   associateGuruPengganti();
   associateKesehatanSantri();
   associateAppResourceRole();
+  associateMasterPelanggaranRemisi();
+  associatePelanggaranSantri();
 }
 
 Model.prototype.toJSON = function () {

@@ -85,6 +85,8 @@ import {
 } from './kesehatan.santri/kesehatan.santri.schema';
 import { institution } from './institution/institution.controller';
 import { laporanPresensiController } from './monitoring/monitoring.controller';
+import { MasterPelanggaranRemisi } from './pelanggaran.remisi.master/pelanggaran.remisi.master.controller';
+import { KasusPelanggaranSantri } from './pelanggaran.santri/pelanggaran.santri.controller';
 
 const router: Router = Router();
 
@@ -1050,5 +1052,26 @@ router.get('/kelas-belum-absen', laporanPresensiController.getKelasBelumAbsen);
 router.get('/pegawai-belum-absen', laporanPresensiController.getPegawaiBelumAbsen);
 router.get('/guru-belum-absen', laporanPresensiController.getGuruBelumAbsen);
 router.get('/inspeksi-belum-dikerjakan', laporanPresensiController.getPetugasInspeksiBelumAbsen);
+
+router.get('/pelanggaran-remisi-master/all-data', MasterPelanggaranRemisi.list);
+router.get('/pelanggaran-remisi-master', MasterPelanggaranRemisi.index);
+router.get('/pelanggaran-remisi-master/:id', MasterPelanggaranRemisi.detail);
+router.post('/pelanggaran-remisi-master', MasterPelanggaranRemisi.create);
+router.put('/pelanggaran-remisi-master/:id', MasterPelanggaranRemisi.update);
+router.delete('/pelanggaran-remisi-master/:id', MasterPelanggaranRemisi.delete);
+router.post('/pelanggaran-remisi-master/export', MasterPelanggaranRemisi.export);
+router.post('/pelanggaran-remisi-master/import', MasterPelanggaranRemisi.import);
+router.post('/pelanggaran-remisi-master/insert', MasterPelanggaranRemisi.insert);
+
+router.get('/pelanggaran-remisi-santri/all-data', KasusPelanggaranSantri.list);
+router.get('/pelanggaran-remisi-santri', KasusPelanggaranSantri.index);
+router.get('/pelanggaran-remisi-santri/:id', KasusPelanggaranSantri.detail);
+router.post('/pelanggaran-remisi-santri', KasusPelanggaranSantri.create);
+router.put('/pelanggaran-remisi-santri/:id', KasusPelanggaranSantri.update);
+router.delete('/pelanggaran-remisi-santri/:id', KasusPelanggaranSantri.delete);
+router.post('/pelanggaran-remisi-santri/export', KasusPelanggaranSantri.export);
+router.post('/pelanggaran-remisi-santri/import', KasusPelanggaranSantri.import);
+router.post('/pelanggaran-remisi-santri/insert', KasusPelanggaranSantri.insert);
+
 
 export default router;
