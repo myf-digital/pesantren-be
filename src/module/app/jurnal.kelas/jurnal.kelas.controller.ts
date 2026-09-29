@@ -274,33 +274,56 @@ export default class Controller {
         tanggal_awal: req.query.tanggal_awal,
         tanggal_akhir: req.query.tanggal_akhir,
         tanggal: req.query.tanggal,
+        bulan: req.query.bulan,
         keyword: req.query.keyword || req.query.q,
       };
 
-      const { count, rows, all } = await repository.rekapGuru(filterData);
+      const { count, rows, all, meta } = await repository.rekapGuru(filterData);
 
-      // Calculate summary stats
-      const totalSesi = (all || []).reduce(
-        (sum: number, item: any) => sum + (item.mengajar || 0),
+      const totalGuru = count || 0;
+      const totalWajibHadir = (all || []).reduce(
+        (sum: number, item: any) => sum + (item.wajib_hadir || 0),
         0
       );
-      const totalJam = Math.round(
-        (all || []).reduce(
-          (sum: number, item: any) => sum + (Number(item.jam) || 0),
-          0
-        ) * 100
-      ) / 100;
-      const totalGuru = count || 0;
+      const totalSakit = (all || []).reduce(
+        (sum: number, item: any) => sum + (item.sakit || 0),
+        0
+      );
+      const totalIzin = (all || []).reduce(
+        (sum: number, item: any) => sum + (item.izin || 0),
+        0
+      );
+      const totalAlfa = (all || []).reduce(
+        (sum: number, item: any) => sum + (item.alfa || 0),
+        0
+      );
+      const totalAbsen = totalSakit + totalIzin + totalAlfa;
+      const avgKehadiran =
+        totalGuru > 0
+          ? Math.round(
+              ((all || []).reduce(
+                (sum: number, item: any) => sum + (item.kehadiran_persen || 0),
+                0
+              ) /
+                totalGuru) *
+                10
+            ) / 10
+          : 0;
 
       return response.success(
         SUCCESS_RETRIEVED,
         {
           total: count,
           values: rows,
+          meta: meta || {},
           summary: {
             total_guru: totalGuru,
-            total_sesi: totalSesi,
-            total_jam: totalJam,
+            total_wajib_hadir: totalWajibHadir,
+            total_sakit: totalSakit,
+            total_izin: totalIzin,
+            total_alfa: totalAlfa,
+            total_absen: totalAbsen,
+            avg_kehadiran: avgKehadiran,
           },
         },
         res
@@ -325,6 +348,8 @@ export default class Controller {
         id_petugas,
         tanggal_awal,
         tanggal_akhir,
+        bulan,
+        nama_lembaga,
       } = req.body;
 
       const filterData = {
@@ -335,73 +360,112 @@ export default class Controller {
         id_petugas,
         tanggal_awal,
         tanggal_akhir,
+        bulan,
       };
 
-      const { all } = await repository.rekapGuru(filterData);
+      const { all, meta } = await repository.rekapGuru(filterData);
 
       const { dir, path } = await helper.checkDirExport('excel');
-      const filename = `rekap-jadwal-guru-${moment().tz(TIMEZONE).format('DDMMYYYY-HHmmss')}.xlsx`;
+      const filename = `presentase-kehadiran-guru-${moment().tz(TIMEZONE).format('DDMMYYYY-HHmmss')}.xlsx`;
       const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet('REKAP JADWAL GURU');
+      const sheet = workbook.addWorksheet('KEHADIRAN GURU');
 
-      // Add Headers
-      sheet.addRow([
-        'No',
-        'NIP',
-        'Nama Guru',
-        'Mengajar (Sesi)',
-        'Asistensi',
-        'Tambahan',
-        'Jam',
-        'Kelas',
-        'Hari',
-      ]);
+      const namaLembagaText = nama_lembaga || 'Semua Lembaga';
+      const bulanText =
+        meta?.bulanLabel ||
+        moment(bulan || tanggal_awal || undefined)
+          .locale('id')
+          .format('MMMM YYYY');
 
-      const columnWidths = [6, 20, 35, 16, 14, 14, 12, 12, 12];
-      columnWidths.forEach((width, index) => {
-        sheet.getColumn(index + 1).width = width;
+      // Title
+      sheet.mergeCells('A1:I1');
+      const titleCell = sheet.getCell('A1');
+      titleCell.value = 'PRESENTASE KEHADIRAN GURU';
+      titleCell.font = { bold: true, size: 14 };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+
+      // Metadata Info
+      sheet.getCell('B3').value = 'Lembaga :';
+      sheet.getCell('B3').font = { bold: true };
+      sheet.getCell('C3').value = namaLembagaText;
+
+      sheet.getCell('B4').value = 'Bulan   :';
+      sheet.getCell('B4').font = { bold: true };
+      sheet.getCell('C4').value = bulanText;
+
+      // Table Header on Row 6 & Row 7
+      sheet.mergeCells('A6:A7');
+      sheet.getCell('A6').value = 'No';
+
+      sheet.mergeCells('B6:B7');
+      sheet.getCell('B6').value = 'Nama Guru';
+
+      sheet.mergeCells('C6:C7');
+      sheet.getCell('C6').value = 'Wajib Hadir';
+
+      sheet.mergeCells('D6:G6');
+      sheet.getCell('D6').value = 'Absensi (Sesi)';
+
+      sheet.getCell('D7').value = 'S';
+      sheet.getCell('E7').value = 'I';
+      sheet.getCell('F7').value = 'A';
+      sheet.getCell('G7').value = 'Hadir';
+
+      sheet.mergeCells('H6:H7');
+      sheet.getCell('H6').value = 'Total Jam';
+
+      sheet.mergeCells('I6:I7');
+      sheet.getCell('I6').value = 'Kehadiran %';
+
+      [6, 7].forEach((rowNum) => {
+        const row = sheet.getRow(rowNum);
+        row.eachCell({ includeEmpty: true }, (cell: any) => {
+          cell.font = { bold: true };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
       });
 
-      sheet.getRow(1).eachCell((cell: any) => {
-        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FF1F4E79' },
-        };
-      });
-
+      // Data Rows
       (all || []).forEach((row: any, idx: number) => {
         sheet.addRow([
           idx + 1,
-          row.nip || '-',
           row.nama || row.nama_guru || '-',
-          row.mengajar || 0,
-          row.asistensi || 0,
-          row.tambahan || 0,
-          row.jam || 0,
-          row.kelas || 0,
-          row.hari || 0,
+          row.wajib_hadir || 0,
+          row.sakit || 0,
+          row.izin || 0,
+          row.alfa || 0,
+          row.hadir ?? row.total_hadir ?? 0,
+          row.total_jam_label || (row.total_jam ? `${row.total_jam} Jam` : '0 Jam'),
+          `${row.kehadiran_persen}%`,
         ]);
       });
 
-      const columnCount = sheet.columns.length;
-      for (let r = 1; r <= (all?.length || 0) + 1; r++) {
-        const currentRow = sheet.getRow(r);
-        for (let col = 1; col <= columnCount; col++) {
-          const cell = currentRow.getCell(col);
+      // Column widths
+      sheet.getColumn(1).width = 6;
+      sheet.getColumn(2).width = 34;
+      sheet.getColumn(3).width = 14;
+      sheet.getColumn(4).width = 8;
+      sheet.getColumn(5).width = 8;
+      sheet.getColumn(6).width = 8;
+      sheet.getColumn(7).width = 10;
+      sheet.getColumn(8).width = 20;
+      sheet.getColumn(9).width = 16;
+
+      const lastRow = 7 + (all?.length || 1);
+      for (let r = 6; r <= lastRow; r++) {
+        for (let col = 1; col <= 9; col++) {
+          const cell = sheet.getRow(r).getCell(col);
           cell.border = {
-            top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
-            left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
-            bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
-            right: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } },
           };
-          if (r > 1) {
-            if (col === 1 || col >= 4) {
-              cell.alignment = { vertical: 'middle', horizontal: 'center' };
-            } else {
+          if (r >= 8) {
+            if (col === 2) {
               cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            } else {
+              cell.alignment = { vertical: 'middle', horizontal: 'center' };
             }
           }
         }
@@ -410,13 +474,13 @@ export default class Controller {
       await workbook.xlsx.writeFile(`${path}/${filename}`);
 
       return response.success(
-        'export excel rekap jadwal guru',
+        'export excel presentase kehadiran guru',
         `${dir}/${filename}`,
         res
       );
     } catch (err: any) {
       return helper.catchError(
-        `export excel rekap jadwal guru: ${err?.message}`,
+        `export excel presentase kehadiran guru: ${err?.message}`,
         500,
         res
       );

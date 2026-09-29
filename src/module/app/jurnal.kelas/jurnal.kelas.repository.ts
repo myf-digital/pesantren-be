@@ -14,6 +14,9 @@ import JadwalPelajaran from '../jadwal.pelajaran/jadwal.pelajaran.model';
 import Pegawai from '../pegawai/pegawai.model';
 import JenisGuru from '../jenis.guru/jenis.guru.model';
 import MataPelajaran from '../mata.pelajaran/mata.pelajaran.model';
+import AbsenHarianPegawai from '../pegawai.absen.harian/pegawai.absen.harian.model';
+import KesehatanSantri from '../kesehatan.santri/kesehatan.santri.model';
+import PerizinanSantri from '../perizinan.santri/perizinan.santri.model';
 
 export default class Repository {
   public async findActiveJurnal(criteria: {
@@ -265,256 +268,484 @@ export default class Repository {
     const userContext = getUserContextData();
     const idLembaga = data?.id_lembaga || userContext?.id_lembaga;
 
-    const andConditions: any[] = [];
+    let startDate: moment.Moment;
+    let endDate: moment.Moment;
 
     if (data?.tanggal_awal && data?.tanggal_akhir) {
-      andConditions.push({
-        tanggal: {
-          [Op.between]: [data.tanggal_awal, data.tanggal_akhir],
-        },
-      });
+      startDate = moment(data.tanggal_awal, 'YYYY-MM-DD').startOf('day');
+      endDate = moment(data.tanggal_akhir, 'YYYY-MM-DD').endOf('day');
+    } else if (data?.bulan) {
+      startDate = moment(data.bulan, 'YYYY-MM').startOf('month');
+      endDate = moment(data.bulan, 'YYYY-MM').endOf('month');
     } else if (data?.tanggal) {
-      andConditions.push({ tanggal: data.tanggal });
+      startDate = moment(data.tanggal).startOf('month');
+      endDate = moment(data.tanggal).endOf('month');
+    } else {
+      startDate = moment().startOf('month');
+      endDate = moment().endOf('month');
     }
 
-    if (data?.id_lokasi) {
-      andConditions.push({ id_lokasi: data.id_lokasi });
+    const startDateStr = startDate.format('YYYY-MM-DD');
+    const endDateStr = endDate.format('YYYY-MM-DD');
+
+    const dayDates: Record<string, string[]> = {
+      Senin: [],
+      Selasa: [],
+      Rabu: [],
+      Kamis: [],
+      Jumat: [],
+      Sabtu: [],
+      Ahad: [],
+    };
+    const dayMap: Record<number, string> = {
+      0: 'Ahad',
+      1: 'Senin',
+      2: 'Selasa',
+      3: 'Rabu',
+      4: 'Kamis',
+      5: 'Jumat',
+      6: 'Sabtu',
+    };
+
+    let cur = startDate.clone();
+    while (cur.isSameOrBefore(endDate, 'day')) {
+      const dayName = dayMap[cur.day()];
+      if (dayName) {
+        dayDates[dayName].push(cur.format('YYYY-MM-DD'));
+      }
+      cur.add(1, 'day');
     }
 
-    if (data?.id_jam_pelajaran) {
-      andConditions.push({ id_jam_pelajaran: data.id_jam_pelajaran });
-    }
-
-    if (data?.id_petugas) {
-      andConditions.push({ id_petugas: data.id_petugas });
-    }
-
-    if (idLembaga) {
-      andConditions.push({
-        [Op.or]: [
-          { '$kelasMda.id_lembaga$': idLembaga },
-          { '$kelasFormal.id_lembaga$': idLembaga },
-          { '$jamPelajaran.id_lembaga$': idLembaga },
-        ],
-      });
-    }
+    const jadwalWhere: any = {
+      status: 'Aktif',
+    };
 
     if (data?.id_tahunajaran) {
-      andConditions.push({
-        '$jadwalPelajaran.id_tahunajaran$': data.id_tahunajaran,
-      });
+      jadwalWhere.id_tahunajaran = data.id_tahunajaran;
     }
-
     if (data?.id_semester) {
-      andConditions.push({
-        '$jadwalPelajaran.id_semester$': data.id_semester,
-      });
+      jadwalWhere.id_semester = data.id_semester;
     }
 
-    const rows = await Model.findAll({
-      order: [
-        ['tanggal', 'DESC'],
-        ['jam_mulai', 'DESC'],
-      ],
+    const jadwalList = await JadwalPelajaran.findAll({
+      where: jadwalWhere,
       include: [
         {
-          model: AppResource,
-          as: 'petugas',
-          attributes: ['resource_id', 'full_name', 'username', 'id_eksternal'],
+          model: JenisGuru,
+          as: 'jenis_guru',
+          required: true,
           include: [
             {
               model: Pegawai,
               as: 'pegawai',
-              attributes: ['id_pegawai', 'nama_lengkap', 'nip'],
+              required: true,
+              attributes: ['id_pegawai', 'nama_lengkap', 'nip', 'nik'],
+            },
+            {
+              model: MataPelajaran,
+              as: 'mata_pelajaran',
               required: false,
+              attributes: ['id_mapel', 'nama_mapel'],
             },
           ],
         },
         {
           model: KelasFormal,
-          as: 'kelasFormal',
+          as: 'kelas_formal',
+          required: false,
           attributes: ['id_kelas', 'nama_kelas', 'id_lembaga'],
           include: [
             {
               model: LembagaPendidikanFormal,
               as: 'lembaga',
+              required: false,
               attributes: ['id_lembaga', 'nama_lembaga'],
             },
           ],
-          required: false,
         },
         {
           model: KelasMda,
-          as: 'kelasMda',
+          as: 'kelas_mda',
+          required: false,
           attributes: ['id_kelas_mda', 'nama_kelas_mda', 'id_lembaga'],
           include: [
             {
               model: LembagaPendidikanKepesantrenan,
               as: 'lembaga',
+              required: false,
               attributes: ['id_lembaga', 'nama_lembaga'],
             },
           ],
-          required: false,
         },
         {
           model: JamPelajaran,
-          as: 'jamPelajaran',
-          attributes: [
-            'id_jampel',
-            'nama_jampel',
-            'mulai',
-            'selesai',
-            'jumlah_jampel',
-            'id_lembaga',
-          ],
+          as: 'jam_pelajaran',
           required: false,
-        },
-        {
-          model: JadwalPelajaran,
-          as: 'jadwalPelajaran',
-          required: false,
-          include: [
-            {
-              model: JenisGuru,
-              as: 'jenis_guru',
-              required: false,
-              include: [
-                {
-                  model: Pegawai,
-                  as: 'pegawai',
-                  required: false,
-                  attributes: ['id_pegawai', 'nama_lengkap', 'nip'],
-                },
-                {
-                  model: MataPelajaran,
-                  as: 'mata_pelajaran',
-                  required: false,
-                  attributes: ['id_mapel', 'nama_mapel'],
-                },
-              ],
-            },
-          ],
+          attributes: ['id_jampel', 'nama_jampel', 'mulai', 'selesai', 'id_lembaga'],
         },
       ],
-      where: andConditions.length > 0 ? { [Op.and]: andConditions } : {},
     });
 
-    const guruMap: { [key: string]: any } = {};
+    const teacherMap: { [key: string]: any } = {};
+    const teacherScheduledSessions: {
+      [key: string]: Array<{
+        date: string;
+        id_jadwal: string;
+        id_jam_pelajaran: string;
+        id_lokasi: string;
+      }>;
+    } = {};
 
-    for (const row of rows) {
-      const rowData = row.toJSON ? row.toJSON() : row;
-      const teacherId =
-        rowData.id_petugas ||
-        rowData.jadwalPelajaran?.jenis_guru?.pegawai?.id_pegawai ||
-        'unknown';
-      const nip =
-        rowData.petugas?.pegawai?.nip ||
-        rowData.jadwalPelajaran?.jenis_guru?.pegawai?.nip ||
-        rowData.petugas?.username ||
-        '-';
-      const namaGuru =
-        rowData.petugas?.pegawai?.nama_lengkap ||
-        rowData.jadwalPelajaran?.jenis_guru?.pegawai?.nama_lengkap ||
-        rowData.petugas?.full_name ||
-        'Guru';
-      const className =
-        rowData.kelasFormal?.nama_kelas ||
-        rowData.kelasMda?.nama_kelas_mda ||
-        rowData.lokasi?.nama_lokasi ||
-        '-';
-      const classId = rowData.id_lokasi || className;
-      const tanggal = rowData.tanggal;
+    for (const j of jadwalList) {
+      const row = j.toJSON ? j.toJSON() : j;
+      const pegawai = row.jenis_guru?.pegawai;
+      if (!pegawai || !pegawai.id_pegawai) continue;
 
-      let durasiMenit = 0;
-      if (rowData.jam_mulai && rowData.jam_selesai) {
-        const [h1, m1] = String(rowData.jam_mulai).split(':').map(Number);
-        const [h2, m2] = String(rowData.jam_selesai).split(':').map(Number);
-        durasiMenit = h2 * 60 + m2 - (h1 * 60 + m1);
-        if (durasiMenit < 0) durasiMenit += 24 * 60;
-      } else if (rowData.jamPelajaran?.mulai && rowData.jamPelajaran?.selesai) {
-        const [h1, m1] = String(rowData.jamPelajaran.mulai)
-          .split(':')
-          .map(Number);
-        const [h2, m2] = String(rowData.jamPelajaran.selesai)
-          .split(':')
-          .map(Number);
-        durasiMenit = h2 * 60 + m2 - (h1 * 60 + m1);
-        if (durasiMenit < 0) durasiMenit += 24 * 60;
-      } else {
-        durasiMenit = 45;
+      const jadwalLembagaId =
+        row.kelas_formal?.id_lembaga ||
+        row.kelas_mda?.id_lembaga ||
+        row.jam_pelajaran?.id_lembaga ||
+        row.kelas_formal?.lembaga?.id_lembaga ||
+        row.kelas_mda?.lembaga?.id_lembaga;
+
+      if (idLembaga && jadwalLembagaId && String(jadwalLembagaId) !== String(idLembaga)) {
+        continue;
       }
 
-      const jampelCount = rowData.jamPelajaran?.jumlah_jampel
-        ? Number(rowData.jamPelajaran.jumlah_jampel)
-        : Math.max(1, Math.round(durasiMenit / 45));
-
-      if (!guruMap[teacherId]) {
-        guruMap[teacherId] = {
-          id_petugas: teacherId,
-          id_pegawai:
-            rowData.petugas?.pegawai?.id_pegawai ||
-            rowData.jadwalPelajaran?.jenis_guru?.pegawai?.id_pegawai ||
-            null,
-          nip,
-          nama: namaGuru,
-          nama_guru: namaGuru,
-          jumlah_mengajar: 0,
-          jumlah_asistensi: 0,
-          jumlah_tambahan: 0,
-          total_durasi_menit: 0,
-          total_jam: 0,
-          kelas_set: new Set<string>(),
-          hari_set: new Set<string>(),
-          tanggal_set: new Set<string>(),
-          detail_sesi: [],
+      const pId = pegawai.id_pegawai;
+      if (!teacherMap[pId]) {
+        teacherMap[pId] = {
+          id_pegawai: pId,
+          nip: pegawai.nip || '-',
+          nama: pegawai.nama_lengkap || 'Guru',
+          nama_guru: pegawai.nama_lengkap || 'Guru',
+          wajib_hadir: 0,
+          jadwal_mingguan: 0,
+          hadir: 0,
+          sakit: 0,
+          izin: 0,
+          alfa: 0,
+          jml_absen: 0,
+          lembaga_nama:
+            row.kelas_formal?.lembaga?.nama_lembaga ||
+            row.kelas_mda?.lembaga?.nama_lembaga ||
+            '-',
         };
+        teacherScheduledSessions[pId] = [];
       }
 
-      const g = guruMap[teacherId];
-      g.jumlah_mengajar += 1;
-      g.total_durasi_menit += durasiMenit;
-      g.total_jam += jampelCount;
-      if (classId) g.kelas_set.add(classId);
-      if (rowData.jadwalPelajaran?.hari) g.hari_set.add(rowData.jadwalPelajaran.hari);
-      if (tanggal) g.tanggal_set.add(tanggal);
+      const hari = row.hari;
+      const dates = dayDates[hari] || [];
+      teacherMap[pId].jadwal_mingguan += 1;
 
-      g.detail_sesi.push({
-        id_jurnal: rowData.id_jurnal,
-        tanggal: rowData.tanggal,
-        hari:
-          rowData.jadwalPelajaran?.hari ||
-          (rowData.tanggal
-            ? moment(rowData.tanggal).locale('id').format('dddd')
-            : '-'),
-        nama_kelas: className,
-        nama_jampel: rowData.jamPelajaran?.nama_jampel || '-',
-        materi: rowData.materi || '-',
-        catatan: rowData.catatan || '-',
-        jam_mulai: rowData.jam_mulai,
-        jam_selesai: rowData.jam_selesai,
-        durasi_menit: durasiMenit,
-        jumlah_jampel: jampelCount,
-        mata_pelajaran:
-          rowData.jadwalPelajaran?.jenis_guru?.mata_pelajaran?.nama_mapel ||
-          '-',
-      });
+      const idLokasi =
+        row.id_kelas ||
+        row.kelas_formal?.id_kelas ||
+        row.kelas_mda?.id_kelas_mda;
+
+      for (const d of dates) {
+        teacherMap[pId].wajib_hadir += 1;
+        teacherScheduledSessions[pId].push({
+          date: d,
+          id_jadwal: row.id_jadwal,
+          id_jam_pelajaran: row.id_jam_pelajaran,
+          id_lokasi: idLokasi,
+        });
+      }
     }
 
-    let result = Object.values(guruMap).map((g: any) => ({
-      id_petugas: g.id_petugas,
-      id_pegawai: g.id_pegawai,
-      nip: g.nip,
-      nama: g.nama,
-      nama_guru: g.nama_guru,
-      mengajar: g.jumlah_mengajar,
-      asistensi: g.jumlah_asistensi,
-      tambahan: g.jumlah_tambahan,
-      jam: Math.round(Number(g.total_jam) * 100) / 100,
-      durasi_menit: g.total_durasi_menit,
-      kelas: g.kelas_set.size,
-      hari: g.tanggal_set.size > 0 ? g.tanggal_set.size : g.hari_set.size,
-      detail_sesi: g.detail_sesi,
-    }));
+    const teacherIds = Object.keys(teacherMap);
+    const teacherMinutes: Record<string, number> = {};
+
+    if (teacherIds.length > 0) {
+      try {
+        // Map app_resource.resource_id to pegawai.id_pegawai
+        const resources = await AppResource.findAll({
+          where: {
+            id_eksternal: { [Op.in]: teacherIds },
+          },
+          attributes: ['resource_id', 'id_eksternal'],
+        });
+
+        const resourceToPegawaiMap: Record<string, string> = {};
+        for (const res of resources) {
+          const r = res.toJSON ? res.toJSON() : res;
+          if (r.resource_id && r.id_eksternal) {
+            resourceToPegawaiMap[r.resource_id] = r.id_eksternal;
+          }
+        }
+
+        const allResourceIds = Object.keys(resourceToPegawaiMap);
+
+        // 1. Jurnal Kelas (Hadir & Durasi)
+        let jurnals: any[] = [];
+        if (allResourceIds.length > 0) {
+          jurnals = await Model.findAll({
+            where: {
+              id_petugas: { [Op.in]: allResourceIds },
+              tanggal: {
+                [Op.between]: [startDateStr, endDateStr],
+              },
+            },
+            attributes: [
+              'id_jurnal',
+              'id_petugas',
+              'tanggal',
+              'jam_mulai',
+              'jam_selesai',
+              'id_jam_pelajaran',
+              'id_lokasi',
+              'id_jadwal',
+            ],
+          });
+        }
+
+        const jurnalSlots = new Set<string>();
+        const jurnalDateCount: Record<string, number> = {};
+
+        for (const jn of jurnals) {
+          const r = jn.toJSON ? jn.toJSON() : jn;
+          const pId = resourceToPegawaiMap[r.id_petugas];
+          if (pId && r.tanggal) {
+            const dStr = moment(r.tanggal).format('YYYY-MM-DD');
+            if (r.id_jadwal) {
+              jurnalSlots.add(`${pId}_${dStr}_${r.id_jadwal}`);
+            }
+            if (r.id_jam_pelajaran && r.id_lokasi) {
+              jurnalSlots.add(`${pId}_${dStr}_${r.id_jam_pelajaran}_${r.id_lokasi}`);
+            }
+            const dateKey = `${pId}_${dStr}`;
+            jurnalDateCount[dateKey] = (jurnalDateCount[dateKey] || 0) + 1;
+
+            if (r.jam_mulai && r.jam_selesai) {
+              const [h1, m1] = String(r.jam_mulai).split(':').map(Number);
+              const [h2, m2] = String(r.jam_selesai).split(':').map(Number);
+              const diff = (h2 * 60 + (m2 || 0)) - (h1 * 60 + (m1 || 0));
+              if (diff > 0) {
+                teacherMinutes[pId] = (teacherMinutes[pId] || 0) + diff;
+              }
+            }
+          }
+        }
+
+        // 2. Kesehatan Santri / Pegawai (Sakit)
+        const sakitRecords = await KesehatanSantri.findAll({
+          where: {
+            id_pegawai: { [Op.in]: teacherIds },
+            is_deleted: false,
+            [Op.or]: [
+              {
+                tanggal_event: {
+                  [Op.between]: [
+                    moment(startDateStr).startOf('day').toDate(),
+                    moment(endDateStr).endOf('day').toDate(),
+                  ],
+                },
+              },
+              {
+                tanggal_mulai_rawat: {
+                  [Op.between]: [
+                    moment(startDateStr).startOf('day').toDate(),
+                    moment(endDateStr).endOf('day').toDate(),
+                  ],
+                },
+              },
+            ],
+          },
+          attributes: [
+            'id_kesehatan',
+            'id_pegawai',
+            'tanggal_event',
+            'tanggal_mulai_rawat',
+            'estimasi_hari',
+          ],
+        });
+
+        const sickDatesPerPegawai: Record<string, Set<string>> = {};
+        for (const sk of sakitRecords) {
+          const r = sk.toJSON ? sk.toJSON() : sk;
+          const pId = r.id_pegawai;
+          if (pId) {
+            if (!sickDatesPerPegawai[pId]) sickDatesPerPegawai[pId] = new Set<string>();
+
+            if (r.tanggal_event) {
+              sickDatesPerPegawai[pId].add(
+                moment(r.tanggal_event).format('YYYY-MM-DD')
+              );
+            }
+            if (r.tanggal_mulai_rawat) {
+              const startRawat = moment(r.tanggal_mulai_rawat);
+              const days = Math.max(1, r.estimasi_hari || 1);
+              for (let i = 0; i < days; i++) {
+                sickDatesPerPegawai[pId].add(
+                  startRawat.clone().add(i, 'days').format('YYYY-MM-DD')
+                );
+              }
+            }
+          }
+        }
+
+        // 3. Perizinan Santri / Pegawai (Izin)
+        const izinRecords = await PerizinanSantri.findAll({
+          where: {
+            id_pegawai: { [Op.in]: teacherIds },
+            deleted_at: null,
+            is_canceled: false,
+            status_approval: { [Op.ne]: 'Ditolak' },
+            [Op.and]: [
+              { status_approval: { [Op.ne]: 'Dibatalkan' } },
+              {
+                [Op.or]: [
+                  {
+                    tanggal_mulai: { [Op.lte]: endDateStr },
+                    tanggal_selesai: { [Op.gte]: startDateStr },
+                  },
+                  {
+                    tanggal_pengajuan: {
+                      [Op.between]: [
+                        moment(startDateStr).startOf('day').toDate(),
+                        moment(endDateStr).endOf('day').toDate(),
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          attributes: [
+            'id_izin',
+            'id_pegawai',
+            'jenis_izin',
+            'tanggal_mulai',
+            'tanggal_selesai',
+            'tanggal_pengajuan',
+            'status_approval',
+          ],
+        });
+
+        const izinDatesPerPegawai: Record<string, Set<string>> = {};
+        for (const iz of izinRecords) {
+          const r = iz.toJSON ? iz.toJSON() : iz;
+          const pId = r.id_pegawai;
+          if (pId) {
+            if (!izinDatesPerPegawai[pId]) izinDatesPerPegawai[pId] = new Set<string>();
+
+            const tglMulai = r.tanggal_mulai
+              ? moment(r.tanggal_mulai)
+              : r.tanggal_pengajuan
+              ? moment(r.tanggal_pengajuan)
+              : null;
+            const tglSelesai = r.tanggal_selesai
+              ? moment(r.tanggal_selesai)
+              : tglMulai;
+
+            if (tglMulai) {
+              let cDate = tglMulai.clone();
+              const endD = tglSelesai || tglMulai;
+              while (cDate.isSameOrBefore(endD, 'day')) {
+                const dStr = cDate.format('YYYY-MM-DD');
+                if (r.jenis_izin === 'Sakit') {
+                  if (!sickDatesPerPegawai[pId]) sickDatesPerPegawai[pId] = new Set<string>();
+                  sickDatesPerPegawai[pId].add(dStr);
+                } else {
+                  izinDatesPerPegawai[pId].add(dStr);
+                }
+                cDate.add(1, 'day');
+              }
+            }
+          }
+        }
+
+        // 4. Evaluasi setiap jadwal mengajar
+        for (const pId of teacherIds) {
+          const sessions = teacherScheduledSessions[pId] || [];
+          const availableJurnalCount = { ...jurnalDateCount };
+
+          for (const ses of sessions) {
+            const dStr = ses.date;
+            const slotKey1 = `${pId}_${dStr}_${ses.id_jadwal}`;
+            const slotKey2 = `${pId}_${dStr}_${ses.id_jam_pelajaran}_${ses.id_lokasi}`;
+            const dateKey = `${pId}_${dStr}`;
+
+            const hasSlotJurnal =
+              jurnalSlots.has(slotKey1) ||
+              (ses.id_jam_pelajaran && ses.id_lokasi && jurnalSlots.has(slotKey2));
+            const hasGeneralJurnal = (availableJurnalCount[dateKey] || 0) > 0;
+
+            if (hasSlotJurnal || hasGeneralJurnal) {
+              // Hadir via jurnal_kelas
+              teacherMap[pId].hadir += 1;
+              if (!hasSlotJurnal && availableJurnalCount[dateKey] > 0) {
+                availableJurnalCount[dateKey] -= 1;
+              }
+            } else if (sickDatesPerPegawai[pId]?.has(dStr)) {
+              // Sakit via kesehatan_santri
+              teacherMap[pId].sakit += 1;
+            } else if (izinDatesPerPegawai[pId]?.has(dStr)) {
+              // Izin via perizinan_santri
+              teacherMap[pId].izin += 1;
+            } else {
+              // Alpha (jadwal ada, tapi tidak ada di jurnal, tidak di sakit, tidak di izin)
+              teacherMap[pId].alfa += 1;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error computing rekapGuru attendance:', err);
+      }
+    }
+
+    let result = Object.values(teacherMap).map((g: any) => {
+      const jmlAbsen = g.sakit + g.izin + g.alfa;
+      const wajibHadir = g.wajib_hadir || 0;
+      const hadirCount =
+        g.hadir !== undefined ? g.hadir : Math.max(0, wajibHadir - jmlAbsen);
+      let kehadiranPersen = 0;
+
+      if (wajibHadir > 0) {
+        kehadiranPersen = Math.min(
+          100,
+          Math.max(0, Math.round((hadirCount / wajibHadir) * 1000) / 10)
+        );
+      } else if (jmlAbsen === 0) {
+        kehadiranPersen = 100;
+      }
+
+      const totalMin = teacherMinutes[g.id_pegawai] || 0;
+      const totalJamHours = Math.floor(totalMin / 60);
+      const totalJamMins = totalMin % 60;
+      const totalJamDecimal = Math.round((totalMin / 60) * 10) / 10;
+      const totalJamLabel =
+        totalMin > 0
+          ? totalJamMins > 0
+            ? `${totalJamHours} Jam ${totalJamMins} Menit`
+            : `${totalJamHours} Jam`
+          : '0 Jam';
+
+      return {
+        id_pegawai: g.id_pegawai,
+        nip: g.nip,
+        nama: g.nama,
+        nama_guru: g.nama_guru,
+        wajib_hadir: wajibHadir,
+        hadir: hadirCount,
+        total_hadir: hadirCount,
+        sakit: g.sakit,
+        izin: g.izin,
+        alfa: g.alfa,
+        jml_absen: jmlAbsen,
+        jml: hadirCount,
+        total: hadirCount,
+        total_menit: totalMin,
+        total_jam: totalJamDecimal,
+        total_jam_label: totalJamLabel,
+        total_jam_display: totalJamLabel,
+        kehadiran_persen: kehadiranPersen,
+        persentase_kehadiran: `${kehadiranPersen}%`,
+        jadwal_mingguan: g.jadwal_mingguan,
+        lembaga_nama: g.lembaga_nama,
+      };
+    });
 
     if (data?.keyword) {
       const kw = data.keyword.toLowerCase();
@@ -524,6 +755,8 @@ export default class Repository {
           item.nip.toLowerCase().includes(kw)
       );
     }
+
+    result.sort((a, b) => a.nama.localeCompare(b.nama));
 
     const total = result.length;
     let paginatedRows = result;
@@ -535,6 +768,11 @@ export default class Repository {
       count: total,
       rows: paginatedRows,
       all: result,
+      meta: {
+        startDate: startDateStr,
+        endDate: endDateStr,
+        bulanLabel: startDate.locale('id').format('MMMM YYYY'),
+      },
     };
   }
 }
