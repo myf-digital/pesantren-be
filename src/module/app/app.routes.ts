@@ -492,6 +492,14 @@ router.get(
   '/absen-kelas-santri/kelas-list',
   AbsenKelasSantriController.findKelasList
 );
+router.get(
+  '/absen-kelas-santri/rekap-santri',
+  AbsenKelasSantriController.getRekapSantri
+);
+router.post(
+  '/absen-kelas-santri/rekap-santri/export',
+  AbsenKelasSantriController.exportRekapSantri
+);
 router.get('/absen-kelas-santri/:id', AbsenKelasSantriController.detail);
 router.post(
   '/absen-kelas-santri',
@@ -631,6 +639,7 @@ router.post('/location_qrcode', Location.findQrCode);
 router.post('/location_latlong', Location.findAllLocationByLatlong);
 
 router.get('/jadwal-pelajaran/all-data', jadwalPelajaran.list);
+router.get('/jadwal-pelajaran/jadwal-guru', jadwalPelajaran.indexJadwalGuru);
 router.get('/jadwal-pelajaran', jadwalPelajaran.index);
 router.get('/jadwal-pelajaran/:id', jadwalPelajaran.detail);
 router.post(

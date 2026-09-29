@@ -532,10 +532,18 @@ export default class DataMenu {
       },
       {
         parent_id: 88,
-        menu_name: 'Rekap Jadwal Guru',
+        menu_name: 'Rekap Kehadiran Guru',
         menu_icon: 'tabler-circle',
         module_name: '/app/report/rekap-jadwal-guru/list',
         seq_number: 8,
+        status: 1,
+      },
+      {
+        parent_id: 88,
+        menu_name: 'Rekap Kehadiran Santri',
+        menu_icon: 'tabler-circle',
+        module_name: '/app/report/rekap-kehadiran-santri/list',
+        seq_number: 9,
         status: 1,
       },
       {

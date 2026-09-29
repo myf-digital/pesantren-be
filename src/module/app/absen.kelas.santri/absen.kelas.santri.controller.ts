@@ -307,8 +307,7 @@ export default class Controller {
       }
 
       const id_jam_pelajaran = jamPelajarans[0].getDataValue('id_jampel');
-      const targetJamPelajaran =
-        validBody.id_jam_pelajaran || id_jam_pelajaran;
+      const targetJamPelajaran = validBody.id_jam_pelajaran || id_jam_pelajaran;
 
       const jadwalPelajaran = await helper.findJadwalPelajaran({
         id_kelas: validBody.id_lokasi,
@@ -344,7 +343,10 @@ export default class Controller {
           );
         }
 
-        const isDirawat = await kesehatanRepo.isSantriDirawat(item.id_santri, targetTanggal);
+        const isDirawat = await kesehatanRepo.isSantriDirawat(
+          item.id_santri,
+          targetTanggal
+        );
         let finalStatus = item.status_kehadiran;
         let finalKeterangan = item.keterangan || null;
         if (isDirawat) {
@@ -907,6 +909,282 @@ export default class Controller {
       return helper.catchError(err.message, 500, res);
     }
   };
+
+  public async getRekapSantri(req: Request, res: Response) {
+    try {
+      const query = helper.fetchQueryRequest(req);
+      const filterData = {
+        ...query,
+        id_lembaga: req.query.id_lembaga,
+        id_kelas: req.query.id_kelas,
+        tanggal_awal: req.query.tanggal_awal,
+        tanggal_akhir: req.query.tanggal_akhir,
+        tanggal: req.query.tanggal,
+        bulan: req.query.bulan,
+        mode: req.query.mode,
+        keyword: req.query.keyword || req.query.q,
+      };
+
+      const result = await repository.rekapSantri(filterData);
+
+      return response.success(
+        SUCCESS_RETRIEVED,
+        {
+          total: result.count,
+          values: result.rows,
+          all: result.all,
+          rekap_kelas: result.rekap_kelas,
+          rekap_santri: result.rekap_santri,
+          classes: result.classes,
+          meta: result.meta,
+          summary: result.summary,
+        },
+        res
+      );
+    } catch (error: any) {
+      return helper.catchError(
+        `AbsenKelasSantri getRekapSantri error: ${error.message}`,
+        500,
+        res
+      );
+    }
+  }
+
+  public async exportRekapSantri(req: Request, res: Response) {
+    try {
+      const {
+        q,
+        keyword,
+        id_lembaga,
+        id_kelas,
+        tanggal_awal,
+        tanggal_akhir,
+        bulan,
+        mode,
+        nama_lembaga,
+      } = req.body;
+
+      const filterData = {
+        keyword: keyword || q,
+        id_lembaga,
+        id_kelas,
+        tanggal_awal,
+        tanggal_akhir,
+        bulan,
+        mode: mode || (id_kelas ? 'santri' : 'kelas'),
+      };
+
+      const result = await repository.rekapSantri(filterData);
+      const isPerSantri = filterData.mode === 'santri';
+
+      const { dir, path } = await helper.checkDirExport('excel');
+      const filename = `presentase-kehadiran-siswa-${moment().tz(TIMEZONE).format('DDMMYYYY-HHmmss')}.xlsx`;
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('KEHADIRAN SISWA');
+
+      const namaLembagaText = nama_lembaga || 'Semua Lembaga';
+      const bulanText =
+        result?.meta?.bulanLabel ||
+        moment(bulan || tanggal_awal || undefined)
+          .locale('id')
+          .format('MMMM YYYY');
+
+      // Title
+      sheet.mergeCells('A1:I1');
+      const titleCell = sheet.getCell('A1');
+      titleCell.value = 'PROSENTASE KEHADIRAN SISWA';
+      titleCell.font = { bold: true, size: 14 };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+
+      // Metadata Info
+      sheet.getCell('B3').value = 'LEMBAGA :';
+      sheet.getCell('B3').font = { bold: true };
+      sheet.getCell('C3').value = namaLembagaText;
+
+      sheet.getCell('B4').value = 'BULAN   :';
+      sheet.getCell('B4').font = { bold: true };
+      sheet.getCell('C4').value = bulanText;
+
+      // Subtitle
+      sheet.getCell('A5').value = isPerSantri
+        ? 'REKAP KEHADIRAN SISWA'
+        : 'REKAP KEHADIRAN PERKELAS';
+      sheet.getCell('A5').font = { bold: true, size: 11 };
+
+      if (isPerSantri) {
+        // Table Header for per santri:
+        sheet.mergeCells('A7:A8');
+        sheet.getCell('A7').value = 'No';
+
+        sheet.mergeCells('B7:B8');
+        sheet.getCell('B7').value = 'Nama Santri';
+
+        sheet.mergeCells('C7:C8');
+        sheet.getCell('C7').value = 'Kelas';
+
+        sheet.mergeCells('D7:D8');
+        sheet.getCell('D7').value = 'Wajib Hadir';
+
+        sheet.mergeCells('E7:H7');
+        sheet.getCell('E7').value = 'Absensi (Sesi)';
+
+        sheet.getCell('E8').value = 'S';
+        sheet.getCell('F8').value = 'I';
+        sheet.getCell('G8').value = 'A';
+        sheet.getCell('H8').value = 'Hadir';
+
+        sheet.mergeCells('I7:I8');
+        sheet.getCell('I7').value = 'Kehadiran %';
+
+        [7, 8].forEach((rowNum) => {
+          const row = sheet.getRow(rowNum);
+          row.eachCell({ includeEmpty: true }, (cell: any) => {
+            cell.font = { bold: true };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+        });
+
+        // Data Rows
+        (result.all || []).forEach((row: any, idx: number) => {
+          const namaWithNis =
+            row.nis && row.nis !== '-'
+              ? `${row.nama_santri || row.nama || '-'}\nNIS: ${row.nis}`
+              : row.nama_santri || row.nama || '-';
+
+          sheet.addRow([
+            idx + 1,
+            namaWithNis,
+            row.nama_kelas || '-',
+            row.wajib_hadir ?? row.total_presensi ?? row.hari_efektif ?? 0,
+            row.sakit || 0,
+            row.izin || 0,
+            row.alfa || 0,
+            row.hadir || 0,
+            `${row.kehadiran_persen}%`,
+          ]);
+        });
+
+        sheet.getColumn(1).width = 6;
+        sheet.getColumn(2).width = 32;
+        sheet.getColumn(3).width = 16;
+        sheet.getColumn(4).width = 14;
+        sheet.getColumn(5).width = 8;
+        sheet.getColumn(6).width = 8;
+        sheet.getColumn(7).width = 8;
+        sheet.getColumn(8).width = 10;
+        sheet.getColumn(9).width = 16;
+
+        const lastRow = 8 + (result.all?.length || 1);
+        for (let r = 7; r <= lastRow; r++) {
+          for (let col = 1; col <= 9; col++) {
+            const cell = sheet.getRow(r).getCell(col);
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } },
+            };
+            if (r >= 9) {
+              if (col === 2) {
+                cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+              } else if (col === 3) {
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+              } else {
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+              }
+            }
+          }
+        }
+      } else {
+        // Table Header for per kelas:
+        sheet.mergeCells('A7:A8');
+        sheet.getCell('A7').value = 'No';
+
+        sheet.mergeCells('B7:B8');
+        sheet.getCell('B7').value = 'Kelas/Marhalah';
+
+        sheet.mergeCells('C7:C8');
+        sheet.getCell('C7').value = 'Jumlah Siswa';
+
+        sheet.mergeCells('D7:D8');
+        sheet.getCell('D7').value = 'Wajib Hadir';
+
+        sheet.mergeCells('E7:H7');
+        sheet.getCell('E7').value = 'Absensi (Sesi)';
+
+        sheet.getCell('E8').value = 'S';
+        sheet.getCell('F8').value = 'I';
+        sheet.getCell('G8').value = 'A';
+        sheet.getCell('H8').value = 'Hadir';
+
+        sheet.mergeCells('I7:I8');
+        sheet.getCell('I7').value = 'Kehadiran %';
+
+        [7, 8].forEach((rowNum) => {
+          const row = sheet.getRow(rowNum);
+          row.eachCell({ includeEmpty: true }, (cell: any) => {
+            cell.font = { bold: true };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+        });
+
+        // Data Rows
+        (result.all || []).forEach((row: any, idx: number) => {
+          sheet.addRow([
+            idx + 1,
+            row.nama_kelas || row.kelas_marhalah || '-',
+            row.jumlah_siswa ?? row.jml_siswa ?? 0,
+            row.wajib_hadir ?? row.total_presensi ?? row.hari_efektif ?? 0,
+            row.sakit || 0,
+            row.izin || 0,
+            row.alfa || 0,
+            row.hadir || 0,
+            `${row.kehadiran_persen}%`,
+          ]);
+        });
+
+        sheet.getColumn(1).width = 6;
+        sheet.getColumn(2).width = 24;
+        sheet.getColumn(3).width = 16;
+        sheet.getColumn(4).width = 14;
+        sheet.getColumn(5).width = 8;
+        sheet.getColumn(6).width = 8;
+        sheet.getColumn(7).width = 8;
+        sheet.getColumn(8).width = 10;
+        sheet.getColumn(9).width = 16;
+
+        const lastRow = 8 + (result.all?.length || 1);
+        for (let r = 7; r <= lastRow; r++) {
+          for (let col = 1; col <= 9; col++) {
+            const cell = sheet.getRow(r).getCell(col);
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } },
+            };
+            if (r >= 9 && col !== 2) {
+              cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            }
+          }
+        }
+      }
+
+      await workbook.xlsx.writeFile(`${path}/${filename}`);
+
+      return response.success(
+        'export excel rekap kehadiran santri',
+        `${dir}/${filename}`,
+        res
+      );
+    } catch (error: any) {
+      return helper.catchError(
+        `AbsenKelasSantri exportRekapSantri error: ${error.message}`,
+        500,
+        res
+      );
+    }
+  }
 }
 
 export const AbsenKelasSantriController = new Controller();

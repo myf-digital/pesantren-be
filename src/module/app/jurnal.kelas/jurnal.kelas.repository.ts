@@ -14,7 +14,6 @@ import JadwalPelajaran from '../jadwal.pelajaran/jadwal.pelajaran.model';
 import Pegawai from '../pegawai/pegawai.model';
 import JenisGuru from '../jenis.guru/jenis.guru.model';
 import MataPelajaran from '../mata.pelajaran/mata.pelajaran.model';
-import AbsenHarianPegawai from '../pegawai.absen.harian/pegawai.absen.harian.model';
 import KesehatanSantri from '../kesehatan.santri/kesehatan.santri.model';
 import PerizinanSantri from '../perizinan.santri/perizinan.santri.model';
 
@@ -381,7 +380,13 @@ export default class Repository {
           model: JamPelajaran,
           as: 'jam_pelajaran',
           required: false,
-          attributes: ['id_jampel', 'nama_jampel', 'mulai', 'selesai', 'id_lembaga'],
+          attributes: [
+            'id_jampel',
+            'nama_jampel',
+            'mulai',
+            'selesai',
+            'id_lembaga',
+          ],
         },
       ],
     });
@@ -408,7 +413,11 @@ export default class Repository {
         row.kelas_formal?.lembaga?.id_lembaga ||
         row.kelas_mda?.lembaga?.id_lembaga;
 
-      if (idLembaga && jadwalLembagaId && String(jadwalLembagaId) !== String(idLembaga)) {
+      if (
+        idLembaga &&
+        jadwalLembagaId &&
+        String(jadwalLembagaId) !== String(idLembaga)
+      ) {
         continue;
       }
 
@@ -459,7 +468,6 @@ export default class Repository {
 
     if (teacherIds.length > 0) {
       try {
-        // Map app_resource.resource_id to pegawai.id_pegawai
         const resources = await AppResource.findAll({
           where: {
             id_eksternal: { [Op.in]: teacherIds },
@@ -477,7 +485,6 @@ export default class Repository {
 
         const allResourceIds = Object.keys(resourceToPegawaiMap);
 
-        // 1. Jurnal Kelas (Hadir & Durasi)
         let jurnals: any[] = [];
         if (allResourceIds.length > 0) {
           jurnals = await Model.findAll({
@@ -512,7 +519,9 @@ export default class Repository {
               jurnalSlots.add(`${pId}_${dStr}_${r.id_jadwal}`);
             }
             if (r.id_jam_pelajaran && r.id_lokasi) {
-              jurnalSlots.add(`${pId}_${dStr}_${r.id_jam_pelajaran}_${r.id_lokasi}`);
+              jurnalSlots.add(
+                `${pId}_${dStr}_${r.id_jam_pelajaran}_${r.id_lokasi}`
+              );
             }
             const dateKey = `${pId}_${dStr}`;
             jurnalDateCount[dateKey] = (jurnalDateCount[dateKey] || 0) + 1;
@@ -520,7 +529,7 @@ export default class Repository {
             if (r.jam_mulai && r.jam_selesai) {
               const [h1, m1] = String(r.jam_mulai).split(':').map(Number);
               const [h2, m2] = String(r.jam_selesai).split(':').map(Number);
-              const diff = (h2 * 60 + (m2 || 0)) - (h1 * 60 + (m1 || 0));
+              const diff = h2 * 60 + (m2 || 0) - (h1 * 60 + (m1 || 0));
               if (diff > 0) {
                 teacherMinutes[pId] = (teacherMinutes[pId] || 0) + diff;
               }
@@ -528,7 +537,6 @@ export default class Repository {
           }
         }
 
-        // 2. Kesehatan Santri / Pegawai (Sakit)
         const sakitRecords = await KesehatanSantri.findAll({
           where: {
             id_pegawai: { [Op.in]: teacherIds },
@@ -566,7 +574,8 @@ export default class Repository {
           const r = sk.toJSON ? sk.toJSON() : sk;
           const pId = r.id_pegawai;
           if (pId) {
-            if (!sickDatesPerPegawai[pId]) sickDatesPerPegawai[pId] = new Set<string>();
+            if (!sickDatesPerPegawai[pId])
+              sickDatesPerPegawai[pId] = new Set<string>();
 
             if (r.tanggal_event) {
               sickDatesPerPegawai[pId].add(
@@ -585,7 +594,6 @@ export default class Repository {
           }
         }
 
-        // 3. Perizinan Santri / Pegawai (Izin)
         const izinRecords = await PerizinanSantri.findAll({
           where: {
             id_pegawai: { [Op.in]: teacherIds },
@@ -628,13 +636,14 @@ export default class Repository {
           const r = iz.toJSON ? iz.toJSON() : iz;
           const pId = r.id_pegawai;
           if (pId) {
-            if (!izinDatesPerPegawai[pId]) izinDatesPerPegawai[pId] = new Set<string>();
+            if (!izinDatesPerPegawai[pId])
+              izinDatesPerPegawai[pId] = new Set<string>();
 
             const tglMulai = r.tanggal_mulai
               ? moment(r.tanggal_mulai)
               : r.tanggal_pengajuan
-              ? moment(r.tanggal_pengajuan)
-              : null;
+                ? moment(r.tanggal_pengajuan)
+                : null;
             const tglSelesai = r.tanggal_selesai
               ? moment(r.tanggal_selesai)
               : tglMulai;
@@ -645,7 +654,8 @@ export default class Repository {
               while (cDate.isSameOrBefore(endD, 'day')) {
                 const dStr = cDate.format('YYYY-MM-DD');
                 if (r.jenis_izin === 'Sakit') {
-                  if (!sickDatesPerPegawai[pId]) sickDatesPerPegawai[pId] = new Set<string>();
+                  if (!sickDatesPerPegawai[pId])
+                    sickDatesPerPegawai[pId] = new Set<string>();
                   sickDatesPerPegawai[pId].add(dStr);
                 } else {
                   izinDatesPerPegawai[pId].add(dStr);
@@ -656,7 +666,6 @@ export default class Repository {
           }
         }
 
-        // 4. Evaluasi setiap jadwal mengajar
         for (const pId of teacherIds) {
           const sessions = teacherScheduledSessions[pId] || [];
           const availableJurnalCount = { ...jurnalDateCount };
@@ -669,23 +678,21 @@ export default class Repository {
 
             const hasSlotJurnal =
               jurnalSlots.has(slotKey1) ||
-              (ses.id_jam_pelajaran && ses.id_lokasi && jurnalSlots.has(slotKey2));
+              (ses.id_jam_pelajaran &&
+                ses.id_lokasi &&
+                jurnalSlots.has(slotKey2));
             const hasGeneralJurnal = (availableJurnalCount[dateKey] || 0) > 0;
 
             if (hasSlotJurnal || hasGeneralJurnal) {
-              // Hadir via jurnal_kelas
               teacherMap[pId].hadir += 1;
               if (!hasSlotJurnal && availableJurnalCount[dateKey] > 0) {
                 availableJurnalCount[dateKey] -= 1;
               }
             } else if (sickDatesPerPegawai[pId]?.has(dStr)) {
-              // Sakit via kesehatan_santri
               teacherMap[pId].sakit += 1;
             } else if (izinDatesPerPegawai[pId]?.has(dStr)) {
-              // Izin via perizinan_santri
               teacherMap[pId].izin += 1;
             } else {
-              // Alpha (jadwal ada, tapi tidak ada di jurnal, tidak di sakit, tidak di izin)
               teacherMap[pId].alfa += 1;
             }
           }
@@ -778,4 +785,3 @@ export default class Repository {
 }
 
 export const repository = new Repository();
-

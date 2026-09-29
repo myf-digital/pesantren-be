@@ -140,6 +140,33 @@ export default class Controller {
     }
   }
 
+  public async indexJadwalGuru(req: Request, res: Response) {
+    try {
+      const query = {
+        ...helper.fetchQueryRequest(req),
+        status: req?.query?.status || '',
+        id_lokasi: req?.query?.id_lokasi || '',
+        id_lokasi_parent: req?.query?.id_lokasi_parent || '',
+        id_lembaga: req?.query?.id_lembaga || '',
+        hari: req?.query?.hari || '',
+        id_tahunajaran: req?.query?.id_tahunajaran || '',
+        id_semester: req?.query?.id_semester || '',
+        keyword: req?.query?.keyword || req?.query?.q || '',
+        page: req?.query?.page || 1,
+        perPage: req?.query?.perPage || req?.query?.limit || 10,
+      };
+
+      const result = await repository.indexJadwalGuru(query);
+      return response.success(SUCCESS_RETRIEVED, result, res);
+    } catch (err: any) {
+      return helper.catchError(
+        `jadwal pelajaran indexJadwalGuru: ${err?.message}`,
+        500,
+        res
+      );
+    }
+  }
+
   public async index(req: Request, res: Response) {
     try {
       const query = {
