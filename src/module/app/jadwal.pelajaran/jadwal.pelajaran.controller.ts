@@ -326,13 +326,35 @@ export default class Controller {
 
   public async export(req: Request, res: Response) {
     try {
-      let condition: any = {};
-      const { q, template } = req?.body;
+      const {
+        template,
+        status,
+        id_lokasi,
+        id_kelas,
+        id_kelas_mda,
+        hari,
+        id_pegawai,
+        id_lokasi_parent,
+        id_tahunajaran,
+        id_semester,
+        q,
+        keyword,
+      } = req?.body || {};
       const isTemplate: boolean = template && template == '1';
 
       let result: any = [];
       if (!isTemplate) {
-        result = await repository.list({ status: q });
+        result = await repository.list({
+          status,
+          id_lokasi,
+          id_kelas: id_kelas || id_kelas_mda,
+          hari,
+          id_pegawai,
+          id_lokasi_parent,
+          id_tahunajaran,
+          id_semester,
+          q: q || keyword,
+        });
         if (result?.length < 1)
           return response.success(NOT_FOUND, null, res, false);
       }

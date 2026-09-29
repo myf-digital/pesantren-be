@@ -19,6 +19,14 @@ export default class Repository {
   public list(data: any) {
     let where: any = {};
 
+    if (data?.q || data?.keyword) {
+      const kw = data?.q || data?.keyword;
+      where[Op.or] = [
+        { '$jenis_guru.pegawai.nama_lengkap$': { [Op.like]: `%${kw}%` } },
+        { '$jenis_guru.mata_pelajaran.nama_mapel$': { [Op.like]: `%${kw}%` } },
+        { keterangan: { [Op.like]: `%${kw}%` } },
+      ];
+    }
     if (data?.status) {
       where.status = data.status;
     }
