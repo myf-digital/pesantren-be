@@ -2707,10 +2707,48 @@ export default class Service {
     return executiveStats;
   }
 
-  public async rekonsiliasiJurnalKelas() {
-    const unlinkedJurnals = await JurnalKelas.findAll({
-      where: { id_jadwal: null },
-    });
+  public async rekonsiliasiJurnalKelas(limit?: number) {
+    const startTime = Date.now();
+
+    const [allJadwals, allJenisGurus, allResources, totalUnlinkedInDb, unlinkedJurnals] =
+      await Promise.all([
+        JadwalPelajaran.findAll({ where: { status: 'Aktif' }, raw: true }),
+        JenisGuru.findAll({ raw: true }),
+        AppResource.findAll({
+          attributes: ['resource_id', 'id_eksternal'],
+          raw: true,
+        }),
+        JurnalKelas.count({ where: { id_jadwal: null } }),
+        JurnalKelas.findAll({
+          where: { id_jadwal: null },
+          ...(limit && limit > 0 ? { limit } : {}),
+        }),
+      ]);
+
+    // Build fast in-memory lookup maps
+    const resourceToPegawai = new Map<string, string>();
+    for (const r of allResources) {
+      if (r.id_eksternal) resourceToPegawai.set(r.resource_id, r.id_eksternal);
+    }
+
+    const guruToGmapels = new Map<string, string[]>();
+    for (const g of allJenisGurus) {
+      if (g.id_guru) {
+        const arr = guruToGmapels.get(g.id_guru) || [];
+        arr.push(g.id_jenisguru);
+        guruToGmapels.set(g.id_guru, arr);
+      }
+    }
+
+    const directMap = new Map<string, any>(); // key: class_jam_hari
+    const teacherClassMap = new Map<string, any>(); // key: class_gmapel_hari
+    const teacherJamMap = new Map<string, any>(); // key: jam_gmapel_hari
+
+    for (const j of allJadwals) {
+      directMap.set(`${j.id_kelas}_${j.id_jam_pelajaran}_${j.hari}`, j);
+      teacherClassMap.set(`${j.id_kelas}_${j.id_gmapel}_${j.hari}`, j);
+      teacherJamMap.set(`${j.id_jam_pelajaran}_${j.id_gmapel}_${j.hari}`, j);
+    }
 
     let totalDirectMatch = 0;
     let totalTeacherClassMatch = 0;
@@ -2721,55 +2759,40 @@ export default class Service {
     for (const jurnal of unlinkedJurnals) {
       const hari = helper.getHari(jurnal.tanggal);
 
-      let jadwalPelajaran = await helper.findJadwalPelajaran({
-        id_kelas: jurnal.id_lokasi,
-        id_jam_pelajaran: jurnal.id_jam_pelajaran,
-        tanggal: jurnal.tanggal,
-      });
+      // 1. Direct match: id_lokasi + id_jam_pelajaran + hari
+      let matchedJadwal = directMap.get(
+        `${jurnal.id_lokasi}_${jurnal.id_jam_pelajaran}_${hari}`
+      );
 
-      if (jadwalPelajaran && jadwalPelajaran?.id_jadwal) {
-        await jurnal.update({ id_jadwal: jadwalPelajaran?.id_jadwal });
+      if (matchedJadwal) {
+        await jurnal.update({ id_jadwal: matchedJadwal.id_jadwal });
         totalDirectMatch += 1;
         continue;
       }
 
-      let idPegawai: string | null = null;
-      const res = await AppResource.findByPk(jurnal.id_petugas);
-      if (res && res.id_eksternal) {
-        idPegawai = res.id_eksternal;
-      } else {
-        const peg = await Pegawai.findByPk(jurnal.id_petugas);
-        if (peg) idPegawai = peg.id_pegawai;
-      }
+      // 2. Resolve teacher pegawai ID
+      const idPegawai =
+        resourceToPegawai.get(jurnal.id_petugas) || jurnal.id_petugas;
+      const gmapelIds = guruToGmapels.get(idPegawai) || [];
 
-      let gmapelIds: string[] = [];
-      if (idPegawai) {
-        const jenisGurus = await JenisGuru.findAll({
-          where: { id_guru: idPegawai },
-          attributes: ['id_jenisguru'],
-          raw: true,
-        });
-        gmapelIds = jenisGurus.map((g: any) => g.id_jenisguru);
-      }
-
+      // 3. Match by Teacher + Class + Hari
       if (gmapelIds.length > 0) {
-        jadwalPelajaran = await JadwalPelajaran.findOne({
-          where: {
-            id_kelas: jurnal.id_lokasi,
-            id_gmapel: { [Op.in]: gmapelIds },
-            hari: hari,
-            status: 'Aktif',
-          },
-        });
+        let foundByTeacherClass: any = null;
+        for (const g of gmapelIds) {
+          foundByTeacherClass = teacherClassMap.get(
+            `${jurnal.id_lokasi}_${g}_${hari}`
+          );
+          if (foundByTeacherClass) break;
+        }
 
-        if (jadwalPelajaran && jadwalPelajaran?.id_jadwal) {
+        if (foundByTeacherClass) {
           await jurnal.update({
-            id_jadwal: jadwalPelajaran.id_jadwal,
-            id_jam_pelajaran: jadwalPelajaran.id_jam_pelajaran,
+            id_jadwal: foundByTeacherClass.id_jadwal,
+            id_jam_pelajaran: foundByTeacherClass.id_jam_pelajaran,
           });
           try {
             await AbsenKelasSantri.update(
-              { id_jam_pelajaran: jadwalPelajaran.id_jam_pelajaran },
+              { id_jam_pelajaran: foundByTeacherClass.id_jam_pelajaran },
               { where: { id_jurnal: jurnal.id_jurnal } }
             );
           } catch {}
@@ -2777,23 +2800,23 @@ export default class Service {
           continue;
         }
 
-        jadwalPelajaran = await JadwalPelajaran.findOne({
-          where: {
-            id_jam_pelajaran: jurnal.id_jam_pelajaran,
-            id_gmapel: { [Op.in]: gmapelIds },
-            hari: hari,
-            status: 'Aktif',
-          },
-        });
+        // Match by Teacher + Jam + Hari
+        let foundByTeacherJam: any = null;
+        for (const g of gmapelIds) {
+          foundByTeacherJam = teacherJamMap.get(
+            `${jurnal.id_jam_pelajaran}_${g}_${hari}`
+          );
+          if (foundByTeacherJam) break;
+        }
 
-        if (jadwalPelajaran && jadwalPelajaran?.id_jadwal) {
+        if (foundByTeacherJam) {
           await jurnal.update({
-            id_jadwal: jadwalPelajaran.id_jadwal,
-            id_lokasi: jadwalPelajaran.id_kelas,
+            id_jadwal: foundByTeacherJam.id_jadwal,
+            id_lokasi: foundByTeacherJam.id_kelas,
           });
           try {
             await AbsenKelasSantri.update(
-              { id_lokasi: jadwalPelajaran.id_kelas },
+              { id_lokasi: foundByTeacherJam.id_kelas },
               { where: { id_jurnal: jurnal.id_jurnal } }
             );
           } catch {}
@@ -2802,6 +2825,7 @@ export default class Service {
         }
       }
 
+      // 4. Match by Santri Class Placement
       const absens = await AbsenKelasSantri.findAll({
         where: { id_jurnal: jurnal.id_jurnal, is_deleted: false },
         attributes: ['id_santri'],
@@ -2830,32 +2854,31 @@ export default class Service {
 
         let matched = false;
         for (const candidateId of candidateClassIds) {
-          const whereCondition: any = {
-            id_kelas: candidateId,
-            hari: hari,
-            status: 'Aktif',
-          };
+          let foundCandidateJadwal: any = null;
           if (gmapelIds.length > 0) {
-            whereCondition.id_gmapel = { [Op.in]: gmapelIds };
+            for (const g of gmapelIds) {
+              foundCandidateJadwal = teacherClassMap.get(
+                `${candidateId}_${g}_${hari}`
+              );
+              if (foundCandidateJadwal) break;
+            }
           } else {
-            whereCondition.id_jam_pelajaran = jurnal.id_jam_pelajaran;
+            foundCandidateJadwal = directMap.get(
+              `${candidateId}_${jurnal.id_jam_pelajaran}_${hari}`
+            );
           }
 
-          jadwalPelajaran = await JadwalPelajaran.findOne({
-            where: whereCondition,
-          });
-
-          if (jadwalPelajaran && jadwalPelajaran?.id_jadwal) {
+          if (foundCandidateJadwal) {
             await jurnal.update({
-              id_jadwal: jadwalPelajaran.id_jadwal,
+              id_jadwal: foundCandidateJadwal.id_jadwal,
               id_lokasi: candidateId,
-              id_jam_pelajaran: jadwalPelajaran.id_jam_pelajaran,
+              id_jam_pelajaran: foundCandidateJadwal.id_jam_pelajaran,
             });
             try {
               await AbsenKelasSantri.update(
                 {
                   id_lokasi: candidateId,
-                  id_jam_pelajaran: jadwalPelajaran.id_jam_pelajaran,
+                  id_jam_pelajaran: foundCandidateJadwal.id_jam_pelajaran,
                 },
                 { where: { id_jurnal: jurnal.id_jurnal } }
               );
@@ -2873,7 +2896,8 @@ export default class Service {
     }
 
     return {
-      total_unlinked_found: unlinkedJurnals.length,
+      total_unlinked_in_db: totalUnlinkedInDb,
+      batch_processed: unlinkedJurnals.length,
       total_updated:
         totalDirectMatch +
         totalTeacherClassMatch +
@@ -2884,6 +2908,7 @@ export default class Service {
       total_teacher_jam_match: totalTeacherJamMatch,
       total_santri_placement_match: totalSantriPlacementMatch,
       total_unresolved: totalUnresolved,
+      elapsed_ms: Date.now() - startTime,
     };
   }
 }

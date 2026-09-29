@@ -531,7 +531,8 @@ export default class Controller {
 
   public async rekonsiliasiJurnalKelas(req: Request, res: Response) {
     try {
-      const result = await service.rekonsiliasiJurnalKelas();
+      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const result = await service.rekonsiliasiJurnalKelas(limit);
       return response.success(
         'rekonsiliasi jurnal kelas successful',
         result,
