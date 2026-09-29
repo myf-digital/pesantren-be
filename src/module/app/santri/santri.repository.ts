@@ -161,6 +161,23 @@ export default class Repository {
         ],
       };
     }
+
+    // Add attributes to include skor_akhir in the result
+    query.attributes = {
+      include: [
+        [
+          Sequelize.literal(`(
+            SELECT COALESCE(SUM(skor_diberikan), 0)
+            FROM kasus_pelanggaran_santri
+            WHERE kasus_pelanggaran_santri.id_santri = "AppSantri"."id_santri"
+            AND kasus_pelanggaran_santri.deleted_at IS NULL
+            AND kasus_pelanggaran_santri.status_progress != 'Batal'
+          )`),
+          'skor_akhir',
+        ],
+      ],
+    };
+
     return Model.findAndCountAll({
       ...query,
       include: [
