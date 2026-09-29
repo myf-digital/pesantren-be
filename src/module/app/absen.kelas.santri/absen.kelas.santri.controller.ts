@@ -142,31 +142,45 @@ export default class Controller {
 
   public async findJamPelajaran(req: Request, res: Response) {
     try {
-      const { waktu_absen } = req.query;
+      const { waktu_absen, id_kelas, hari, tanggal } = req.query;
 
-      if (!waktu_absen) {
-        return response.failed(
-          'Parameter waktu_absen wajib diisi (Format: HH:mm:ss)',
-          400,
-          res
-        );
+      let targetHari = hari as string;
+      if (!targetHari && tanggal) {
+        const dayMapName: Record<number, string> = {
+          0: 'Ahad',
+          1: 'Senin',
+          2: 'Selasa',
+          3: 'Rabu',
+          4: 'Kamis',
+          5: 'Jumat',
+          6: 'Sabtu',
+        };
+        const parsedDate = moment(tanggal as string, ['YYYY-MM-DD', 'YYYY/MM/DD', 'DD-MM-YYYY', 'MM/DD/YYYY']);
+        if (parsedDate.isValid()) {
+          targetHari = dayMapName[parsedDate.day()];
+        }
       }
 
-      let result: any = await repository.findMatchingJamPelajaran(
-        waktu_absen as string
-      );
+      let result: any = [];
 
-      let isFallbackToAll = false;
-
-      if (!result || result.length === 0) {
+      if (id_kelas) {
+        result = await repository.findJamPelajaranByKelas(
+          id_kelas as string,
+          targetHari
+        );
+      } else if (waktu_absen) {
+        result = await repository.findMatchingJamPelajaran(
+          waktu_absen as string
+        );
+        if (!result || result.length === 0) {
+          result = await repository.findAllJamPelajaran();
+        }
+      } else {
         result = await repository.findAllJamPelajaran();
-        isFallbackToAll = true;
       }
 
       return response.success(
-        isFallbackToAll
-          ? 'Tidak ada jam pelajaran dengan waktu tersebut. Menampilkan semua jam pelajaran aktif.'
-          : 'Berhasil menemukan jam pelajaran yang cocok.',
+        'Berhasil mengambil data jam pelajaran.',
         result,
         res
       );
@@ -273,9 +287,35 @@ export default class Controller {
 
   public async findKelasList(req: Request, res: Response) {
     try {
-      const result = await repository.findAllClasses(
-        req.query.id_lembaga as string
-      );
+      const { id_lembaga, id_jam_pelajaran, tanggal, hari } = req.query;
+
+      let targetHari = hari as string;
+      if (!targetHari && tanggal) {
+        const dayMapName: Record<number, string> = {
+          0: 'Ahad',
+          1: 'Senin',
+          2: 'Selasa',
+          3: 'Rabu',
+          4: 'Kamis',
+          5: 'Jumat',
+          6: 'Sabtu',
+        };
+        const parsedDate = moment(tanggal as string, [
+          'YYYY-MM-DD',
+          'YYYY/MM/DD',
+          'DD-MM-YYYY',
+          'MM/DD/YYYY',
+        ]);
+        if (parsedDate.isValid()) {
+          targetHari = dayMapName[parsedDate.day()];
+        }
+      }
+
+      const result = await repository.findAllClasses({
+        idLembaga: id_lembaga as string,
+        idJamPelajaran: id_jam_pelajaran as string,
+        hari: targetHari,
+      });
       return response.success('Berhasil menemukan kelas', result, res);
     } catch (error: any) {
       console.error('Error pada findKelasList:', error);

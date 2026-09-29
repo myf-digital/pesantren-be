@@ -46,6 +46,111 @@ export default class Repository {
     return result;
   }
 
+  public async findJamPelajaranByKelas(id_kelas?: string, hari?: string) {
+    if (id_kelas) {
+      // 1. Check active JadwalPelajaran for this class on this day (if day provided)
+      if (hari) {
+        const jadwalsHari = await JadwalPelajaran.findAll({
+          where: {
+            id_kelas,
+            hari,
+            status: 'Aktif',
+          },
+          include: [
+            {
+              model: JamPelajaran,
+              as: 'jam_pelajaran',
+              required: true,
+              where: { status: 'A' },
+              attributes: ['id_jampel', 'nama_jampel', 'mulai', 'selesai', 'nomor_urut'],
+            },
+          ],
+        });
+
+        if (jadwalsHari.length > 0) {
+          const seen = new Set<string>();
+          const jamList: any[] = [];
+          for (const j of jadwalsHari) {
+            const row = j.toJSON ? j.toJSON() : (j as any);
+            const jp = row.jam_pelajaran;
+            if (jp && !seen.has(jp.id_jampel)) {
+              seen.add(jp.id_jampel);
+              jamList.push(jp);
+            }
+          }
+          return jamList.sort((a, b) => {
+            if (a.nomor_urut !== undefined && b.nomor_urut !== undefined && a.nomor_urut !== b.nomor_urut) {
+              return (a.nomor_urut || 0) - (b.nomor_urut || 0);
+            }
+            return (a.mulai || '').localeCompare(b.mulai || '');
+          });
+        }
+      }
+
+      // 2. Check active JadwalPelajaran for this class across all days
+      const jadwalsAll = await JadwalPelajaran.findAll({
+        where: {
+          id_kelas,
+          status: 'Aktif',
+        },
+        include: [
+          {
+            model: JamPelajaran,
+            as: 'jam_pelajaran',
+            required: true,
+            where: { status: 'A' },
+            attributes: ['id_jampel', 'nama_jampel', 'mulai', 'selesai', 'nomor_urut'],
+          },
+        ],
+      });
+
+      if (jadwalsAll.length > 0) {
+        const seen = new Set<string>();
+        const jamList: any[] = [];
+        for (const j of jadwalsAll) {
+          const row = j.toJSON ? j.toJSON() : (j as any);
+          const jp = row.jam_pelajaran;
+          if (jp && !seen.has(jp.id_jampel)) {
+            seen.add(jp.id_jampel);
+            jamList.push(jp);
+          }
+        }
+        return jamList.sort((a, b) => {
+          if (a.nomor_urut !== undefined && b.nomor_urut !== undefined && a.nomor_urut !== b.nomor_urut) {
+            return (a.nomor_urut || 0) - (b.nomor_urut || 0);
+          }
+          return (a.mulai || '').localeCompare(b.mulai || '');
+        });
+      }
+
+      // 3. Fallback: Find Lembaga of the class and load its active JamPelajaran
+      const [formal, mda] = await Promise.all([
+        KelasFormal.findByPk(id_kelas, { attributes: ['id_lembaga'] }),
+        KelasMda.findByPk(id_kelas, { attributes: ['id_lembaga'] }),
+      ]);
+      const idLembaga =
+        formal?.getDataValue('id_lembaga') || mda?.getDataValue('id_lembaga');
+
+      if (idLembaga) {
+        const jamList = await JamPelajaran.findAll({
+          where: {
+            id_lembaga: idLembaga,
+            status: 'A',
+          },
+          order: [
+            ['nomor_urut', 'ASC'],
+            ['mulai', 'ASC'],
+          ],
+        });
+        if (jamList.length > 0) {
+          return jamList;
+        }
+      }
+    }
+
+    return await this.findAllJamPelajaran();
+  }
+
   public async findAllJamPelajaran() {
     const result = await JamPelajaran.findAll({
       where: {
@@ -558,8 +663,21 @@ export default class Repository {
     return !!placement;
   }
 
-  public async findAllClasses(idLembaga?: string) {
+  public async findAllClasses(
+    param?:
+      | string
+      | {
+          idLembaga?: string;
+          idJamPelajaran?: string;
+          hari?: string;
+        }
+  ) {
     const userContext = getUserContextData();
+    let idLembaga = typeof param === 'string' ? param : param?.idLembaga;
+    const idJamPelajaran =
+      typeof param === 'object' ? param?.idJamPelajaran : undefined;
+    const hari = typeof param === 'object' ? param?.hari : undefined;
+
     let where: any = {
       status: 'Aktif',
     };
@@ -569,13 +687,66 @@ export default class Repository {
       where.id_lembaga = targetLembaga;
     }
 
+    let filterClassIds: string[] | null = null;
+
+    if (idJamPelajaran) {
+      // 1. Check active JadwalPelajaran for this Jam Pelajaran on this day
+      if (hari) {
+        const jadwalsHari = await JadwalPelajaran.findAll({
+          where: {
+            id_jam_pelajaran: idJamPelajaran,
+            hari: hari,
+            status: 'Aktif',
+          },
+          attributes: ['id_kelas'],
+        });
+        if (jadwalsHari.length > 0) {
+          filterClassIds = Array.from(
+            new Set(jadwalsHari.map((j: any) => j.id_kelas).filter(Boolean))
+          );
+        }
+      }
+
+      // 2. If not found on specific day, check active JadwalPelajaran across all days
+      if (!filterClassIds || filterClassIds.length === 0) {
+        const jadwalsAll = await JadwalPelajaran.findAll({
+          where: {
+            id_jam_pelajaran: idJamPelajaran,
+            status: 'Aktif',
+          },
+          attributes: ['id_kelas'],
+        });
+        if (jadwalsAll.length > 0) {
+          filterClassIds = Array.from(
+            new Set(jadwalsAll.map((j: any) => j.id_kelas).filter(Boolean))
+          );
+        }
+      }
+
+      // 3. If still not in JadwalPelajaran, check if JamPelajaran has id_lembaga
+      if (!filterClassIds || filterClassIds.length === 0) {
+        const jp = await JamPelajaran.findByPk(idJamPelajaran);
+        const jLembaga = jp?.getDataValue('id_lembaga');
+        if (jLembaga) {
+          where.id_lembaga = jLembaga;
+        }
+      }
+    }
+
+    const formalWhere: any = { ...where };
+    const mdaWhere: any = { ...where };
+    if (filterClassIds && filterClassIds.length > 0) {
+      formalWhere.id_kelas = { [Op.in]: filterClassIds };
+      mdaWhere.id_kelas_mda = { [Op.in]: filterClassIds };
+    }
+
     const formal = await KelasFormal.findAll({
-      where: where,
+      where: formalWhere,
       attributes: ['id_kelas', 'nama_kelas', 'id_lembaga'],
     });
 
     const mda = await KelasMda.findAll({
-      where: where,
+      where: mdaWhere,
       attributes: ['id_kelas_mda', 'nama_kelas_mda', 'id_lembaga'],
     });
 
