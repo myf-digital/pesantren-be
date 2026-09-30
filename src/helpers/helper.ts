@@ -21,6 +21,18 @@ import AppResourceRole from '../module/app/resource.role/resource.role.model';
 import KesehatanSantri from '../module/app/kesehatan.santri/kesehatan.santri.model';
 import ActivityLog from '../module/global/activity.log.model';
 import JadwalPelajaran from '../module/app/jadwal.pelajaran/jadwal.pelajaran.model';
+import KelasFormal from '../module/app/kelas.formal/kelas.formal.model';
+import KelasMda from '../module/app/kelas.mda/kelas.mda.model';
+import JenisGuru from '../module/app/jenis.guru/jenis.guru.model';
+import Pegawai from '../module/app/pegawai/pegawai.model';
+import MataPelajaran from '../module/app/mata.pelajaran/mata.pelajaran.model';
+import Tingkat from '../module/app/tingkat/tingkat.model';
+import LembagaPendidikanFormal from '../module/app/lembaga.pendidikan.formal/lembaga.pendidikan.formal.model';
+import LembagaPendidikanKepesantrenan from '../module/app/lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
+import TahunAjaran from '../module/app/tahun.ajaran/tahun.ajaran.model';
+import Semester from '../module/app/semester/semester.model';
+import JamPelajaran from '../module/app/jam.pelajaran/jam.pelajaran.model';
+import Lokasi from '../module/app/location/location.model';
 import { validate as uuidValidate, version as uuidVersion } from 'uuid';
 import { service } from '../module/global/global.service';
 import { rawQuery } from './rawQuery';
@@ -81,12 +93,108 @@ export default class Helper {
     tanggal: string;
   }) {
     const hari = this.getHari(data.tanggal);
+
+    const activeTa = await TahunAjaran.findOne({
+      where: { status: 'Aktif' },
+    });
+
+    const where: any = {
+      hari,
+      id_jam_pelajaran: data.id_jam_pelajaran,
+      status: 'Aktif',
+      [Op.or]: [
+        { id_kelas: data.id_kelas },
+        { id_lokasi: data.id_kelas },
+      ],
+      [Op.and]: [
+        {
+          [Op.or]: [
+            { '$kelas_formal.status$': 'Aktif' },
+            { '$kelas_mda.status$': 'Aktif' },
+          ],
+        },
+      ],
+    };
+
+    if (activeTa) {
+      where.id_tahunajaran = activeTa.id_tahunajaran;
+    }
+
     return await JadwalPelajaran.findOne({
-      where: {
-        id_kelas: data.id_kelas,
-        id_jam_pelajaran: data.id_jam_pelajaran,
-        hari,
-      },
+      where,
+      include: [
+        {
+          model: JenisGuru,
+          as: 'jenis_guru',
+          required: false,
+          include: [
+            {
+              model: Pegawai,
+              as: 'pegawai',
+              required: false,
+              attributes: ['id_pegawai', 'nama_lengkap', 'nip', 'nik'],
+            },
+            {
+              model: MataPelajaran,
+              as: 'mata_pelajaran',
+              required: false,
+              attributes: ['id_mapel', 'nama_mapel'],
+            },
+          ],
+        },
+        {
+          model: KelasFormal,
+          as: 'kelas_formal',
+          required: false,
+          attributes: ['id_kelas', 'nama_kelas', 'id_lembaga', 'status'],
+          include: [
+            {
+              model: LembagaPendidikanFormal,
+              as: 'lembaga',
+              required: false,
+              attributes: ['id_lembaga', 'nama_lembaga'],
+            },
+          ],
+        },
+        {
+          model: KelasMda,
+          as: 'kelas_mda',
+          required: false,
+          attributes: ['id_kelas_mda', 'nama_kelas_mda', 'id_lembaga', 'status'],
+          include: [
+            {
+              model: LembagaPendidikanKepesantrenan,
+              as: 'lembaga',
+              required: false,
+              attributes: ['id_lembaga', 'nama_lembaga'],
+            },
+          ],
+        },
+        {
+          model: JamPelajaran,
+          as: 'jam_pelajaran',
+          required: false,
+          attributes: ['id_jampel', 'nama_jampel', 'mulai', 'selesai'],
+        },
+        {
+          model: Semester,
+          as: 'semester',
+          required: false,
+          attributes: ['id_semester', 'nama_semester'],
+        },
+        {
+          model: TahunAjaran,
+          as: 'tahun_ajaran',
+          required: false,
+          attributes: ['id_tahunajaran', 'tahun_ajaran'],
+        },
+        {
+          model: Lokasi,
+          as: 'lokasi',
+          required: false,
+          attributes: ['id_lokasi', 'nama_lokasi'],
+        },
+      ],
     });
   }
 
