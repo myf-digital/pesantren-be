@@ -55,15 +55,29 @@ export default class Repository {
       where['$jenis_guru.pegawai.id_pegawai$'] = data.id_pegawai;
     }
 
+    const andConditions: any[] = [];
+
     const userContext = getUserContextData();
     if (userContext && userContext?.id_lembaga) {
-      where = {
-        ...where,
+      andConditions.push({
         [Op.or]: [
           { '$kelas_formal.id_lembaga$': userContext?.id_lembaga },
           { '$kelas_mda.id_lembaga$': userContext?.id_lembaga },
         ],
-      };
+      });
+    }
+
+    if (data?.status === 'Aktif') {
+      andConditions.push({
+        [Op.or]: [
+          { '$kelas_formal.status$': 'Aktif' },
+          { '$kelas_mda.status$': 'Aktif' },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where[Op.and] = andConditions;
     }
 
     return Model.findAll({
@@ -74,7 +88,7 @@ export default class Repository {
           model: KelasFormal,
           as: 'kelas_formal',
           required: false,
-          attributes: ['id_kelas', 'nama_kelas'],
+          attributes: ['id_kelas', 'nama_kelas', 'status'],
           include: [
             {
               model: LembagaPendidikanFormal,
@@ -88,7 +102,7 @@ export default class Repository {
           model: KelasMda,
           as: 'kelas_mda',
           required: false,
-          attributes: ['id_kelas_mda', 'nama_kelas_mda'],
+          attributes: ['id_kelas_mda', 'nama_kelas_mda', 'status'],
           include: [
             {
               model: LembagaPendidikanKepesantrenan,
@@ -189,15 +203,29 @@ export default class Repository {
       where['$jenis_guru.pegawai.id_pegawai$'] = data.id_pegawai;
     }
 
+    const andConditions: any[] = [];
+
     const userContext = getUserContextData();
     if (userContext && userContext?.id_lembaga) {
-      where = {
-        ...where,
+      andConditions.push({
         [Op.or]: [
           { '$kelas_formal.id_lembaga$': userContext?.id_lembaga },
           { '$kelas_mda.id_lembaga$': userContext?.id_lembaga },
         ],
-      };
+      });
+    }
+
+    if (data?.status === 'Aktif') {
+      andConditions.push({
+        [Op.or]: [
+          { '$kelas_formal.status$': 'Aktif' },
+          { '$kelas_mda.status$': 'Aktif' },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where[Op.and] = andConditions;
     }
 
     let query: any = {
@@ -214,7 +242,7 @@ export default class Repository {
           model: KelasFormal,
           as: 'kelas_formal',
           required: false,
-          attributes: ['id_kelas', 'nama_kelas'],
+          attributes: ['id_kelas', 'nama_kelas', 'status'],
           include: [
             {
               model: LembagaPendidikanFormal,
@@ -228,7 +256,7 @@ export default class Repository {
           model: KelasMda,
           as: 'kelas_mda',
           required: false,
-          attributes: ['id_kelas_mda', 'nama_kelas_mda'],
+          attributes: ['id_kelas_mda', 'nama_kelas_mda', 'status'],
           include: [
             {
               model: LembagaPendidikanKepesantrenan,
@@ -386,12 +414,28 @@ export default class Repository {
     const limit = perPage;
 
     let whereJadwal: any = {};
-    if (data?.status) whereJadwal.status = data.status;
+    if (data?.status) {
+      whereJadwal.status = data.status;
+    } else {
+      whereJadwal.status = 'Aktif';
+    }
+
     if (data?.hari) whereJadwal.hari = data.hari;
     if (data?.id_lokasi) whereJadwal.id_lokasi = data.id_lokasi;
     if (data?.id_lokasi_parent)
       whereJadwal['$lokasi.parent_id$'] = data.id_lokasi_parent;
-    if (data?.id_tahunajaran) whereJadwal.id_tahunajaran = data.id_tahunajaran;
+
+    if (data?.id_tahunajaran) {
+      whereJadwal.id_tahunajaran = data.id_tahunajaran;
+    } else {
+      const activeTa = await TahunAjaran.findOne({
+        where: { status: 'Aktif' },
+      });
+      if (activeTa) {
+        whereJadwal.id_tahunajaran = activeTa.id_tahunajaran;
+      }
+    }
+
     if (data?.id_semester) whereJadwal.id_semester = data.id_semester;
 
     let wherePegawai: any = {};
@@ -408,16 +452,26 @@ export default class Repository {
       whereJenisGuru.id_lembaga = data.id_lembaga;
     }
 
+    const andConditions: any[] = [];
+
     const userContext = getUserContextData();
     if (userContext && userContext?.id_lembaga) {
-      whereJadwal = {
-        ...whereJadwal,
+      andConditions.push({
         [Op.or]: [
           { '$kelas_formal.id_lembaga$': userContext?.id_lembaga },
           { '$kelas_mda.id_lembaga$': userContext?.id_lembaga },
         ],
-      };
+      });
     }
+
+    andConditions.push({
+      [Op.or]: [
+        { '$kelas_formal.status$': 'Aktif' },
+        { '$kelas_mda.status$': 'Aktif' },
+      ],
+    });
+
+    whereJadwal[Op.and] = andConditions;
 
     // Step 1: Find all distinct teacher IDs that have schedules matching filters
     const matchingSchedules = await Model.findAll({
@@ -442,13 +496,13 @@ export default class Repository {
           model: KelasFormal,
           as: 'kelas_formal',
           required: false,
-          attributes: ['id_kelas', 'id_lembaga'],
+          attributes: ['id_kelas', 'id_lembaga', 'status'],
         },
         {
           model: KelasMda,
           as: 'kelas_mda',
           required: false,
-          attributes: ['id_kelas_mda', 'id_lembaga'],
+          attributes: ['id_kelas_mda', 'id_lembaga', 'status'],
         },
       ],
       raw: true,
@@ -525,7 +579,7 @@ export default class Repository {
           model: KelasFormal,
           as: 'kelas_formal',
           required: false,
-          attributes: ['id_kelas', 'nama_kelas'],
+          attributes: ['id_kelas', 'nama_kelas', 'status'],
           include: [
             {
               model: LembagaPendidikanFormal,
@@ -539,7 +593,7 @@ export default class Repository {
           model: KelasMda,
           as: 'kelas_mda',
           required: false,
-          attributes: ['id_kelas_mda', 'nama_kelas_mda'],
+          attributes: ['id_kelas_mda', 'nama_kelas_mda', 'status'],
           include: [
             {
               model: LembagaPendidikanKepesantrenan,

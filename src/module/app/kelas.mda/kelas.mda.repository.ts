@@ -16,6 +16,10 @@ export default class Repository {
       where.id_tingkat = data.id_tingkat;
     }
 
+    if (data?.id_tahunajaran) {
+      where.id_tahunajaran = data.id_tahunajaran;
+    }
+
     if (data?.status) {
       where.status = data.status;
     }

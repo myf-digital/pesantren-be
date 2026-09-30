@@ -11,6 +11,7 @@ import AreaSubDistrict from '../../area/subdistricts.model';
 import AppResource from '../resource/resource.model';
 import AppResourceRole from '../resource.role/resource.role.model';
 import AppRole from '../role/role.model';
+import JenisGuru from '../jenis.guru/jenis.guru.model';
 import { v4 as uuidv4 } from 'uuid';
 import { helper } from '../../../helpers/helper';
 import { getUserContextData } from '../../../context/userContext';
@@ -19,6 +20,7 @@ export default class Repository {
   public list(data: any) {
     let query: any = {
       order: [['nama_lengkap', 'ASC']],
+      where: {},
       include: [
         {
           model: OrganizationUnit,
@@ -43,32 +45,37 @@ export default class Repository {
 
     const keyword = data?.keyword ? `%${data.keyword.toLowerCase()}%` : null;
     if (keyword) {
-      query = {
-        ...query,
-        where: {
-          nama_lengkap: Sequelize.where(
-            Sequelize.fn('LOWER', Sequelize.col('Pegawai.nama_lengkap')),
-            { [Op.like]: keyword }
-          ),
-        },
-      };
+      query.where.nama_lengkap = Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.col('Pegawai.nama_lengkap')),
+        { [Op.like]: keyword }
+      );
     }
 
     if (data?.status_pegawai && data?.status_pegawai !== '') {
-      query = {
-        ...query,
-        where: {
-          status_pegawai: data.status_pegawai,
-        },
-      };
+      query.where.status_pegawai = data.status_pegawai;
+    }
+
+    if (data?.is_guru || data?.lembaga_type) {
+      const jenisGuruWhere: any = {};
+      if (data?.lembaga_type) {
+        jenisGuruWhere.lembaga_type = data.lembaga_type;
+      }
+      if (data?.id_lembaga) {
+        jenisGuruWhere.id_lembaga = data.id_lembaga;
+      }
+      query.include.push({
+        model: JenisGuru,
+        as: 'jenis_guru',
+        required: true,
+        where: jenisGuruWhere,
+        attributes: ['id_jenisguru', 'lembaga_type', 'status'],
+      });
+      query.distinct = true;
     }
 
     const userContext = getUserContextData();
     if (userContext && userContext?.id_cabang) {
-      query.where = {
-        ...query.where,
-        '$organizationUnit.id_cabang$': userContext?.id_cabang,
-      };
+      query.where['$organizationUnit.id_cabang$'] = userContext?.id_cabang;
     }
 
     return Model.findAll(query);

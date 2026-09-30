@@ -28,6 +28,17 @@ export default class Repository {
       };
     }
 
+    if (data?.id_pegawai || data?.id_guru) {
+      const guruId = data.id_pegawai || data.id_guru;
+      let jenisGuruSubquery = `SELECT DISTINCT id_lembaga FROM jenis_guru WHERE id_guru = ${sequelize.escape(guruId)} AND id_lembaga IS NOT NULL`;
+      if (data?.lembaga_type) {
+        jenisGuruSubquery += ` AND lembaga_type = ${sequelize.escape(data.lembaga_type)}`;
+      }
+      where.id_lembaga = {
+        [Op.in]: Sequelize.literal(`(${jenisGuruSubquery})`),
+      };
+    }
+
     const userContext = getUserContextData();
     if (userContext && userContext?.lembaga_type) {
       where.lembaga_type = userContext.lembaga_type;

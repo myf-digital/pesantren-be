@@ -104,7 +104,12 @@ export default class Controller {
     try {
       const status: any = req?.query?.status || '';
       const id_tingkat: any = req?.query?.id_tingkat || '';
-      const result = await repository.list({ status, id_tingkat });
+      const id_tahunajaran: any = req?.query?.id_tahunajaran || '';
+      const result = await repository.list({
+        status,
+        id_tingkat,
+        id_tahunajaran,
+      });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);

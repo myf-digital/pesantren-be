@@ -231,7 +231,17 @@ export default class Controller {
   public async list(req: Request, res: Response) {
     try {
       const status_pegawai: any = req?.query?.status_pegawai || '';
-      const result = await repository.list({ status_pegawai });
+      const is_guru: any = req?.query?.is_guru || '';
+      const lembaga_type: any = req?.query?.lembaga_type || '';
+      const id_lembaga: any = req?.query?.id_lembaga || '';
+      const keyword: any = req?.query?.keyword || req?.query?.q || '';
+      const result = await repository.list({
+        status_pegawai,
+        is_guru,
+        lembaga_type,
+        id_lembaga,
+        keyword,
+      });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);

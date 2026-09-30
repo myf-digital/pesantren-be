@@ -10,6 +10,7 @@ import AreaRegency from '../../area/regencies.model';
 import AreaDistrict from '../../area/districts.model';
 import AreaSubDistrict from '../../area/subdistricts.model';
 import JamKerjaPegawai from '../pegawai.jam.kerja/pegawai.jam.kerja.model';
+import JenisGuru from '../jenis.guru/jenis.guru.model';
 
 export class Pegawai extends Model {
   declare id_pegawai: string;
@@ -271,6 +272,13 @@ export function associatePegawai() {
     as: 'jamKerjaPegawai',
     onUpdate: 'CASCADE',
     onDelete: 'RESTRICT',
+  });
+
+  Pegawai.hasMany(JenisGuru, {
+    foreignKey: 'id_guru',
+    as: 'jenis_guru',
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
   });
 }
 

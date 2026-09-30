@@ -17,6 +17,7 @@ import JenisGuru from '../jenis.guru/jenis.guru.model';
 import MataPelajaran from '../mata.pelajaran/mata.pelajaran.model';
 import KesehatanSantri from '../kesehatan.santri/kesehatan.santri.model';
 import PerizinanSantri from '../perizinan.santri/perizinan.santri.model';
+import TahunAjaran from '../tahun.ajaran/tahun.ajaran.model';
 
 export default class Repository {
   public async findActiveJurnal(criteria: {
@@ -326,10 +327,27 @@ export default class Repository {
 
     if (data?.id_tahunajaran) {
       jadwalWhere.id_tahunajaran = data.id_tahunajaran;
+    } else {
+      const activeTa = await TahunAjaran.findOne({
+        where: { status: 'Aktif' },
+      });
+      if (activeTa) {
+        jadwalWhere.id_tahunajaran = activeTa.id_tahunajaran;
+      }
     }
+
     if (data?.id_semester) {
       jadwalWhere.id_semester = data.id_semester;
     }
+
+    const andConditions: any[] = [];
+    andConditions.push({
+      [Op.or]: [
+        { '$kelas_formal.status$': 'Aktif' },
+        { '$kelas_mda.status$': 'Aktif' },
+      ],
+    });
+    jadwalWhere[Op.and] = andConditions;
 
     const jadwalList = await JadwalPelajaran.findAll({
       where: jadwalWhere,
@@ -357,7 +375,7 @@ export default class Repository {
           model: KelasFormal,
           as: 'kelas_formal',
           required: false,
-          attributes: ['id_kelas', 'nama_kelas', 'id_lembaga'],
+          attributes: ['id_kelas', 'nama_kelas', 'id_lembaga', 'status'],
           include: [
             {
               model: LembagaPendidikanFormal,
@@ -371,7 +389,7 @@ export default class Repository {
           model: KelasMda,
           as: 'kelas_mda',
           required: false,
-          attributes: ['id_kelas_mda', 'nama_kelas_mda', 'id_lembaga'],
+          attributes: ['id_kelas_mda', 'nama_kelas_mda', 'id_lembaga', 'status'],
           include: [
             {
               model: LembagaPendidikanKepesantrenan,

@@ -136,7 +136,13 @@ export default class Controller {
     try {
       const lembaga_type: any = req?.query?.lembaga_type || '';
       const id_kelas: any = req?.query?.id_kelas || '';
-      const result = await repository.list({ lembaga_type, id_kelas });
+      const id_pegawai: any =
+        req?.query?.id_pegawai || req?.query?.id_guru || '';
+      const result = await repository.list({
+        lembaga_type,
+        id_kelas,
+        id_pegawai,
+      });
       if (result?.length < 1)
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
