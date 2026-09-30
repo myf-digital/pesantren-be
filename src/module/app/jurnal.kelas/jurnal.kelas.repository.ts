@@ -4,6 +4,7 @@ import { Op, Sequelize } from 'sequelize';
 import moment from 'moment';
 import Model from './jurnal.kelas.model';
 import AppResource from '../resource/resource.model';
+import AppResourceRole from '../resource.role/resource.role.model';
 import KelasFormal from '../kelas.formal/kelas.formal.model';
 import KelasMda from '../kelas.mda/kelas.mda.model';
 import JamPelajaran from '../jam.pelajaran/jam.pelajaran.model';
@@ -148,6 +149,7 @@ export default class Repository {
         {
           model: JadwalPelajaran,
           as: 'jadwalPelajaran',
+          required: false,
         },
       ],
       where: {},
@@ -247,7 +249,10 @@ export default class Repository {
             }
           ),
           Sequelize.where(
-            Sequelize.fn('LOWER', Sequelize.col('jadwalPelajaran.hari')),
+            Sequelize.fn(
+              'LOWER',
+              Sequelize.cast(Sequelize.col('jadwalPelajaran.hari'), 'TEXT')
+            ),
             {
               [Op.like]: keyword,
             }
@@ -468,16 +473,40 @@ export default class Repository {
 
     if (teacherIds.length > 0) {
       try {
+        const resourceToPegawaiMap: Record<string, string> = {};
+
+        // 1. Direct mapping for cases where id_petugas stores id_pegawai
+        for (const tId of teacherIds) {
+          resourceToPegawaiMap[tId] = tId;
+        }
+
+        // 2. Fetch from AppResourceRole (multi pegawai mapping)
+        const resourceRoles = await AppResourceRole.findAll({
+          where: {
+            id_pegawai: { [Op.in]: teacherIds },
+          },
+          attributes: ['resource_id', 'id_pegawai'],
+          raw: true,
+        });
+
+        for (const rr of resourceRoles) {
+          const r = rr as any;
+          if (r.resource_id && r.id_pegawai) {
+            resourceToPegawaiMap[r.resource_id] = r.id_pegawai;
+          }
+        }
+
+        // 3. Fetch from AppResource (legacy id_eksternal mapping, include active and inactive)
         const resources = await AppResource.findAll({
           where: {
             id_eksternal: { [Op.in]: teacherIds },
           },
           attributes: ['resource_id', 'id_eksternal'],
+          raw: true,
         });
 
-        const resourceToPegawaiMap: Record<string, string> = {};
         for (const res of resources) {
-          const r = res.toJSON ? res.toJSON() : res;
+          const r = res as any;
           if (r.resource_id && r.id_eksternal) {
             resourceToPegawaiMap[r.resource_id] = r.id_eksternal;
           }

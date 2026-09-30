@@ -9,6 +9,7 @@ import AreaRegency from '../../area/regencies.model';
 import AreaDistrict from '../../area/districts.model';
 import AreaSubDistrict from '../../area/subdistricts.model';
 import AppResource from '../resource/resource.model';
+import AppResourceRole from '../resource.role/resource.role.model';
 import AppRole from '../role/role.model';
 import { v4 as uuidv4 } from 'uuid';
 import { helper } from '../../../helpers/helper';
@@ -247,9 +248,10 @@ export default class Repository {
         const hashedPassword = await helper.hashIt(rawPassword);
         const confirm_hash = await helper.hashIt(username, 6);
 
+        const resourceId = uuidv4();
         await AppResource.create(
           {
-            resource_id: uuidv4(),
+            resource_id: resourceId,
             role_id: role.role_id,
             username,
             email: item.email,
@@ -261,6 +263,22 @@ export default class Repository {
             created_by: data.userId || null,
             created_date: new Date(),
             id_eksternal: pegawais[idx].id_pegawai,
+          },
+          { transaction: trx }
+        );
+
+        await AppResourceRole.create(
+          {
+            id_resource_role: uuidv4(),
+            resource_id: resourceId,
+            role_id: role.role_id,
+            id_pegawai: pegawais[idx].id_pegawai,
+            id_orgunit: item.id_orgunit || null,
+            id_cabang: item.id_cabang || null,
+            id_lembaga: item.id_lembaga || null,
+            is_default: 1,
+            status: 'ACTIVE',
+            created_by: data.userId || null,
           },
           { transaction: trx }
         );

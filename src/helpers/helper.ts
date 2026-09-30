@@ -17,6 +17,7 @@ import { parse as ParseCSV } from 'csv-parse/sync';
 import { teleConfig } from '../config/config.telegram';
 import { APP_NAME, MYSQL, POSTGRES, TIMEZONE } from '../utils/constant';
 import AppResource from '../module/app/resource/resource.model';
+import AppResourceRole from '../module/app/resource.role/resource.role.model';
 import KesehatanSantri from '../module/app/kesehatan.santri/kesehatan.santri.model';
 import ActivityLog from '../module/global/activity.log.model';
 import JadwalPelajaran from '../module/app/jadwal.pelajaran/jadwal.pelajaran.model';
@@ -414,10 +415,29 @@ export default class Helper {
       if (result.length < 1) return;
 
       for (const item of result) {
-        const resource = await appResourceRepository.detail(
-          { id_eksternal: item.id_petugas },
-          ''
-        );
+        let resource: any = null;
+        const resourceRole = await AppResourceRole.findOne({
+          where: {
+            id_pegawai: item.id_petugas,
+            status: 'ACTIVE',
+          },
+          include: [
+            {
+              model: AppResource,
+              as: 'resource',
+              where: { status: 'A' },
+            },
+          ],
+        });
+
+        if (resourceRole?.resource) {
+          resource = resourceRole.resource;
+        } else {
+          resource = await appResourceRepository.detail(
+            { id_eksternal: item.id_petugas },
+            ''
+          );
+        }
 
         if (resource) {
           const dataMessage = {

@@ -27,6 +27,7 @@ import PenempatanKamarSantri from '../app/penempatan.kamar.santri/penempatan.kam
 import LembagaPendidikanKepesantrenan from '../app/lembaga.pendidikan.kepesantrenan/lembaga.pendidikan.kepesantrenan.model';
 import Cabang from '../app/cabang/cabang.model';
 import AppResource from '../app/resource/resource.model';
+import AppResourceRole from '../app/resource.role/resource.role.model';
 import JenisGuru from '../app/jenis.guru/jenis.guru.model';
 import JadwalPelajaran from '../app/jadwal.pelajaran/jadwal.pelajaran.model';
 import { TIMEZONE } from '../../utils/constant';
@@ -2710,25 +2711,84 @@ export default class Service {
   public async rekonsiliasiJurnalKelas(limit?: number) {
     const startTime = Date.now();
 
-    const [allJadwals, allJenisGurus, allResources, totalUnlinkedInDb, unlinkedJurnals] =
-      await Promise.all([
-        JadwalPelajaran.findAll({ where: { status: 'Aktif' }, raw: true }),
-        JenisGuru.findAll({ raw: true }),
-        AppResource.findAll({
-          attributes: ['resource_id', 'id_eksternal'],
-          raw: true,
-        }),
-        JurnalKelas.count({ where: { id_jadwal: null } }),
-        JurnalKelas.findAll({
-          where: { id_jadwal: null },
-          ...(limit && limit > 0 ? { limit } : {}),
-        }),
-      ]);
+    const [
+      allJadwals,
+      allJenisGurus,
+      allResources,
+      allResourceRoles,
+      totalUnlinkedInDb,
+      unlinkedJurnals,
+    ] = await Promise.all([
+      JadwalPelajaran.findAll({ where: { status: 'Aktif' }, raw: true }),
+      JenisGuru.findAll({ raw: true }),
+      AppResource.findAll({
+        attributes: ['resource_id', 'id_eksternal', 'status'],
+        raw: true,
+      }),
+      AppResourceRole.findAll({
+        attributes: ['resource_id', 'id_pegawai', 'status'],
+        raw: true,
+      }),
+      JurnalKelas.count({ where: { id_jadwal: null } }),
+      JurnalKelas.findAll({
+        where: { id_jadwal: null },
+        ...(limit && limit > 0 ? { limit } : {}),
+      }),
+    ]);
 
     // Build fast in-memory lookup maps
     const resourceToPegawai = new Map<string, string>();
+    const pegawaiToActiveResource = new Map<string, string>();
+
+    // 1. Map from AppResourceRole (multi-pegawai system)
+    for (const rr of allResourceRoles) {
+      if (rr.id_pegawai) {
+        resourceToPegawai.set(rr.resource_id, rr.id_pegawai);
+        if (rr.status === 'ACTIVE' && !pegawaiToActiveResource.has(rr.id_pegawai)) {
+          pegawaiToActiveResource.set(rr.id_pegawai, rr.resource_id);
+        }
+      }
+    }
+
+    // 2. Map from AppResource (legacy 1-to-1 system)
     for (const r of allResources) {
-      if (r.id_eksternal) resourceToPegawai.set(r.resource_id, r.id_eksternal);
+      if (r.id_eksternal) {
+        if (!resourceToPegawai.has(r.resource_id)) {
+          resourceToPegawai.set(r.resource_id, r.id_eksternal);
+        }
+        if (r.status === 'A' && !pegawaiToActiveResource.has(r.id_eksternal)) {
+          pegawaiToActiveResource.set(r.id_eksternal, r.resource_id);
+        }
+      }
+    }
+
+    // Reconcile id_petugas on all jurnal_kelas that point to inactive app_resource (status = 'D')
+    let totalPetugasReconciled = 0;
+    try {
+      const inactiveResourceIds = allResources
+        .filter((r: any) => r.status === 'D')
+        .map((r: any) => r.resource_id);
+
+      if (inactiveResourceIds.length > 0) {
+        const jurnalsWithInactivePetugas = await JurnalKelas.findAll({
+          where: {
+            id_petugas: { [Op.in]: inactiveResourceIds },
+          },
+        });
+
+        for (const j of jurnalsWithInactivePetugas) {
+          const pId = resourceToPegawai.get(j.id_petugas);
+          if (pId) {
+            const activeResourceId = pegawaiToActiveResource.get(pId);
+            if (activeResourceId && activeResourceId !== j.id_petugas) {
+              await j.update({ id_petugas: activeResourceId });
+              totalPetugasReconciled += 1;
+            }
+          }
+        }
+      }
+    } catch (petugasErr) {
+      console.error('Error reconciling inactive id_petugas:', petugasErr);
     }
 
     const guruToGmapels = new Map<string, string[]>();
@@ -2907,6 +2967,7 @@ export default class Service {
       total_teacher_class_match: totalTeacherClassMatch,
       total_teacher_jam_match: totalTeacherJamMatch,
       total_santri_placement_match: totalSantriPlacementMatch,
+      total_petugas_reconciled: totalPetugasReconciled,
       total_unresolved: totalUnresolved,
       elapsed_ms: Date.now() - startTime,
     };

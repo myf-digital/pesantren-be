@@ -160,7 +160,7 @@ export function associateJurnalKelas() {
     foreignKey: 'id_jadwal',
     as: 'jadwalPelajaran',
     onUpdate: 'CASCADE',
-    onDelete: 'RESTRICT',
+    onDelete: 'SET NULL',
   });
 }
 
