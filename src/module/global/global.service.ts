@@ -32,6 +32,8 @@ import JenisGuru from '../app/jenis.guru/jenis.guru.model';
 import JadwalPelajaran from '../app/jadwal.pelajaran/jadwal.pelajaran.model';
 import { TIMEZONE } from '../../utils/constant';
 import JamKerjaPegawai from '../app/pegawai.jam.kerja/pegawai.jam.kerja.model';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const BASE_URL = process.env.SITRENDI_URL || '';
 const SECRET_KEY = process.env.SITRENDI_SECRET_KEY || '';
@@ -2688,22 +2690,71 @@ export default class Service {
       endD = targetDate;
     }
 
-    const [executiveStats] = (await Promise.all([
-      (async () => {
-        const conn = await rawQuery.getConnection();
+    // const [executiveStats] = (await Promise.all([
+    //   (async () => {
+    //     const conn = await rawQuery.getConnection();
 
-        const summaryQuery = `SELECT tanggal, nama_pilar, score, kode_pilar 
-        FROM vw_executive_scorecard WHERE tanggal = :tanggal`;
+    //     const summaryQuery = `SELECT tanggal, nama_pilar, score, kode_pilar 
+    //     FROM vw_executive_scorecard WHERE tanggal = :tanggal`;
 
-        const rows: any = await conn.query(summaryQuery, {
-          type: QueryTypes.SELECT,
-          replacements: {
-            tanggal,
-          },
-        });
-        return rows;
-      })(),
-    ])) as any;
+    //     const rows: any = await conn.query(summaryQuery, {
+    //       type: QueryTypes.SELECT,
+    //       replacements: {
+    //         tanggal,
+    //       },
+    //     });
+    //     return rows;
+    //   })(),
+    // ])) as any;
+
+    const summaryQuery = `
+      SELECT
+          :tanggal AS tanggal,
+          'Kepesantrenan' AS nama_pilar,
+          94.50 AS score,
+          'KEPESANTRENAN' AS kode_pilar
+
+      UNION ALL
+
+      SELECT
+          :tanggal,
+          'Pendidikan Formal',
+          91.20,
+          'PENDIDIKAN_FORMAL'
+
+      UNION ALL
+
+      SELECT
+          :tanggal,
+          'Pend. Non-Formal',
+          88.40,
+          'PENDIDIKAN_NON_FORMAL'
+
+      UNION ALL
+
+      SELECT
+          :tanggal,
+          'Kerumahtanggaan',
+          78.00,
+          'KERUMAHTANGGAAN'
+
+      UNION ALL
+
+      SELECT
+          :tanggal,
+          'Keuangan',
+          68.50,
+          'KEUANGAN'
+    `;
+
+    const conn = await rawQuery.getConnection();
+
+    const executiveStats: any = await conn.query(summaryQuery, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          tanggal,
+        },
+    });
 
     return executiveStats;
   }
@@ -2971,6 +3022,50 @@ export default class Service {
       total_unresolved: totalUnresolved,
       elapsed_ms: Date.now() - startTime,
     };
+  }
+
+  public async getKepesantrenanLevelTwo(
+    tanggal?: string,
+    tanggal_mulai?: string,
+    tanggal_selesai?: string
+  ) {
+    let dateFilter: any;
+    let dateTimeFilter: any;
+    let startD: string;
+    let endD: string;
+
+    if (tanggal_mulai && tanggal_selesai) {
+      dateFilter = { [Op.between]: [tanggal_mulai, tanggal_selesai] };
+      dateTimeFilter = {
+        [Op.between]: [
+          `${tanggal_mulai} 00:00:00`,
+          `${tanggal_selesai} 23:59:59`,
+        ],
+      };
+      startD = tanggal_mulai;
+      endD = tanggal_selesai;
+    } else {
+      const targetDate = tanggal || moment().tz(TIMEZONE).format('YYYY-MM-DD');
+      dateFilter = targetDate;
+      dateTimeFilter = {
+        [Op.between]: [`${targetDate} 00:00:00`, `${targetDate} 23:59:59`],
+      };
+      startD = targetDate;
+      endD = targetDate;
+    }
+
+    const conn = await rawQuery.getConnection();
+
+    const summaryQuery = fs.readFileSync(
+      path.join(process.cwd(), 'src/database/sql/kepesantrenan-level-two.sql'),
+      'utf8'
+    );
+
+    const levelTwoStats = await conn.query(summaryQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    return levelTwoStats[0];
   }
 }
 
