@@ -85,9 +85,13 @@ export default class Repository {
             return (a.mulai || '').localeCompare(b.mulai || '');
           });
         }
+
+        // Hari diketahui tetapi kelas tidak punya jadwal pada hari tersebut:
+        // jangan fallback ke jam hari lain / semua jam lembaga.
+        return [];
       }
 
-      // 2. Check active JadwalPelajaran for this class across all days
+      // 2. (Tanpa hari/tanggal) Check active JadwalPelajaran for this class across all days
       const jadwalsAll = await JadwalPelajaran.findAll({
         where: {
           id_kelas,
