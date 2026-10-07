@@ -85,9 +85,13 @@ export default class Repository {
             return (a.mulai || '').localeCompare(b.mulai || '');
           });
         }
+
+        // Hari diketahui tetapi kelas tidak punya jadwal pada hari tersebut:
+        // jangan fallback ke jam hari lain / semua jam lembaga.
+        return [];
       }
 
-      // 2. Check active JadwalPelajaran for this class across all days
+      // 2. (Tanpa hari/tanggal) Check active JadwalPelajaran for this class across all days
       const jadwalsAll = await JadwalPelajaran.findAll({
         where: {
           id_kelas,
@@ -794,6 +798,12 @@ export default class Repository {
       endDate = moment().endOf('month');
     }
 
+    // Periode berjalan: perhitungan hanya sampai hari ini (bukan akhir bulan)
+    const todayStr = moment().tz(TIMEZONE).format('YYYY-MM-DD');
+    if (endDate.format('YYYY-MM-DD') > todayStr) {
+      endDate = moment(todayStr, 'YYYY-MM-DD').endOf('day');
+    }
+
     const startDateStr = startDate.format('YYYY-MM-DD');
     const endDateStr = endDate.format('YYYY-MM-DD');
 
@@ -946,16 +956,20 @@ export default class Repository {
         'id_lokasi',
         'tanggal',
         'status_kehadiran',
+        'id_jam_pelajaran',
       ],
     });
 
     const classDates: Record<string, Set<string>> = {};
+    // Sesi yang benar-benar terlaksana per kelas (unik: tanggal + jam pelajaran)
+    const classHeldSessions: Record<string, Set<string>> = {};
     const classStats: Record<
       string,
       { sakit: number; izin: number; alfa: number; hadir: number }
     > = {};
     targetClassIds.forEach((cId) => {
       classDates[cId] = new Set<string>();
+      classHeldSessions[cId] = new Set<string>();
       classStats[cId] = { sakit: 0, izin: 0, alfa: 0, hadir: 0 };
     });
 
@@ -966,7 +980,9 @@ export default class Repository {
       const st = r.status_kehadiran;
 
       if (classDates[cId] && r.tanggal) {
-        classDates[cId].add(moment(r.tanggal).format('YYYY-MM-DD'));
+        const dStr = moment(r.tanggal).format('YYYY-MM-DD');
+        classDates[cId].add(dStr);
+        classHeldSessions[cId].add(`${dStr}_${r.id_jam_pelajaran || ''}`);
       }
 
       if (classStats[cId]) {
@@ -1051,11 +1067,12 @@ export default class Repository {
         const jmlSiswa = classSantriCount[cId]?.size || 0;
         const hariEfektif = classDates[cId]?.size || 0;
         const sessionsInMonth = classExpectedSessions[cId] || 0;
+        const sesiTerlaksana = classHeldSessions[cId]?.size || 0;
         const totalPresensi = stats.hadir + stats.sakit + stats.izin + stats.alfa;
 
-        // Wajib hadir per class = jml santri aktif * jumlah sesi jadwal dalam bulan
-        const wajibHadir =
-          sessionsInMonth > 0 ? jmlSiswa * sessionsInMonth : totalPresensi;
+        // Wajib hadir per class = jml santri aktif * jumlah sesi yang sudah terlaksana
+        // (ada absensi) sampai hari ini, bukan seluruh sesi jadwal.
+        const wajibHadir = Math.max(jmlSiswa * sesiTerlaksana, totalPresensi);
 
         const basisPembagi = wajibHadir > 0 ? wajibHadir : totalPresensi;
         const totalMasuk = stats.hadir + stats.sakit + stats.izin;
@@ -1090,8 +1107,10 @@ export default class Repository {
     const rekapPerSantri = Object.values(santriMap).map((s: any) => {
       const hariEfektif = classDates[s.id_kelas]?.size || 0;
       const sessionsInMonth = classExpectedSessions[s.id_kelas] || 0;
+      const sesiTerlaksana = classHeldSessions[s.id_kelas]?.size || 0;
       const totalPresensi = s.hadir + s.sakit + s.izin + s.alfa;
-      const wajibHadir = sessionsInMonth > 0 ? sessionsInMonth : totalPresensi;
+      // Wajib hadir = sesi kelas yang sudah terlaksana (ada absensi) sampai hari ini
+      const wajibHadir = Math.max(sesiTerlaksana, totalPresensi);
       const basisPembagi = wajibHadir > 0 ? wajibHadir : totalPresensi;
       const totalMasuk = s.hadir + s.sakit + s.izin;
 

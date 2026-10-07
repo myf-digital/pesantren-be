@@ -18,6 +18,7 @@ import MataPelajaran from '../mata.pelajaran/mata.pelajaran.model';
 import KesehatanSantri from '../kesehatan.santri/kesehatan.santri.model';
 import PerizinanSantri from '../perizinan.santri/perizinan.santri.model';
 import TahunAjaran from '../tahun.ajaran/tahun.ajaran.model';
+import { TIMEZONE } from '../../../utils/constant';
 
 export default class Repository {
   public async findActiveJurnal(criteria: {
@@ -290,6 +291,13 @@ export default class Repository {
       endDate = moment().endOf('month');
     }
 
+    // Periode berjalan: perhitungan hanya sampai hari ini (bukan akhir bulan)
+    const todayStr = moment().tz(TIMEZONE).format('YYYY-MM-DD');
+    const nowTimeStr = moment().tz(TIMEZONE).format('HH:mm:ss');
+    if (endDate.format('YYYY-MM-DD') > todayStr) {
+      endDate = moment(todayStr, 'YYYY-MM-DD').endOf('day');
+    }
+
     const startDateStr = startDate.format('YYYY-MM-DD');
     const endDateStr = endDate.format('YYYY-MM-DD');
 
@@ -475,7 +483,18 @@ export default class Repository {
         row.kelas_formal?.id_kelas ||
         row.kelas_mda?.id_kelas_mda;
 
+      const jamSelesai: string | undefined = row.jam_pelajaran?.selesai
+        ? moment(row.jam_pelajaran.selesai, ['HH:mm:ss', 'HH:mm']).format(
+            'HH:mm:ss'
+          )
+        : undefined;
+
       for (const d of dates) {
+        // Sesi hari ini yang belum selesai belum dihitung sebagai wajib hadir
+        if (d === todayStr && jamSelesai && nowTimeStr < jamSelesai) {
+          continue;
+        }
+
         teacherMap[pId].wajib_hadir += 1;
         teacherScheduledSessions[pId].push({
           date: d,
