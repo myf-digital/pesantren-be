@@ -678,6 +678,22 @@ export default class Controller {
       return helper.catchError(`kepesantrenan level two: ${err?.message}`, 500, res);
     }
   }
+
+  public async formalLevelTwo(req: Request, res: Response) {
+    try {
+      const tanggal: any = req?.query?.tanggal || '';
+      const tanggal_mulai: any = req?.query?.tanggal_mulai || '';
+      const tanggal_selesai: any = req?.query?.tanggal_selesai || '';
+      const data = await service.getFormalLevelTwo(
+        tanggal,
+        tanggal_mulai,
+        tanggal_selesai,
+      );
+      return response.success(SUCCESS_RETRIEVED, data, res);
+    } catch (err: any) {
+      return helper.catchError(`formal level two: ${err?.message}`, 500, res);
+    }
+  }
 }
 
 export const global = new Controller();

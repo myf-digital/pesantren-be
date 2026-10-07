@@ -3067,6 +3067,50 @@ export default class Service {
 
     return levelTwoStats[0];
   }
+
+  public async getFormalLevelTwo(
+    tanggal?: string,
+    tanggal_mulai?: string,
+    tanggal_selesai?: string
+  ) {
+    let dateFilter: any;
+    let dateTimeFilter: any;
+    let startD: string;
+    let endD: string;
+
+    if (tanggal_mulai && tanggal_selesai) {
+      dateFilter = { [Op.between]: [tanggal_mulai, tanggal_selesai] };
+      dateTimeFilter = {
+        [Op.between]: [
+          `${tanggal_mulai} 00:00:00`,
+          `${tanggal_selesai} 23:59:59`,
+        ],
+      };
+      startD = tanggal_mulai;
+      endD = tanggal_selesai;
+    } else {
+      const targetDate = tanggal || moment().tz(TIMEZONE).format('YYYY-MM-DD');
+      dateFilter = targetDate;
+      dateTimeFilter = {
+        [Op.between]: [`${targetDate} 00:00:00`, `${targetDate} 23:59:59`],
+      };
+      startD = targetDate;
+      endD = targetDate;
+    }
+
+    const conn = await rawQuery.getConnection();
+
+    const summaryQuery = fs.readFileSync(
+      path.join(process.cwd(), 'src/database/sql/formal-level-two.sql'),
+      'utf8'
+    );
+
+    const levelTwoStats = await conn.query(summaryQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    return levelTwoStats[0];
+  }
 }
 
 export const service = new Service();
