@@ -45,7 +45,8 @@ santri_formal AS (
        kf.id_lembaga,
        lpf.nama_lembaga,
        lpf.id_cabang,
-       cb.nama_cabang
+       cb.nama_cabang,
+       lpf.jenis_lembaga::text AS jenis_lembaga
    FROM public.santri s
    INNER JOIN public.penempatan_kelas_santri pks
        ON pks.id_santri = s.id_santri
@@ -61,6 +62,7 @@ santri_formal AS (
        ON lpf.id_lembaga = kf.id_lembaga
    LEFT JOIN public.cabang cb
        ON cb.id_cabang = lpf.id_cabang
+   WHERE s.status = 1
    ORDER BY
        s.id_santri,
        pks.updated_at DESC NULLS LAST,
@@ -188,7 +190,7 @@ rekap_guru_total AS (
        ) AS guru_p
    FROM guru_formal
 ),
--- 08. JADWAL FORMAL HARI DASHBOARD
+-- 08. JADWAL FORMAL + GROUP JADWAL / SESI MENGAJAR
 jadwal_formal AS (
    SELECT
        p.tanggal_dashboard,
@@ -233,13 +235,15 @@ jadwal_formal AS (
    FROM param p
    INNER JOIN public.jadwal_pelajaran jp
        ON jp.hari = p.hari_dashboard
+      AND jp.status = 'Aktif'
    INNER JOIN detail_guru_mapel dgm
        ON jp.id_gmapel = dgm.id_jenisguru
-   LEFT JOIN public.kelas_formal kf
+   INNER JOIN public.kelas_formal kf
        ON jp.id_kelas = kf.id_kelas
-      AND UPPER(TRIM(dgm.lembaga_type)) = 'FORMAL'
-   LEFT JOIN public.jam_pelajaran jampel
+      AND kf.status = 'Aktif'
+   INNER JOIN public.jam_pelajaran jampel
        ON jp.id_jam_pelajaran = jampel.id_jampel
+      AND jampel.status = 'A'
    LEFT JOIN public.semester sem
        ON jp.id_semester = sem.id_semester
    LEFT JOIN public.tahun_ajaran ta
@@ -247,7 +251,7 @@ jadwal_formal AS (
    LEFT JOIN public.lokasi l
        ON jp.id_lokasi = l.id_lokasi
 ),
--- 09. GURU PENGGANTI
+-- 09. GURU PENGGANTI PER SLOT
 jadwal_dengan_pengganti AS (
    SELECT DISTINCT ON (j.id_jadwal)
        j.*,
@@ -280,11 +284,119 @@ jadwal_dengan_pengganti AS (
    LEFT JOIN public.pegawai pg
        ON pg.id_pegawai = gp.id_guru_pengganti
       AND pg.deleted_at IS NULL
-   ORDER BY j.id_jadwal, gp.created_at DESC NULLS LAST
+   ORDER BY
+       j.id_jadwal,
+       gp.created_at DESC NULLS LAST
+),
+-- 09A. URUTKAN SLOT
+slot_urut AS (
+   SELECT
+       jdp.*,
+       LAG(jdp.jam_selesai_jadwal) OVER (
+           PARTITION BY
+               jdp.id_kelas,
+               jdp.id_guru_asli,
+               jdp.id_mapel,
+               jdp.hari,
+               jdp.id_semester,
+               jdp.id_tahunajaran
+           ORDER BY
+               jdp.jam_mulai_jadwal,
+               jdp.id_jadwal
+       ) AS jam_selesai_slot_sebelumnya
+   FROM jadwal_dengan_pengganti jdp
+),
+-- 09B. TANDA AWAL GROUP
+slot_tanda_group AS (
+   SELECT
+       su.*,
+       CASE
+           WHEN su.jam_selesai_slot_sebelumnya IS NULL THEN 1
+           WHEN su.jam_mulai_jadwal = su.jam_selesai_slot_sebelumnya THEN 0
+           ELSE 1
+       END AS mulai_group
+   FROM slot_urut su
+),
+-- 09C. NOMOR GROUP
+slot_group AS (
+   SELECT
+       stg.*,
+       SUM(stg.mulai_group) OVER (
+           PARTITION BY
+               stg.id_kelas,
+               stg.id_guru_asli,
+               stg.id_mapel,
+               stg.hari,
+               stg.id_semester,
+               stg.id_tahunajaran
+           ORDER BY
+               stg.jam_mulai_jadwal,
+               stg.id_jadwal
+           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS no_group
+   FROM slot_tanda_group stg
+),
+-- 09D. GROUP JADWAL FINAL
+group_jadwal AS (
+   SELECT
+       sg.id_kelas,
+       sg.id_guru_asli,
+       sg.id_mapel,
+       sg.hari,
+       sg.id_semester,
+       sg.id_tahunajaran,
+       sg.no_group,
+       MIN(sg.id_jadwal) AS id_jadwal,
+       ARRAY_AGG(sg.id_jadwal ORDER BY sg.jam_mulai_jadwal, sg.id_jadwal)
+           AS id_jadwal_array,
+       MIN(sg.jam_mulai_jadwal) AS jam_mulai_jadwal,
+       MAX(sg.jam_selesai_jadwal) AS jam_selesai_jadwal,
+       COUNT(*) AS jumlah_slot_jadwal,
+       SUM(sg.durasi_menit_jadwal) AS durasi_menit_jadwal,
+       MIN(sg.id_gmapel) AS id_gmapel,
+       MIN(sg.id_tingkat) AS id_tingkat,
+       MIN(sg.tingkat) AS tingkat,
+       MIN(sg.id_lembaga) AS id_lembaga,
+       MIN(sg.nama_lembaga) AS nama_lembaga,
+       MIN(sg.id_cabang) AS id_cabang,
+       MIN(sg.nama_cabang) AS nama_cabang,
+       MIN(sg.nama_kelas) AS nama_kelas,
+       MIN(sg.nama_mapel) AS nama_mapel,
+       MIN(sg.nama_jampel) AS nama_jampel,
+       MIN(sg.nama_guru_asli) AS nama_guru_asli,
+       ARRAY_AGG(DISTINCT sg.id_guru) AS id_guru_efektif_array,
+       COUNT(DISTINCT sg.id_guru) AS jumlah_guru_efektif,
+       BOOL_OR(sg.is_pengganti) AS is_guru_pengganti,
+       MIN(sg.nama_guru) AS nama_guru_efektif_min
+   FROM slot_group sg
+   GROUP BY
+       sg.id_kelas,
+       sg.id_guru_asli,
+       sg.id_mapel,
+       sg.hari,
+       sg.id_semester,
+       sg.id_tahunajaran,
+       sg.no_group
+),
+-- 09E. NORMALISASI GURU EFEKTIF LEVEL GROUP
+group_jadwal_final AS (
+   SELECT
+       gj.*,
+       CASE
+           WHEN gj.jumlah_guru_efektif = 1
+           THEN gj.id_guru_efektif_array[1]
+           ELSE gj.id_guru_asli
+       END AS id_guru,
+       CASE
+           WHEN gj.jumlah_guru_efektif = 1
+           THEN gj.nama_guru_efektif_min
+           ELSE gj.nama_guru_asli
+       END AS nama_guru
+   FROM group_jadwal gj
 ),
 -- 10. JURNAL KBM
 jurnal AS (
-   SELECT DISTINCT ON (jk.id_jadwal, jk.tanggal)
+   SELECT
        jk.id_jurnal,
        jk.id_jadwal,
        jk.id_petugas,
@@ -297,7 +409,19 @@ jurnal AS (
        jk.jam_selesai,
        jk.materi,
        jk.catatan,
-       CASE WHEN jk.jam_selesai IS NOT NULL THEN TRUE ELSE FALSE END AS is_end_session
+       CASE
+           WHEN jk.jam_selesai IS NOT NULL THEN TRUE
+           ELSE FALSE
+       END AS is_end_session,
+       CASE
+           WHEN jk.jam_mulai IS NOT NULL
+            AND jk.jam_selesai IS NOT NULL
+           THEN ROUND(
+               (EXTRACT(EPOCH FROM (jk.jam_selesai - jk.jam_mulai)) / 60)::numeric,
+               0
+           )
+           ELSE 0
+       END AS durasi_menit_aktual
    FROM public.jurnal_kelas jk
    LEFT JOIN public.app_resource ar
        ON ar.resource_id = jk.id_petugas
@@ -307,11 +431,6 @@ jurnal AS (
    CROSS JOIN param p
    WHERE jk.tanggal = p.tanggal_dashboard
      AND jk.deleted_at IS NULL
-   ORDER BY
-       jk.id_jadwal,
-       jk.tanggal,
-       jk.jam_mulai DESC NULLS LAST,
-       jk.created_at DESC NULLS LAST
 ),
 -- 11. IZIN GURU
 izin_guru AS (
@@ -330,113 +449,243 @@ izin_guru AS (
      AND pi.id_pegawai IS NOT NULL
      AND pi.status_approval = 'Disetujui'
      AND pi.deleted_at IS NULL
-     AND p.tanggal_dashboard BETWEEN pi.tanggal_mulai::date AND pi.tanggal_selesai::date
+     AND p.tanggal_dashboard BETWEEN pi.tanggal_mulai::date
+                                 AND pi.tanggal_selesai::date
    ORDER BY
        pi.id_pegawai,
        p.tanggal_dashboard,
        pi.tanggal_mulai DESC,
        pi.created_at DESC NULLS LAST
 ),
--- 12. DETAIL SESI
-detail_sesi AS (
+-- 12. AGREGASI JURNAL PER GROUP
+group_jurnal AS (
    SELECT
-       j.id_jadwal,
-       j.id_kelas,
-       j.id_guru_asli,
-       j.nama_guru_asli,
-       j.id_guru,
-       j.nama_guru,
-       j.id_mapel,
-       j.nama_mapel,
-       j.id_tingkat,
-       j.tingkat,
-       j.id_lembaga,
-       j.nama_lembaga,
-       j.id_cabang,
-       j.nama_cabang,
-       j.nama_kelas,
-       j.nama_jampel,
-       j.jam_mulai_jadwal,
-       j.jam_selesai_jadwal,
-       j.durasi_menit_jadwal,
+       gj.id_jadwal,
+       COUNT(jr.id_jurnal) AS jumlah_jurnal,
+       COUNT(jr.id_jurnal) FILTER (
+           WHERE jr.jam_mulai IS NOT NULL
+             AND COALESCE(jr.jam_selesai, jr.jam_mulai) IS NOT NULL
+             AND jr.jam_mulai < gj.jam_selesai_jadwal
+             AND COALESCE(jr.jam_selesai, jr.jam_mulai) > gj.jam_mulai_jadwal
+       ) AS jumlah_jurnal_dalam_jadwal,
+       COUNT(jr.id_jurnal) FILTER (
+           WHERE jr.jam_mulai IS NOT NULL
+             AND COALESCE(jr.jam_selesai, jr.jam_mulai) IS NOT NULL
+             AND NOT (
+                   jr.jam_mulai < gj.jam_selesai_jadwal
+               AND COALESCE(jr.jam_selesai, jr.jam_mulai) > gj.jam_mulai_jadwal
+             )
+       ) AS jumlah_jurnal_di_luar_jadwal,
+       COUNT(jr.id_jurnal) FILTER (
+           WHERE jr.jam_mulai IS NOT NULL
+             AND COALESCE(jr.jam_selesai, jr.jam_mulai) IS NOT NULL
+             AND jr.jam_mulai < gj.jam_selesai_jadwal
+             AND COALESCE(jr.jam_selesai, jr.jam_mulai) > gj.jam_mulai_jadwal
+             AND jr.id_guru_jurnal = ANY(gj.id_guru_efektif_array)
+       ) AS jumlah_jurnal_valid,
+       COUNT(DISTINCT jr.id_guru_jurnal) FILTER (
+           WHERE jr.id_guru_jurnal IS NOT NULL
+       ) AS jumlah_guru_jurnal,
+       ARRAY_AGG(DISTINCT jr.id_guru_jurnal)
+           FILTER (WHERE jr.id_guru_jurnal IS NOT NULL)
+           AS id_guru_jurnal_array
+   FROM group_jadwal_final gj
+   LEFT JOIN jurnal jr
+       ON jr.id_jadwal = ANY(gj.id_jadwal_array)
+   GROUP BY gj.id_jadwal
+),
+-- 12A. REPRESENTATIVE JURNAL
+representative_jurnal AS (
+   SELECT
+       gj.id_jadwal,
        jr.id_jurnal,
        jr.id_guru_jurnal,
        jr.nama_guru_jurnal,
        jr.jam_mulai AS jam_mulai_aktual,
-       CASE
-           WHEN jr.id_jurnal IS NULL THEN NULL
-           WHEN jr.jam_selesai IS NOT NULL THEN jr.jam_selesai
-           ELSE j.jam_selesai_jadwal
-       END AS jam_selesai_aktual,
+       jr.jam_selesai AS jam_selesai_aktual,
        jr.is_end_session,
        jr.materi,
        jr.catatan,
+       jr.durasi_menit_aktual
+   FROM group_jadwal_final gj
+   LEFT JOIN LATERAL (
+       SELECT j.*
+       FROM jurnal j
+       WHERE j.id_jadwal = ANY(gj.id_jadwal_array)
+       ORDER BY j.jam_mulai ASC NULLS LAST, j.id_jurnal
+       LIMIT 1
+   ) jr ON TRUE
+),
+-- 12B. DETAIL GROUP SESI
+detail_sesi AS (
+   SELECT
+       gj.id_jadwal,
+       gj.id_kelas,
+       gj.id_guru_asli,
+       gj.nama_guru_asli,
+       gj.id_guru,
+       gj.nama_guru,
+       gj.id_mapel,
+       gj.nama_mapel,
+       gj.id_tingkat,
+       gj.tingkat,
+       gj.id_lembaga,
+       gj.nama_lembaga,
+       gj.id_cabang,
+       gj.nama_cabang,
+       gj.nama_kelas,
+       gj.nama_jampel,
+       gj.jam_mulai_jadwal,
+       gj.jam_selesai_jadwal,
+       gj.jumlah_slot_jadwal,
+       gj.durasi_menit_jadwal,
+       gj.is_guru_pengganti,
+       gj.id_jadwal_array,
+       gj.id_guru_efektif_array,
+       gj.jumlah_guru_efektif,
+       gjr.jumlah_jurnal,
+       gjr.jumlah_jurnal_dalam_jadwal,
+       gjr.jumlah_jurnal_di_luar_jadwal,
+       gjr.jumlah_jurnal_valid,
+       gjr.jumlah_guru_jurnal,
+       gjr.id_guru_jurnal_array,
+       rj.id_jurnal,
+       rj.id_guru_jurnal,
+       rj.nama_guru_jurnal,
+       rj.jam_mulai_aktual,
        CASE
-           WHEN jr.id_jurnal IS NOT NULL THEN 'Hadir'
-           WHEN ig.id_izin IS NOT NULL AND ig.jenis_izin = 'Sakit' THEN 'Sakit'
-           WHEN ig.id_izin IS NOT NULL AND ig.jenis_izin = 'Izin' THEN 'Izin'
+           WHEN rj.id_jurnal IS NULL THEN NULL
+           WHEN rj.jam_selesai_aktual IS NOT NULL
+               THEN rj.jam_selesai_aktual
+           ELSE gj.jam_selesai_jadwal
+       END AS jam_selesai_aktual,
+       rj.is_end_session,
+       rj.materi,
+       rj.catatan,
+       COALESCE(rj.durasi_menit_aktual, 0) AS durasi_menit_aktual,
+       ig.id_izin AS id_izin_guru,
+       ig.jenis_izin AS jenis_izin_guru,
+       ig.alasan AS alasan_izin_guru,
+       /* STATUS AUDIT */
+       CASE
+           WHEN gjr.jumlah_jurnal = 0
+               THEN 'TIDAK_ADA_JURNAL'
+           WHEN gjr.jumlah_jurnal_dalam_jadwal = 0
+               THEN 'JURNAL_DI_LUAR_JADWAL'
+           WHEN gjr.jumlah_jurnal_valid = 0
+               THEN 'GURU_BERBEDA_TANPA_PENGGANTI'
+           WHEN gj.jumlah_guru_efektif > 1
+               THEN 'MULTI_GURU_EFEKTIF'
+           ELSE 'VALID'
+       END AS status_audit,
+       /* STATUS GURU */
+       CASE
+           WHEN gjr.jumlah_jurnal_valid > 0
+               THEN 'Hadir'
+           WHEN ig.id_izin IS NOT NULL
+            AND UPPER(TRIM(ig.jenis_izin::text)) = 'SAKIT'
+               THEN 'Sakit'
+           WHEN ig.id_izin IS NOT NULL
+            AND UPPER(TRIM(ig.jenis_izin::text)) = 'IZIN'
+               THEN 'Izin'
            ELSE 'Alfa/Tidak Absen'
        END AS status_kehadiran_guru,
-       CASE WHEN jr.id_jurnal IS NOT NULL THEN 1 ELSE 0 END AS is_guru_hadir,
        CASE
-           WHEN ig.id_izin IS NOT NULL
-            AND ig.jenis_izin = 'Sakit'
-            AND jr.id_jurnal IS NULL
+           WHEN gjr.jumlah_jurnal_valid > 0 THEN 1
+           ELSE 0
+       END AS is_guru_hadir,
+       CASE
+           WHEN gjr.jumlah_jurnal_valid = 0
+            AND ig.id_izin IS NOT NULL
+            AND UPPER(TRIM(ig.jenis_izin::text)) = 'SAKIT'
            THEN 1 ELSE 0
        END AS is_guru_sakit,
        CASE
-           WHEN ig.id_izin IS NOT NULL
-            AND ig.jenis_izin = 'Izin'
-            AND jr.id_jurnal IS NULL
+           WHEN gjr.jumlah_jurnal_valid = 0
+            AND ig.id_izin IS NOT NULL
+            AND UPPER(TRIM(ig.jenis_izin::text)) = 'IZIN'
            THEN 1 ELSE 0
        END AS is_guru_izin,
        CASE
-           WHEN jr.id_jurnal IS NULL AND ig.id_izin IS NULL
+           WHEN gjr.jumlah_jurnal_valid = 0
+            AND ig.id_izin IS NULL
            THEN 1 ELSE 0
        END AS is_guru_alfa,
-       CASE WHEN j.is_pengganti THEN 1 ELSE 0 END AS is_guru_pengganti,
-       CASE WHEN jr.id_jurnal IS NOT NULL THEN 1 ELSE 0 END AS is_sesi_terlaksana,
-       CASE WHEN jr.id_jurnal IS NULL THEN 1 ELSE 0 END AS is_sesi_tidak_terlaksana,
+       /* STATUS SESI */
        CASE
-           WHEN jr.id_jurnal IS NULL OR jr.jam_mulai IS NULL THEN 0
-           ELSE ROUND(
-               (
-                   EXTRACT(
-                       EPOCH FROM (
-                           (CASE
-                               WHEN jr.jam_selesai IS NOT NULL THEN jr.jam_selesai
-                               ELSE j.jam_selesai_jadwal
-                            END) - jr.jam_mulai
-                       )
-                   ) / 60
-               )::numeric,
-               0
-           )
-       END AS durasi_menit_aktual,
-       ig.id_izin AS id_izin_guru,
-       ig.jenis_izin AS jenis_izin_guru,
-       ig.alasan AS alasan_izin_guru
-   FROM jadwal_dengan_pengganti j
-   LEFT JOIN jurnal jr
-       ON jr.id_jadwal = j.id_jadwal
-      AND jr.tanggal = j.tanggal_dashboard
+           WHEN gjr.jumlah_jurnal_valid > 0
+               THEN 1
+           ELSE 0
+       END AS is_sesi_terlaksana,
+       CASE
+           WHEN gjr.jumlah_jurnal = 0
+               THEN 1
+           ELSE 0
+       END AS is_sesi_tidak_terlaksana,
+       CASE
+           WHEN gjr.jumlah_jurnal > 0
+            AND gjr.jumlah_jurnal_valid = 0
+               THEN 1
+           ELSE 0
+       END AS is_sesi_anomali
+   FROM group_jadwal_final gj
+   INNER JOIN group_jurnal gjr
+       ON gjr.id_jadwal = gj.id_jadwal
+   LEFT JOIN representative_jurnal rj
+       ON rj.id_jadwal = gj.id_jadwal
    LEFT JOIN izin_guru ig
-       ON ig.id_pegawai = j.id_guru
-      AND ig.tanggal_dashboard = j.tanggal_dashboard
+       ON ig.id_pegawai = gj.id_guru
+      AND ig.tanggal_dashboard = (
+          SELECT tanggal_dashboard FROM param
+      )
 ),
 -- 13. REKAP SESI/GURU - BASIS KPI GURU = SESI
 rekap_sesi AS (
    SELECT
        COUNT(*) AS sesi_terjadwal,
-       COUNT(*) FILTER (WHERE is_sesi_terlaksana = 1) AS sesi_terlaksana,
-       COUNT(*) FILTER (WHERE is_sesi_tidak_terlaksana = 1) AS sesi_tidak_terlaksana,
-       COUNT(*) FILTER (WHERE is_guru_hadir = 1) AS sesi_guru_hadir,
-       COUNT(*) FILTER (WHERE is_guru_izin = 1) AS sesi_guru_izin,
-       COUNT(*) FILTER (WHERE is_guru_sakit = 1) AS sesi_guru_sakit,
-       COUNT(*) FILTER (WHERE is_guru_alfa = 1) AS sesi_guru_alfa,
-       COUNT(*) FILTER (WHERE is_guru_pengganti = 1) AS sesi_dengan_pengganti,
+       COUNT(*) FILTER (
+           WHERE is_sesi_terlaksana = 1
+       ) AS sesi_terlaksana,
+       COUNT(*) FILTER (
+           WHERE is_sesi_tidak_terlaksana = 1
+       ) AS sesi_tidak_terlaksana,
+       COUNT(*) FILTER (
+           WHERE is_sesi_anomali = 1
+       ) AS sesi_anomali,
+       COUNT(*) FILTER (
+           WHERE status_audit = 'VALID'
+       ) AS sesi_valid,
+       COUNT(*) FILTER (
+           WHERE status_audit = 'JURNAL_DI_LUAR_JADWAL'
+       ) AS jurnal_di_luar_jadwal,
+       COUNT(*) FILTER (
+           WHERE status_audit = 'GURU_BERBEDA_TANPA_PENGGANTI'
+       ) AS guru_berbeda_tanpa_pengganti,
+       COUNT(*) FILTER (
+           WHERE status_audit = 'MULTI_GURU_EFEKTIF'
+       ) AS multi_guru_efektif,
+       COUNT(*) FILTER (
+           WHERE status_audit = 'TIDAK_ADA_JURNAL'
+       ) AS tidak_ada_jurnal,
+       COUNT(*) FILTER (
+           WHERE is_guru_hadir = 1
+       ) AS sesi_guru_hadir,
+       COUNT(*) FILTER (
+           WHERE is_guru_izin = 1
+       ) AS sesi_guru_izin,
+       COUNT(*) FILTER (
+           WHERE is_guru_sakit = 1
+       ) AS sesi_guru_sakit,
+       COUNT(*) FILTER (
+           WHERE is_guru_alfa = 1
+       ) AS sesi_guru_alfa,
+       COUNT(*) FILTER (
+           WHERE is_guru_pengganti IS TRUE
+       ) AS sesi_dengan_pengganti,
+       COALESCE(SUM(jumlah_slot_jadwal), 0) AS jp_terjadwal,
+       COALESCE(SUM(CASE WHEN is_sesi_terlaksana = 1 THEN jumlah_slot_jadwal ELSE 0 END), 0) AS jp_terlaksana,
        COALESCE(SUM(durasi_menit_jadwal), 0) AS total_menit_terjadwal,
-       COALESCE(SUM(durasi_menit_aktual), 0) AS total_menit_terlaksana
+       COALESCE(SUM(CASE WHEN is_sesi_terlaksana = 1 THEN durasi_menit_aktual ELSE 0 END), 0) AS total_menit_terlaksana
    FROM detail_sesi
 ),
 -- 14. GURU UNIK - STATUS HARIAN
@@ -476,11 +725,13 @@ kelas_formal_aktif AS (
        lpf.nama_lembaga,
        lpf.id_cabang,
        cb.nama_cabang,
+       lpf.jenis_lembaga::text AS jenis_lembaga,
        k.id_tingkat,
        t.tingkat
    FROM public.kelas_formal k
    INNER JOIN public.lembaga_pendidikan_formal lpf
        ON lpf.id_lembaga = k.id_lembaga
+      AND lpf.deleted_at IS NULL
    INNER JOIN public.tingkat t
        ON t.id_tingkat = k.id_tingkat
    LEFT JOIN public.cabang cb
@@ -490,10 +741,10 @@ kelas_formal_aktif AS (
 rekap_kelas AS (
    SELECT
        COUNT(*) AS total_kelas,
-       COUNT(*) FILTER (WHERE UPPER(TRIM(tingkat)) = 'MTS') AS kelas_mts,
-       COUNT(*) FILTER (WHERE UPPER(TRIM(tingkat)) = 'MA') AS kelas_ma,
-       COUNT(*) FILTER (WHERE UPPER(TRIM(tingkat)) = 'SMP') AS kelas_smp,
-       COUNT(*) FILTER (WHERE UPPER(TRIM(tingkat)) = 'SMK') AS kelas_smk
+       COUNT(*) FILTER (WHERE UPPER(TRIM(jenis_lembaga)) = 'MTS') AS kelas_mts,
+       COUNT(*) FILTER (WHERE UPPER(TRIM(jenis_lembaga)) = 'MA') AS kelas_ma,
+       COUNT(*) FILTER (WHERE UPPER(TRIM(jenis_lembaga)) = 'SMP') AS kelas_smp,
+       COUNT(*) FILTER (WHERE UPPER(TRIM(jenis_lembaga)) = 'SMK') AS kelas_smk
    FROM kelas_formal_aktif
 ),
 -- 16. KPI UTAMA
@@ -527,6 +778,8 @@ kpi AS (
        rse.sesi_guru_sakit,
        rse.sesi_guru_alfa,
        rse.sesi_dengan_pengganti,
+       rse.jp_terjadwal,
+       rse.jp_terlaksana,
        rse.total_menit_terjadwal,
        rse.total_menit_terlaksana,
        CASE
@@ -587,12 +840,9 @@ performa_status AS (
 -- 19. REKAP UNIT/LEMBAGA/JENJANG - SANTRI
 unit_santri AS (
    SELECT
-       sf.id_lembaga,
-       sf.nama_lembaga,
        sf.id_cabang,
        sf.nama_cabang,
-       sf.id_tingkat,
-       sf.tingkat,
+       sf.jenis_lembaga,
        COUNT(*) AS total_santri,
        COUNT(*) FILTER (WHERE dks.is_hadir = 1) AS santri_hadir,
        COUNT(*) FILTER (WHERE dks.is_sakit = 1) AS santri_sakit,
@@ -603,55 +853,72 @@ unit_santri AS (
    LEFT JOIN detail_kehadiran_santri dks
        ON dks.id_santri = sf.id_santri
    GROUP BY
-       sf.id_lembaga, sf.nama_lembaga, sf.id_cabang, sf.nama_cabang,
-       sf.id_tingkat, sf.tingkat
+       sf.id_cabang,
+       sf.nama_cabang,
+       sf.jenis_lembaga
 ),
 -- 20. REKAP UNIT/JENJANG - KELAS
 unit_kelas AS (
    SELECT
-       k.id_lembaga,
-       k.id_tingkat,
+       k.id_cabang,
+       k.jenis_lembaga,
        COUNT(*) AS total_kelas
    FROM kelas_formal_aktif k
-   GROUP BY k.id_lembaga, k.id_tingkat
+   GROUP BY
+       k.id_cabang,
+       k.jenis_lembaga
 ),
--- 21. REKAP UNIT/JENJANG - GURU
+-- 21. REKAP UNIT/JENJANG - GURU UNIK
 unit_guru AS (
    SELECT
-       dgm.id_lembaga,
-       dgm.id_tingkat,
+       lpf.id_cabang,
+       lpf.jenis_lembaga::text AS jenis_lembaga,
        COUNT(DISTINCT dgm.id_guru) AS total_guru
    FROM detail_guru_mapel dgm
+   INNER JOIN public.lembaga_pendidikan_formal lpf
+       ON lpf.id_lembaga = dgm.id_lembaga
+      AND lpf.deleted_at IS NULL
    WHERE dgm.id_guru IS NOT NULL
-   GROUP BY dgm.id_lembaga, dgm.id_tingkat
+     AND UPPER(TRIM(dgm.lembaga_type)) = 'FORMAL'
+   GROUP BY
+       lpf.id_cabang,
+       lpf.jenis_lembaga
 ),
--- 22. REKAP UNIT/JENJANG - SESI
+-- 22. REKAP UNIT/JENJANG - SESI + JP
 unit_sesi AS (
    SELECT
-       ds.id_lembaga,
-       ds.id_tingkat,
+       lpf.id_cabang,
+       lpf.jenis_lembaga::text AS jenis_lembaga,
        COUNT(*) AS sesi_terjadwal,
        COUNT(*) FILTER (WHERE ds.is_sesi_terlaksana = 1) AS sesi_terlaksana,
        COUNT(*) FILTER (WHERE ds.is_sesi_tidak_terlaksana = 1) AS sesi_tidak_terlaksana,
+       COUNT(*) FILTER (WHERE ds.is_sesi_anomali = 1) AS sesi_anomali,
+       COUNT(*) FILTER (WHERE ds.status_audit = 'JURNAL_DI_LUAR_JADWAL') AS jurnal_di_luar_jadwal,
+       COUNT(*) FILTER (WHERE ds.status_audit = 'GURU_BERBEDA_TANPA_PENGGANTI') AS guru_berbeda_tanpa_pengganti,
+       COUNT(*) FILTER (WHERE ds.status_audit = 'TIDAK_ADA_JURNAL') AS tidak_ada_jurnal,
        COUNT(*) FILTER (WHERE ds.is_guru_hadir = 1) AS sesi_guru_hadir,
        COUNT(*) FILTER (WHERE ds.is_guru_izin = 1) AS sesi_guru_izin,
        COUNT(*) FILTER (WHERE ds.is_guru_sakit = 1) AS sesi_guru_sakit,
        COUNT(*) FILTER (WHERE ds.is_guru_alfa = 1) AS sesi_guru_alfa,
-       COUNT(*) FILTER (WHERE ds.is_guru_pengganti = 1) AS sesi_dengan_pengganti,
+       COUNT(*) FILTER (WHERE ds.is_guru_pengganti IS TRUE) AS sesi_dengan_pengganti,
+       COALESCE(SUM(ds.jumlah_slot_jadwal),0) AS jp_terjadwal,
+       COALESCE(SUM(CASE WHEN ds.is_sesi_terlaksana = 1 THEN ds.jumlah_slot_jadwal ELSE 0 END),0) AS jp_terlaksana,
        COALESCE(SUM(ds.durasi_menit_jadwal),0) AS total_menit_terjadwal,
-       COALESCE(SUM(ds.durasi_menit_aktual),0) AS total_menit_terlaksana
+       COALESCE(SUM(CASE WHEN ds.is_sesi_terlaksana = 1 THEN ds.durasi_menit_aktual ELSE 0 END),0) AS total_menit_terlaksana
    FROM detail_sesi ds
-   GROUP BY ds.id_lembaga, ds.id_tingkat
+   INNER JOIN public.lembaga_pendidikan_formal lpf
+       ON lpf.id_lembaga = ds.id_lembaga
+      AND lpf.deleted_at IS NULL
+   GROUP BY
+       lpf.id_cabang,
+       lpf.jenis_lembaga
 ),
 -- 23. DETAIL UNIT FINAL
 unit_detail AS (
    SELECT
-       us.id_lembaga,
-       us.nama_lembaga,
        us.id_cabang,
        us.nama_cabang,
-       us.id_tingkat,
-       us.tingkat,
+       us.jenis_lembaga,
        us.total_santri,
        us.santri_hadir,
        us.santri_sakit,
@@ -663,11 +930,17 @@ unit_detail AS (
        COALESCE(ue.sesi_terjadwal,0) AS sesi_terjadwal,
        COALESCE(ue.sesi_terlaksana,0) AS sesi_terlaksana,
        COALESCE(ue.sesi_tidak_terlaksana,0) AS sesi_tidak_terlaksana,
+       COALESCE(ue.sesi_anomali,0) AS sesi_anomali,
+       COALESCE(ue.jurnal_di_luar_jadwal,0) AS jurnal_di_luar_jadwal,
+       COALESCE(ue.guru_berbeda_tanpa_pengganti,0) AS guru_berbeda_tanpa_pengganti,
+       COALESCE(ue.tidak_ada_jurnal,0) AS tidak_ada_jurnal,
        COALESCE(ue.sesi_guru_hadir,0) AS sesi_guru_hadir,
        COALESCE(ue.sesi_guru_izin,0) AS sesi_guru_izin,
        COALESCE(ue.sesi_guru_sakit,0) AS sesi_guru_sakit,
        COALESCE(ue.sesi_guru_alfa,0) AS sesi_guru_alfa,
        COALESCE(ue.sesi_dengan_pengganti,0) AS sesi_dengan_pengganti,
+       COALESCE(ue.jp_terjadwal,0) AS jp_terjadwal,
+       COALESCE(ue.jp_terlaksana,0) AS jp_terlaksana,
        COALESCE(ue.total_menit_terjadwal,0) AS total_menit_terjadwal,
        COALESCE(ue.total_menit_terlaksana,0) AS total_menit_terlaksana,
        CASE
@@ -684,17 +957,22 @@ unit_detail AS (
            WHEN COALESCE(ue.sesi_terjadwal,0) > 0
            THEN ROUND(ue.sesi_terlaksana::numeric / ue.sesi_terjadwal * 100,1)
            ELSE 0
-       END AS persen_sesi_mengajar
+       END AS persen_sesi_mengajar,
+       CASE
+           WHEN COALESCE(ue.jp_terjadwal,0) > 0
+           THEN ROUND(ue.jp_terlaksana::numeric / ue.jp_terjadwal * 100,1)
+           ELSE 0
+       END AS persen_jp_terlaksana
    FROM unit_santri us
    LEFT JOIN unit_kelas uk
-       ON uk.id_lembaga = us.id_lembaga
-      AND uk.id_tingkat = us.id_tingkat
+       ON uk.id_cabang = us.id_cabang
+      AND uk.jenis_lembaga = us.jenis_lembaga
    LEFT JOIN unit_guru ug
-       ON ug.id_lembaga = us.id_lembaga
-      AND ug.id_tingkat = us.id_tingkat
+       ON ug.id_cabang = us.id_cabang
+      AND ug.jenis_lembaga = us.jenis_lembaga
    LEFT JOIN unit_sesi ue
-       ON ue.id_lembaga = us.id_lembaga
-      AND ue.id_tingkat = us.id_tingkat
+       ON ue.id_cabang = us.id_cabang
+      AND ue.jenis_lembaga = us.jenis_lembaga
 ),
 -- 24. PERFORMA UNIT
 unit_performa AS (
@@ -735,26 +1013,21 @@ unit_json AS (
        COALESCE(
            jsonb_agg(
                jsonb_build_object(
-                   'id_lembaga', x.id_lembaga,
-                   'nama_lembaga', x.nama_lembaga,
                    'id_cabang', x.id_cabang,
                    'nama_cabang', x.nama_cabang,
                    'jenjang', x.jenjang_json
                )
-               ORDER BY x.nama_lembaga
+               ORDER BY x.nama_cabang
            ),
            '[]'::jsonb
        ) AS data
    FROM (
        SELECT
-           u.id_lembaga,
-           u.nama_lembaga,
            u.id_cabang,
            u.nama_cabang,
            jsonb_agg(
                jsonb_build_object(
-                   'id_tingkat', u.id_tingkat,
-                   'tingkat', u.tingkat,
+                   'jenjang', u.jenis_lembaga,
                    'performa', u.performa_unit,
                    'status', u.status_performa_unit,
                    'warna', u.warna_performa_unit,
@@ -766,21 +1039,26 @@ unit_json AS (
                    'sesi_terjadwal', u.sesi_terjadwal,
                    'sesi_terlaksana', u.sesi_terlaksana,
                    'sesi_tidak_terlaksana', u.sesi_tidak_terlaksana,
+                   'sesi_anomali', u.sesi_anomali,
+                   'jurnal_di_luar_jadwal', u.jurnal_di_luar_jadwal,
+                   'guru_berbeda_tanpa_pengganti', u.guru_berbeda_tanpa_pengganti,
+                   'tidak_ada_jurnal', u.tidak_ada_jurnal,
                    'sesi_guru_hadir', u.sesi_guru_hadir,
                    'sesi_guru_izin', u.sesi_guru_izin,
                    'sesi_guru_sakit', u.sesi_guru_sakit,
                    'sesi_guru_alfa', u.sesi_guru_alfa,
                    'sesi_dengan_pengganti', u.sesi_dengan_pengganti,
+                   'jp_terjadwal', u.jp_terjadwal,
+                   'jp_terlaksana', u.jp_terlaksana,
+                   'persen_jp_terlaksana', u.persen_jp_terlaksana,
                    'total_menit_terjadwal', u.total_menit_terjadwal,
                    'total_menit_terlaksana', u.total_menit_terlaksana,
                    'persen_sesi_mengajar', u.persen_sesi_mengajar
                )
-               ORDER BY u.tingkat
+               ORDER BY u.jenis_lembaga
            ) AS jenjang_json
        FROM unit_performa_status u
        GROUP BY
-           u.id_lembaga,
-           u.nama_lembaga,
            u.id_cabang,
            u.nama_cabang
    ) x
@@ -820,11 +1098,14 @@ trend_rekap AS (
        COUNT(*) FILTER (WHERE at.status_kehadiran = 'Sakit') AS sakit,
        COUNT(*) FILTER (WHERE at.status_kehadiran = 'Alfa') AS alfa,
        COUNT(*) FILTER (WHERE at.id_santri IS NULL) AS belum_absen,
-       ROUND(
-           COUNT(*) FILTER (WHERE at.status_kehadiran = 'Hadir')::numeric
-           / NULLIF(COUNT(sf.id_santri),0) * 100,
-           1
-       ) AS persentase_hadir
+       CASE
+           WHEN EXTRACT(ISODOW FROM tt.tanggal) = 7 THEN NULL
+           ELSE ROUND(
+               COUNT(*) FILTER (WHERE at.status_kehadiran = 'Hadir')::numeric
+               / NULLIF(COUNT(sf.id_santri),0) * 100,
+               1
+           )
+       END AS persentase_hadir
    FROM trend_tanggal tt
    CROSS JOIN santri_formal sf
    LEFT JOIN absensi_trend at
@@ -838,6 +1119,16 @@ trend_json AS (
            jsonb_agg(
                jsonb_build_object(
                    'tanggal', tr.tanggal,
+                   'hari', CASE EXTRACT(ISODOW FROM tr.tanggal)
+                       WHEN 1 THEN 'Senin'
+                       WHEN 2 THEN 'Selasa'
+                       WHEN 3 THEN 'Rabu'
+                       WHEN 4 THEN 'Kamis'
+                       WHEN 5 THEN 'Jumat'
+                       WHEN 6 THEN 'Sabtu'
+                       WHEN 7 THEN 'Ahad'
+                   END,
+                   'hari_libur_sekolah', (EXTRACT(ISODOW FROM tr.tanggal) = 7),
                    'hadir', tr.hadir,
                    'izin', tr.izin,
                    'sakit', tr.sakit,
@@ -887,13 +1178,25 @@ sesi_mengajar_json AS (
        'sesi_terjadwal', r.sesi_terjadwal,
        'sesi_terlaksana', r.sesi_terlaksana,
        'sesi_tidak_terlaksana', r.sesi_tidak_terlaksana,
+       'sesi_anomali', r.sesi_anomali,
+       'sesi_valid', r.sesi_valid,
+       'jurnal_di_luar_jadwal', r.jurnal_di_luar_jadwal,
+       'guru_berbeda_tanpa_pengganti', r.guru_berbeda_tanpa_pengganti,
+       'multi_guru_efektif', r.multi_guru_efektif,
+       'tidak_ada_jurnal', r.tidak_ada_jurnal,
        'persentase_terlaksana',
            CASE WHEN r.sesi_terjadwal > 0
                 THEN ROUND(r.sesi_terlaksana::numeric / r.sesi_terjadwal * 100,1)
                 ELSE 0 END,
        'total_menit_terjadwal', r.total_menit_terjadwal,
        'total_menit_terlaksana', r.total_menit_terlaksana,
-       'sesi_dengan_pengganti', r.sesi_dengan_pengganti
+       'sesi_dengan_pengganti', r.sesi_dengan_pengganti,
+       'jp_terjadwal', r.jp_terjadwal,
+       'jp_terlaksana', r.jp_terlaksana,
+       'persentase_jp_terlaksana',
+           CASE WHEN r.jp_terjadwal > 0
+                THEN ROUND(r.jp_terlaksana::numeric / r.jp_terjadwal * 100,1)
+                ELSE 0 END
    ) AS data
    FROM rekap_sesi r
 ),
@@ -904,6 +1207,13 @@ detail_sesi_json AS (
            jsonb_agg(
                jsonb_build_object(
                    'id_jadwal', d.id_jadwal,
+                   'id_jadwal_slot', d.id_jadwal_array,
+                   'jumlah_slot_jadwal', d.jumlah_slot_jadwal,
+                   'jumlah_jurnal', d.jumlah_jurnal,
+                   'jumlah_jurnal_dalam_jadwal', d.jumlah_jurnal_dalam_jadwal,
+                   'jumlah_jurnal_di_luar_jadwal', d.jumlah_jurnal_di_luar_jadwal,
+                   'jumlah_jurnal_valid', d.jumlah_jurnal_valid,
+                   'status_audit', d.status_audit,
                    'id_kelas', d.id_kelas,
                    'nama_kelas', d.nama_kelas,
                    'id_lembaga', d.id_lembaga,
@@ -1245,6 +1555,12 @@ SELECT
        'sesi_terlaksana', ps.sesi_terlaksana,
        'sesi_tidak_terlaksana', ps.sesi_tidak_terlaksana,
        'persen_sesi_mengajar', ps.persen_sesi_mengajar,
+       'jp_terjadwal', ps.jp_terjadwal,
+       'jp_terlaksana', ps.jp_terlaksana,
+       'persentase_jp_terlaksana',
+           CASE WHEN ps.jp_terjadwal > 0
+                THEN ROUND(ps.jp_terlaksana::numeric / ps.jp_terjadwal * 100,1)
+                ELSE 0 END,
        'total_menit_terjadwal', ps.total_menit_terjadwal,
        'total_menit_terlaksana', ps.total_menit_terlaksana
    ) AS kpi_utama,
