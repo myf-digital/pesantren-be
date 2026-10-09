@@ -41,7 +41,10 @@ interface LokasiAttributes {
     | 'Studio'
     | 'RuangIT'
     | 'GedungLain'
-    | 'AreaLain';
+    | 'AreaLain'
+    | 'Lorong'
+    | 'Lingkungan'
+    | 'PosJaga';
   parent_id?: string | null;
   id_cabang?: string | null;
   latitude?: number | null;
@@ -136,7 +139,10 @@ export function initLokasi(sequelize: Sequelize) {
           'Studio',
           'RuangIT',
           'GedungLain',
-          'AreaLain'
+          'AreaLain',
+          'Lorong',
+          'Lingkungan',
+          'PosJaga',
         ),
         allowNull: false,
       },
