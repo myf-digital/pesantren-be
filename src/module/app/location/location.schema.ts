@@ -36,6 +36,9 @@ const LOKASI_TYPE = [
   'RuangIT',
   'GedungLain',
   'AreaLain',
+  'Lorong',
+  'Lingkungan',
+  'PosJaga',
 ] as const;
 
 export const locationSchema = z.object({

@@ -13,6 +13,7 @@ import { repository } from '../app/resource/resource.repository';
 import { transformer } from '../app/resource/resource.transformer';
 import { repository as repoRole } from '../app/role/role.repository';
 import { repository as repoResourceRole } from '../app/resource.role/resource.role.repository';
+import { repository as repoParamGlobal } from '../app/param.global/param.global.repository';
 import {
   ALREADY_EXIST,
   NOT_FOUND,
@@ -25,6 +26,25 @@ moment().tz(TIMEZONE).locale('id');
 const date: string = helper.date();
 const otpExpired: number = 15;
 const loginOtp: boolean = process.env.LOGIN_OTP == 'true';
+
+const getAllowedDashboardKhodimul = async (): Promise<string[]> => {
+  const fallback = ['administrator'];
+  try {
+    const param: any = await repoParamGlobal.detail({
+      param_key: 'ALLOWED_DASHBOARD_KHODIMUL',
+    });
+    if (!param || Number(param?.getDataValue('status')) !== 1) return fallback;
+
+    const roles = String(param?.getDataValue('param_value') || '')
+      .split(',')
+      .map((role) => role.trim().toLowerCase())
+      .filter(Boolean);
+    return roles.length > 0 ? roles : fallback;
+  } catch (err: any) {
+    console.error(`allowed dashboard khodimul: ${err?.message}`);
+    return fallback;
+  }
+};
 
 const generateToken = async (user: any) => {
   const resourceId = user?.getDataValue('resource_id');
@@ -71,6 +91,7 @@ const generateToken = async (user: any) => {
       ...getUser,
       total_login: totalLogin,
       active_role: activeRole,
+      allowed_dashboard_khodimul: await getAllowedDashboardKhodimul(),
     },
     access_token: token,
     refresh_token: refresh,

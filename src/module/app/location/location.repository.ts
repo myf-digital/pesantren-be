@@ -3,7 +3,6 @@
 import { Op, Sequelize } from 'sequelize';
 import Model from './location.model';
 import { helper } from '../../../helpers/helper';
-import { number } from 'zod';
 import Cabang from '../cabang/cabang.model';
 import { getUserContextData } from '../../../context/userContext';
 
@@ -30,27 +29,31 @@ export default class Repository {
       query.limit = limit;
     }
 
+    let whereClause: any = {};
+
     const keyword = data?.keyword ? `%${data.keyword.toLowerCase()}%` : null;
     if (keyword) {
-      query.where = {
-        nama_lokasi: Sequelize.where(
-          Sequelize.fn('LOWER', Sequelize.col('Lokasi.nama_lokasi')),
-          { [Op.like]: keyword }
-        ),
-      };
+      whereClause.nama_lokasi = Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.col('Lokasi.nama_lokasi')),
+        { [Op.like]: keyword }
+      );
     }
-    if (data?.jenis_lokasi && data?.data?.keyword != '') {
-      query.where = {
-        jenis_lokasi: data?.jenis_lokasi,
-      };
+
+    if (data?.jenis_lokasi) {
+      if (Array.isArray(data.jenis_lokasi)) {
+        whereClause.jenis_lokasi = { [Op.in]: data.jenis_lokasi };
+      } else {
+        whereClause.jenis_lokasi = data.jenis_lokasi;
+      }
     }
 
     const userContext = getUserContextData();
     if (userContext && userContext?.id_cabang && !data?.all_cabang) {
-      query.where = {
-        ...query.where,
-        id_cabang: userContext?.id_cabang,
-      };
+      whereClause.id_cabang = userContext?.id_cabang;
+    }
+
+    if (Object.keys(whereClause).length > 0) {
+      query.where = whereClause;
     }
 
     return Model.findAll(query);
@@ -208,6 +211,15 @@ export default class Repository {
             { [Op.like]: keyword }
           ),
         ],
+      };
+    }
+
+    if (data?.jenis_lokasi) {
+      query.where = {
+        ...query.where,
+        jenis_lokasi: Array.isArray(data.jenis_lokasi)
+          ? { [Op.in]: data.jenis_lokasi }
+          : data.jenis_lokasi,
       };
     }
 
