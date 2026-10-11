@@ -694,6 +694,22 @@ export default class Controller {
       return helper.catchError(`formal level two: ${err?.message}`, 500, res);
     }
   }
+
+  public async nonFormalLevelTwo(req: Request, res: Response) {
+    try {
+      const tanggal: any = req?.query?.tanggal || '';
+      const tanggal_mulai: any = req?.query?.tanggal_mulai || '';
+      const tanggal_selesai: any = req?.query?.tanggal_selesai || '';
+      const data = await service.getNonFormalLevelTwo(
+        tanggal,
+        tanggal_mulai,
+        tanggal_selesai,
+      );
+      return response.success(SUCCESS_RETRIEVED, data, res);
+    } catch (err: any) {
+      return helper.catchError(`non formal level two: ${err?.message}`, 500, res);
+    }
+  }
 }
 
 export const global = new Controller();
