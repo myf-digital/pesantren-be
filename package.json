@@ -19,7 +19,8 @@
     "make:seed": "sequelize-cli seed:generate --name",
     "db:seed": "node ./node_modules/sequelize-cli/lib/sequelize db:seed:all --env production --config src/database/sequelize.js --seeders-path dist/database/seeders",
     "db:seed-undo": "node ./node_modules/sequelize-cli/lib/sequelize db:seed:undo:all --env production --config src/database/sequelize.js --seeders-path dist/database/seeders",
-    "migrate": "npm run db:migrate"
+    "migrate": "npm run db:migrate",
+    "test:keuangan": "npm run build && node --test tests/keuangan.operasional.test.cjs"
   },
   "keywords": [],
   "author": "YH",

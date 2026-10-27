@@ -1,5 +1,13 @@
 'use strict';
 
+import { initKeuBeasiswa, associateKeuBeasiswa } from '../app/keu.beasiswa/keu.beasiswa.model';
+import { initKeuAnggaran, associateKeuAnggaran } from '../app/keu.anggaran/keu.anggaran.model';
+import { initKeuTarget, associateKeuTarget } from '../app/keu.target/keu.target.model';
+import { initKeuImportBatch, associateKeuImportBatch } from '../app/keu.import.batch/keu.import.batch.model';
+import { initKeuRekapHarian, associateKeuRekapHarian } from '../app/keu.rekap.harian/keu.rekap.harian.model';
+import { initKeuAkun, associateKeuAkun } from '../app/keu.akun/keu.akun.model';
+import { initKeuKelompokKas } from '../app/keu.kelompok.kas/keu.kelompok.kas.model';
+
 import { Sequelize, Model } from 'sequelize';
 import { helper } from '../../helpers/helper';
 import { initAppOtp } from '../auth/otp.model';
@@ -254,6 +262,13 @@ export function initializeModels(sequelize: Sequelize) {
   initShiftPresensi(sequelize);
   initGeoArea(sequelize);
   initMasterSlotWaktu(sequelize);
+  initKeuKelompokKas(sequelize);
+  initKeuAkun(sequelize);
+  initKeuImportBatch(sequelize);
+  initKeuRekapHarian(sequelize);
+  initKeuTarget(sequelize);
+  initKeuAnggaran(sequelize);
+  initKeuBeasiswa(sequelize);
   initJadwalInspeksiKebersihan(sequelize);
   initKebersihanInspeksi(sequelize);
   initKebersihanTemuan(sequelize);
@@ -313,6 +328,12 @@ export function initializeModels(sequelize: Sequelize) {
   associateJenisGuru();
   associateLokasi();
   associateJadwalPelajaran();
+  associateKeuAkun();
+  associateKeuImportBatch();
+  associateKeuRekapHarian();
+  associateKeuTarget();
+  associateKeuAnggaran();
+  associateKeuBeasiswa();
   associateGeoArea();
   associateJadwalInspeksiKebersihan();
   associateKebersihanInspeksi();
