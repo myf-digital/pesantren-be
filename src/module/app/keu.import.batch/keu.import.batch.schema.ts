@@ -5,7 +5,6 @@ export const jenisDataValues = [
   'Target',
   'Anggaran',
   'Beasiswa',
-  'SaldoAwal',
 ] as const;
 export const statusBatchValues = [
   'Draft',

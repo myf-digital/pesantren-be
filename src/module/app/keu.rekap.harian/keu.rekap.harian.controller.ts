@@ -1,12 +1,12 @@
-'use strict';
-
 import {
+  prepareCorrection,
   validateOperational,
   identityKey,
   saveDailyVersion,
   reconcileDaily,
   OperationalError,
 } from '../keu.shared/operasional';
+import { automaticImportBatch } from '../keu.shared/import.batch';
 
 import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
@@ -53,6 +53,14 @@ const generateDataExcel = (sheet: ExcelJS.Worksheet, details: any[]) => {
     width: header.startsWith('ID') ? 40 : 24,
   }));
   sheet.getRow(1).font = { bold: true };
+  headers.forEach((header, index) => {
+    if (
+      header.startsWith('Kode ') ||
+      header === 'NIS' ||
+      header === 'Tahun Ajaran'
+    )
+      sheet.getColumn(index + 1).numFmt = '@';
+  });
   details.forEach((row) =>
     sheet.addRow([
       row.id_rekap,
@@ -90,7 +98,11 @@ const parseCurrent = (value: any) => {
         : text;
 };
 
-const validateReferences = async (payload: any, excludeId?: string) => {
+const validateReferences = async (
+  payload: any,
+  excludeId?: string,
+  automaticBatchId?: string
+) => {
   const errors: string[] = [];
   if (
     payload.id_akun !== undefined &&
@@ -104,7 +116,7 @@ const validateReferences = async (payload: any, excludeId?: string) => {
   ) {
     errors.push('Tahun Ajaran tidak ditemukan');
   }
-  if (payload.id_batch !== undefined) {
+  if (payload.id_batch !== undefined && payload.id_batch !== automaticBatchId) {
     const batch = await KeuImportBatch.findByPk(payload.id_batch);
     if (!batch) errors.push('Batch impor tidak ditemukan');
     else if (batch.jenis_data !== 'RekapHarian')
@@ -191,23 +203,29 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
+      const batch = automaticImportBatch('RekapHarian');
+      req.body.id_batch ||= batch.id;
       const warnings = reconcileDaily(req.body);
       if (warnings.length)
         req.body.keterangan = [req.body.keterangan, ...warnings]
           .filter(Boolean)
           .join('; ');
-      const errors = await validateReferences(req.body);
+      const errors = await validateReferences(req.body, undefined, batch.id);
       if (errors.length) return response.failed(errors.join(', '), 400, res);
-      const data: Object = Object.fromEntries(
+      const data = Object.fromEntries(
         variable
           .fillable()
           .filter((key) => req.body[key] !== undefined)
           .map((key) => [key, req.body[key]])
       );
-      await repository.create({
-        payload: {
-          ...data,
-        },
+      await sequelize.transaction(async (transaction) => {
+        await batch.save(
+          [{ valid: true, payload: req.body }],
+          transaction,
+          undefined,
+          'InputManual'
+        );
+        await KeuRekapHarian.create(data, { transaction });
       });
 
       return response.success(SUCCESS_SAVED, { warnings }, res);
@@ -241,7 +259,7 @@ export default class Controller {
       );
       if (errors.length) return response.failed(errors.join(', '), 400, res);
 
-      const data: Object = Object.fromEntries(
+      const data = Object.fromEntries(
         variable
           .fillable()
           .filter((key) => req.body[key] !== undefined)
@@ -333,6 +351,11 @@ export default class Controller {
       const sheet = workbook.addWorksheet(title.slice(0, 31));
 
       generateDataExcel(sheet, result);
+      if (isTemplate) {
+        for (let column = headers.length; column >= 1; column--)
+          if (headers[column - 1].startsWith('ID '))
+            sheet.spliceColumns(column, 1);
+      }
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel rekap harian', urlExcel, res);
     } catch (err: any) {
@@ -353,6 +376,7 @@ export default class Controller {
   }
 
   public async import(req: Request, res: Response) {
+    const batch = automaticImportBatch('RekapHarian');
     const mode = req.body?.mode ?? 'preview';
     if (!['preview', 'commit'].includes(mode))
       return response.failed('Mode harus preview atau commit', 400, res);
@@ -364,6 +388,7 @@ export default class Controller {
       const buffer = file.tempFilePath
         ? await fs.readFile(file.tempFilePath)
         : file.data;
+      await batch.checkFile(buffer);
       const rows = await helper.parseImportFile({
         name: file.name,
         data: buffer,
@@ -394,9 +419,7 @@ export default class Controller {
           masuk: raw['Masuk'],
           keluar: raw['Keluar'],
           saldo_akhir: raw['Saldo Akhir'],
-          id_batch:
-            String(raw['ID Batch'] ?? '').trim() ||
-            String(req.body?.id_batch ?? '').trim(),
+          id_batch: batch.id,
           nomor_baris_sumber:
             raw['Nomor Baris Sumber'] === null ||
             raw['Nomor Baris Sumber'] === undefined ||
@@ -406,13 +429,27 @@ export default class Controller {
           keterangan: String(raw['Keterangan'] ?? '').trim() || null,
           is_current: parseCurrent(raw['Current']),
         };
-        const parsed = importItemSchema.safeParse(rawPayload);
+        let correctedPayload: any = rawPayload;
+        const correctionErrors: string[] = [];
+        try {
+          correctedPayload = await prepareCorrection(
+            'harian',
+            rawPayload,
+            req.body?.aksi
+          );
+        } catch (error: any) {
+          correctionErrors.push(error.message);
+        }
+        const parsed = importItemSchema.safeParse(correctedPayload);
         const errors = parsed.success
           ? []
           : parsed.error.issues.map((issue) => issue.message);
+        errors.push(...correctionErrors);
         if (!akun) errors.push('Kode Akun tidak ditemukan');
         if (parsed.success)
-          errors.push(...(await validateReferences(parsed.data)));
+          errors.push(
+            ...(await validateReferences(parsed.data, undefined, batch.id))
+          );
         if (tahun && !tahunAjaran) errors.push('Tahun Ajaran tidak ditemukan');
         if (id && seen.has(id)) errors.push('ID Rekap duplikat dalam file');
         if (id) seen.add(id);
@@ -430,6 +467,7 @@ export default class Controller {
       }
       if (mode === 'commit') {
         await sequelize.transaction(async (transaction) => {
+          await batch.save(results, transaction, file.name);
           for (const row of results.filter((item) => item.valid)) {
             await saveDailyVersion(row.payload, transaction);
           }
@@ -444,7 +482,8 @@ export default class Controller {
           total: results.length,
           valid: results.filter((row) => row.valid).length,
           invalid: results.filter((row) => !row.valid).length,
-          ...(mode === 'preview' ? { data: results } : {}),
+          id_batch: mode === 'commit' && batch.created ? batch.id : null,
+          ...(mode === 'preview' ? { data: batch.preview(results) } : {}),
         },
         res
       );
@@ -464,12 +503,29 @@ export default class Controller {
   }
 
   public async insert(req: Request, res: Response) {
-    const payloads = req.body?.data;
+    const batch = automaticImportBatch('RekapHarian');
+    const payloads = Array.isArray(req.body?.data)
+      ? req.body.data.map((row: any) => ({
+          ...row,
+          id_batch: row?.id_batch || req.body?.id_batch || batch.id,
+        }))
+      : req.body?.data;
     if (!Array.isArray(payloads) || !payloads.length)
       return response.success('Data import kosong', null, res, false);
     const parsed = importItemSchema.array().safeParse(payloads);
     if (!parsed.success)
       return response.failed(parsed.error.issues[0].message, 400, res);
+    try {
+      for (let index = 0; index < parsed.data.length; index++) {
+        parsed.data[index] = await prepareCorrection(
+          'harian',
+          parsed.data[index],
+          req.body?.aksi
+        );
+      }
+    } catch (error: any) {
+      return response.failed(error.message, 400, res);
+    }
     const ids = parsed.data.flatMap((row) =>
       row.id_rekap ? [row.id_rekap] : []
     );
@@ -482,17 +538,24 @@ export default class Controller {
       return response.failed('Identitas data duplikat dalam batch', 400, res);
     try {
       for (const payload of parsed.data) {
-        const errors = await validateReferences(payload);
+        const errors = await validateReferences(payload, undefined, batch.id);
         if (errors.length) return response.failed(errors.join(', '), 400, res);
       }
       await sequelize.transaction(async (transaction) => {
+        await batch.save(
+          parsed.data.map((payload) => ({ valid: true, payload })),
+          transaction
+        );
         for (const payload of parsed.data) {
           await saveDailyVersion(payload, transaction);
         }
       });
       return response.success(
         'Import batch rekap harian berhasil',
-        { total: parsed.data.length },
+        {
+          total: parsed.data.length,
+          id_batch: batch.created ? batch.id : null,
+        },
         res
       );
     } catch (err: any) {

@@ -1,4 +1,11 @@
-'use strict';
+import {
+  prepareCorrection,
+  saveFinancialVersion,
+  validateOperational,
+  identityKey,
+  OperationalError,
+} from '../keu.shared/operasional';
+import { automaticImportBatch } from '../keu.shared/import.batch';
 
 import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
@@ -44,6 +51,14 @@ const generateDataExcel = (sheet: ExcelJS.Worksheet, details: any[]) => {
     width: header.startsWith('ID') ? 40 : 25,
   }));
   sheet.getRow(1).font = { bold: true };
+  headers.forEach((header, index) => {
+    if (
+      header.startsWith('Kode ') ||
+      header === 'NIS' ||
+      header === 'Tahun Ajaran'
+    )
+      sheet.getColumn(index + 1).numFmt = '@';
+  });
   details.forEach((row) =>
     sheet.addRow([
       row.id_anggaran,
@@ -79,7 +94,7 @@ const parseCurrent = (value: any) => {
         : text;
 };
 
-const validateReferences = async (payload: any) => {
+const validateReferences = async (payload: any, automaticBatchId?: string) => {
   const errors: string[] = [];
   if (payload.per_akun && !payload.id_akun)
     errors.push('Akun wajib untuk anggaran per akun');
@@ -87,7 +102,7 @@ const validateReferences = async (payload: any) => {
     errors.push('Akun tidak ditemukan');
   }
   if (!payload.id_batch) errors.push('Batch wajib diisi');
-  if (payload.id_batch) {
+  if (payload.id_batch && payload.id_batch !== automaticBatchId) {
     const batch = await KeuImportBatch.findByPk(payload.id_batch);
     if (!batch) errors.push('Batch impor tidak ditemukan');
     else if (batch.jenis_data !== 'Anggaran')
@@ -101,6 +116,9 @@ const validateReferences = async (payload: any) => {
     payload.periode_mulai > payload.periode_selesai
   )
     errors.push('Periode mulai tidak boleh melebihi periode selesai');
+  errors.push(
+    ...(await validateOperational('anggaran', payload, payload.id_anggaran))
+  );
   return errors;
 };
 
@@ -112,6 +130,8 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(`anggaran list: ${err?.message}`, 500, res);
     }
   }
@@ -132,6 +152,8 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(`anggaran index: ${err?.message}`, 500, res);
     }
   }
@@ -145,28 +167,38 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(`anggaran detail: ${err?.message}`, 500, res);
     }
   }
 
   public async create(req: Request, res: Response) {
     try {
-      const errors = await validateReferences(req.body);
+      const batch = automaticImportBatch('Anggaran');
+      req.body.id_batch ||= batch.id;
+      const errors = await validateReferences(req.body, batch.id);
       if (errors.length) return response.failed(errors.join(', '), 400, res);
-      const data: Object = Object.fromEntries(
+      const data = Object.fromEntries(
         variable
           .fillable()
           .filter((key) => req.body[key] !== undefined)
           .map((key) => [key, req.body[key]])
       );
-      await repository.create({
-        payload: {
-          ...data,
-        },
+      await sequelize.transaction(async (transaction) => {
+        await batch.save(
+          [{ valid: true, payload: req.body }],
+          transaction,
+          undefined,
+          'InputManual'
+        );
+        await KeuAnggaran.create(data, { transaction });
       });
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed('Referensi anggaran tidak valid', 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
@@ -183,25 +215,30 @@ export default class Controller {
       const errors = await validateReferences({
         ...check.get({ plain: true }),
         ...req.body,
+        id_anggaran: id,
       });
       if (errors.length) return response.failed(errors.join(', '), 400, res);
 
-      const data: Object = Object.fromEntries(
+      const data = Object.fromEntries(
         variable
           .fillable()
           .filter((key) => req.body[key] !== undefined)
           .map((key) => [key, req.body[key]])
       );
 
-      await repository.update({
-        payload: {
-          ...data,
-        },
-        condition: { id_anggaran: id },
-      });
+      const value = await sequelize.transaction((transaction) =>
+        saveFinancialVersion(
+          KeuAnggaran,
+          'id_anggaran',
+          { ...check.get({ plain: true }), ...data, id_anggaran: id },
+          transaction
+        )
+      );
 
-      return response.success(SUCCESS_UPDATED, null, res);
+      return response.success(SUCCESS_UPDATED, { value }, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed('Referensi anggaran tidak valid', 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
@@ -215,11 +252,14 @@ export default class Controller {
       const id: string = req?.params?.id || '';
       const check = await repository.detail({ id_anggaran: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-      await repository.delete({
+      await repository.update({
+        payload: { is_current: false },
         condition: { id_anggaran: id },
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed('Data masih digunakan oleh data lain', 400, res);
       return helper.catchError(`anggaran delete: ${err?.message}`, 500, res);
@@ -248,9 +288,16 @@ export default class Controller {
       const sheet = workbook.addWorksheet(title.slice(0, 31));
 
       generateDataExcel(sheet, result);
+      if (isTemplate) {
+        for (let column = headers.length; column >= 1; column--)
+          if (headers[column - 1].startsWith('ID '))
+            sheet.spliceColumns(column, 1);
+      }
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel anggaran', urlExcel, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(
         `export excel anggaran: ${err?.message}`,
         500,
@@ -260,6 +307,7 @@ export default class Controller {
   }
 
   public async import(req: Request, res: Response) {
+    const batch = automaticImportBatch('Anggaran');
     const mode = req.body?.mode ?? 'preview';
     if (!['preview', 'commit'].includes(mode))
       return response.failed('Mode harus preview atau commit', 400, res);
@@ -271,12 +319,14 @@ export default class Controller {
       const buffer = file.tempFilePath
         ? await fs.readFile(file.tempFilePath)
         : file.data;
+      await batch.checkFile(buffer);
       const rows = await helper.parseImportFile({
         name: file.name,
         data: buffer,
       });
       const results: any[] = [];
       const seen = new Set<string>();
+      const identities = new Set<string>();
       for (const raw of rows) {
         const kodeAkun = String(raw['Kode Akun'] ?? '').trim();
         const akun = kodeAkun
@@ -303,22 +353,40 @@ export default class Controller {
             raw['Nilai Realisasi'] === ''
               ? null
               : raw['Nilai Realisasi'],
-          id_batch:
-            String(raw['ID Batch'] ?? '').trim() ||
-            String(req.body?.id_batch ?? '').trim() ||
-            null,
+          id_batch: batch.id,
           keterangan: String(raw['Keterangan'] ?? '').trim() || null,
           is_current: parseCurrent(raw['Current']),
         };
-        const parsed = importItemSchema.safeParse(rawPayload);
+        let correctedPayload: any = rawPayload;
+        const correctionErrors: string[] = [];
+        try {
+          correctedPayload = await prepareCorrection(
+            'anggaran',
+            rawPayload,
+            req.body?.aksi
+          );
+        } catch (error: any) {
+          correctionErrors.push(error.message);
+        }
+        const parsed = importItemSchema.safeParse(correctedPayload);
         const errors = parsed.success
           ? []
           : parsed.error.issues.map((issue) => issue.message);
+        errors.push(...correctionErrors);
         if (kodeAkun && !akun) errors.push('Kode Akun tidak ditemukan');
         if (parsed.success)
-          errors.push(...(await validateReferences(parsed.data)));
+          errors.push(...(await validateReferences(parsed.data, batch.id)));
         if (id && seen.has(id)) errors.push('ID Anggaran duplikat dalam file');
         if (id) seen.add(id);
+        if (
+          rawPayload.kode_referensi_sumber &&
+          rawPayload.is_current !== false
+        ) {
+          const key = identityKey('anggaran', rawPayload);
+          if (identities.has(key))
+            errors.push('Referensi anggaran duplikat dalam file');
+          identities.add(key);
+        }
         results.push({
           row: raw.__row,
           valid: errors.length === 0,
@@ -328,15 +396,14 @@ export default class Controller {
       }
       if (mode === 'commit') {
         await sequelize.transaction(async (transaction) => {
+          await batch.save(results, transaction, file.name);
           for (const row of results.filter((item) => item.valid)) {
-            if (row.payload.id_anggaran) {
-              await KeuAnggaran.upsert(
-                { ...row.payload, updated_at: new Date() },
-                { transaction, conflictFields: ['id_anggaran'] }
-              );
-            } else {
-              await KeuAnggaran.create(row.payload, { transaction });
-            }
+            await saveFinancialVersion(
+              KeuAnggaran,
+              'id_anggaran',
+              row.payload,
+              transaction
+            );
           }
         });
       }
@@ -349,11 +416,14 @@ export default class Controller {
           total: results.length,
           valid: results.filter((row) => row.valid).length,
           invalid: results.filter((row) => !row.valid).length,
-          ...(mode === 'preview' ? { data: results } : {}),
+          id_batch: mode === 'commit' && batch.created ? batch.id : null,
+          ...(mode === 'preview' ? { data: batch.preview(results) } : {}),
         },
         res
       );
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed('Referensi anggaran tidak valid', 400, res);
       return helper.catchError(`import anggaran: ${err.message}`, 500, res);
@@ -361,40 +431,73 @@ export default class Controller {
   }
 
   public async insert(req: Request, res: Response) {
-    const payloads = req.body?.data;
+    const batch = automaticImportBatch('Anggaran');
+    const payloads = Array.isArray(req.body?.data)
+      ? req.body.data.map((row: any) => ({
+          ...row,
+          id_batch: row?.id_batch || req.body?.id_batch || batch.id,
+        }))
+      : req.body?.data;
     if (!Array.isArray(payloads) || !payloads.length)
       return response.success('Data import kosong', null, res, false);
     const parsed = importItemSchema.array().safeParse(payloads);
     if (!parsed.success)
       return response.failed(parsed.error.issues[0].message, 400, res);
+    try {
+      for (let index = 0; index < parsed.data.length; index++) {
+        parsed.data[index] = await prepareCorrection(
+          'anggaran',
+          parsed.data[index],
+          req.body?.aksi
+        );
+      }
+    } catch (error: any) {
+      return response.failed(error.message, 400, res);
+    }
     const ids = parsed.data.flatMap((row) =>
       row.id_anggaran ? [row.id_anggaran] : []
     );
     if (new Set(ids).size !== ids.length)
       return response.failed('ID Anggaran duplikat dalam batch', 400, res);
+    const keys = parsed.data
+      .filter((row) => row.is_current !== false && row.kode_referensi_sumber)
+      .map((row) => identityKey('anggaran', row));
+    if (new Set(keys).size !== keys.length)
+      return response.failed(
+        'Referensi anggaran duplikat dalam batch',
+        400,
+        res
+      );
     try {
       for (const payload of parsed.data) {
-        const errors = await validateReferences(payload);
+        const errors = await validateReferences(payload, batch.id);
         if (errors.length) return response.failed(errors.join(', '), 400, res);
       }
       await sequelize.transaction(async (transaction) => {
+        await batch.save(
+          parsed.data.map((payload) => ({ valid: true, payload })),
+          transaction
+        );
         for (const payload of parsed.data) {
-          if (payload.id_anggaran) {
-            await KeuAnggaran.upsert(
-              { ...payload, updated_at: new Date() },
-              { transaction, conflictFields: ['id_anggaran'] }
-            );
-          } else {
-            await KeuAnggaran.create(payload, { transaction });
-          }
+          await saveFinancialVersion(
+            KeuAnggaran,
+            'id_anggaran',
+            payload,
+            transaction
+          );
         }
       });
       return response.success(
         'Import batch anggaran berhasil',
-        { total: parsed.data.length },
+        {
+          total: parsed.data.length,
+          id_batch: batch.created ? batch.id : null,
+        },
         res
       );
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed('Referensi anggaran tidak valid', 400, res);
       return helper.catchError(

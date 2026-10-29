@@ -1,4 +1,6 @@
-'use strict';
+import { saveMaster, validateAccountChange } from '../keu.shared/master';
+import { OperationalError } from '../keu.shared/operasional';
+('use strict');
 
 import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
@@ -106,6 +108,10 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -135,6 +141,10 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -154,6 +164,10 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -197,6 +211,10 @@ export default class Controller {
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -228,6 +246,7 @@ export default class Controller {
 
       const check = await repository.detail({ id_akun: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
+      await validateAccountChange(check, req.body);
 
       if (kode_akun !== undefined && kode_akun !== check.kode_akun) {
         const duplicate = await repository.detail({ kode_akun });
@@ -253,6 +272,10 @@ export default class Controller {
 
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -275,6 +298,10 @@ export default class Controller {
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -310,6 +337,10 @@ export default class Controller {
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel akun', urlExcel, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -355,6 +386,14 @@ export default class Controller {
           const errors = parsed.success
             ? []
             : parsed.error.issues.map((issue) => issue.message);
+          try {
+            const previous = await KeuAkun.findOne({
+              where: { kode_akun: row.kode_akun },
+            });
+            await validateAccountChange(previous, row);
+          } catch (error: any) {
+            errors.push(error.message);
+          }
           if (!kelompok)
             errors.push('Kode Kelompok tidak ditemukan atau tidak aktif');
           if (seen.has(row.kode_akun))
@@ -371,10 +410,7 @@ export default class Controller {
       if (mode === 'commit') {
         await sequelize.transaction(async (transaction) => {
           for (const row of results.filter((item: any) => item.valid)) {
-            await KeuAkun.upsert(
-              { ...row.payload, updated_at: new Date() },
-              { transaction, conflictFields: ['kode_akun'] }
-            );
+            await saveMaster(KeuAkun, 'kode_akun', row.payload, transaction);
           }
         });
       }
@@ -390,6 +426,10 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',
@@ -431,10 +471,7 @@ export default class Controller {
       }
       await sequelize.transaction(async (transaction) => {
         for (const payload of parsed.data) {
-          await KeuAkun.upsert(
-            { ...payload, updated_at: new Date() },
-            { transaction, conflictFields: ['kode_akun'] }
-          );
+          await saveMaster(KeuAkun, 'kode_akun', payload, transaction);
         }
       });
       return response.success(
@@ -443,6 +480,10 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed(
           'Referensi kelompok kas tidak valid atau akun masih digunakan',

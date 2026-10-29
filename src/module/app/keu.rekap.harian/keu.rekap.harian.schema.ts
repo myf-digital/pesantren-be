@@ -63,7 +63,7 @@ const fields = z.object({
     'Keluar tidak boleh negatif'
   ),
   saldo_akhir: nominalSchema,
-  id_batch: reference('Batch'),
+  id_batch: reference('Batch').optional(),
   nomor_baris_sumber: z
     .number()
     .int()

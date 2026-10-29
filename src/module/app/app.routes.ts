@@ -1,3 +1,6 @@
+import { financialSummary, financialFormOptions } from './keu.shared/report';
+import { financialAccess } from './keu.shared/access';
+import { resolveFinancialInput } from './keu.shared/input';
 'use strict';
 
 import { keuBeasiswa } from './keu.beasiswa/keu.beasiswa.controller';
@@ -112,6 +115,7 @@ router.get('/param-global/detail', auth.checkToken, paramGlobal.detail);
 
 // required token
 router.use(auth.checkBearerToken);
+router.use(financialAccess);
 
 router.get('/role/all-data', role.list);
 router.get('/role', role.index);
@@ -1116,18 +1120,20 @@ router.post('/keu-kelompok-kas/insert', keuKelompokKas.insert);
 router.get('/keu-akun/all-data', keuAkun.list);
 router.get('/keu-akun', keuAkun.index);
 router.get('/keu-akun/:id', keuAkun.detail);
-router.post('/keu-akun', sanitizeBody, validate(keuAkunSchema), keuAkun.create);
-router.put('/keu-akun/:id', sanitizeBody, validate(updateKeuAkunSchema), keuAkun.update);
+router.post('/keu-akun', sanitizeBody, resolveFinancialInput, validate(keuAkunSchema), keuAkun.create);
+router.put('/keu-akun/:id', sanitizeBody, resolveFinancialInput, validate(updateKeuAkunSchema), keuAkun.update);
 router.delete('/keu-akun/:id', keuAkun.delete);
 router.post('/keu-akun/export', keuAkun.export);
 router.post('/keu-akun/import', keuAkun.import);
 router.post('/keu-akun/insert', keuAkun.insert);
 
+router.get('/keu-rekap-harian/ringkasan', financialSummary('harian'));
+router.get('/keu-rekap-harian/form-options', financialFormOptions);
 router.get('/keu-rekap-harian/all-data', keuRekapHarian.list);
 router.get('/keu-rekap-harian', keuRekapHarian.index);
 router.get('/keu-rekap-harian/:id', keuRekapHarian.detail);
-router.post('/keu-rekap-harian', sanitizeBody, validate(keuRekapHarianSchema), keuRekapHarian.create);
-router.put('/keu-rekap-harian/:id', sanitizeBody, validate(updateKeuRekapHarianSchema), keuRekapHarian.update);
+router.post('/keu-rekap-harian', sanitizeBody, resolveFinancialInput, validate(keuRekapHarianSchema), keuRekapHarian.create);
+router.put('/keu-rekap-harian/:id', sanitizeBody, resolveFinancialInput, validate(updateKeuRekapHarianSchema), keuRekapHarian.update);
 router.delete('/keu-rekap-harian/:id', keuRekapHarian.delete);
 router.post('/keu-rekap-harian/export', keuRekapHarian.export);
 router.post('/keu-rekap-harian/import', keuRekapHarian.import);
@@ -1143,31 +1149,37 @@ router.post('/keu-import-batch/export', keuImportBatch.export);
 router.post('/keu-import-batch/import', keuImportBatch.import);
 router.post('/keu-import-batch/insert', keuImportBatch.insert);
 
+router.get('/keu-target/ringkasan', financialSummary('target'));
+router.get('/keu-target/form-options', financialFormOptions);
 router.get('/keu-target/all-data', keuTarget.list);
 router.get('/keu-target', keuTarget.index);
 router.get('/keu-target/:id', keuTarget.detail);
-router.post('/keu-target', sanitizeBody, validate(keuTargetSchema), keuTarget.create);
-router.put('/keu-target/:id', sanitizeBody, validate(updateKeuTargetSchema), keuTarget.update);
+router.post('/keu-target', sanitizeBody, resolveFinancialInput, validate(keuTargetSchema), keuTarget.create);
+router.put('/keu-target/:id', sanitizeBody, resolveFinancialInput, validate(updateKeuTargetSchema), keuTarget.update);
 router.delete('/keu-target/:id', keuTarget.delete);
 router.post('/keu-target/export', keuTarget.export);
 router.post('/keu-target/import', keuTarget.import);
 router.post('/keu-target/insert', keuTarget.insert);
 
+router.get('/keu-anggaran/ringkasan', financialSummary('anggaran'));
+router.get('/keu-anggaran/form-options', financialFormOptions);
 router.get('/keu-anggaran/all-data', keuAnggaran.list);
 router.get('/keu-anggaran', keuAnggaran.index);
 router.get('/keu-anggaran/:id', keuAnggaran.detail);
-router.post('/keu-anggaran', sanitizeBody, validate(keuAnggaranSchema), keuAnggaran.create);
-router.put('/keu-anggaran/:id', sanitizeBody, validate(updateKeuAnggaranSchema), keuAnggaran.update);
+router.post('/keu-anggaran', sanitizeBody, resolveFinancialInput, validate(keuAnggaranSchema), keuAnggaran.create);
+router.put('/keu-anggaran/:id', sanitizeBody, resolveFinancialInput, validate(updateKeuAnggaranSchema), keuAnggaran.update);
 router.delete('/keu-anggaran/:id', keuAnggaran.delete);
 router.post('/keu-anggaran/export', keuAnggaran.export);
 router.post('/keu-anggaran/import', keuAnggaran.import);
 router.post('/keu-anggaran/insert', keuAnggaran.insert);
 
+router.get('/keu-beasiswa/ringkasan', financialSummary('beasiswa'));
+router.get('/keu-beasiswa/form-options', financialFormOptions);
 router.get('/keu-beasiswa/all-data', keuBeasiswa.list);
 router.get('/keu-beasiswa', keuBeasiswa.index);
 router.get('/keu-beasiswa/:id', keuBeasiswa.detail);
-router.post('/keu-beasiswa', sanitizeBody, validate(keuBeasiswaSchema), keuBeasiswa.create);
-router.put('/keu-beasiswa/:id', sanitizeBody, validate(updateKeuBeasiswaSchema), keuBeasiswa.update);
+router.post('/keu-beasiswa', sanitizeBody, resolveFinancialInput, validate(keuBeasiswaSchema), keuBeasiswa.create);
+router.put('/keu-beasiswa/:id', sanitizeBody, resolveFinancialInput, validate(updateKeuBeasiswaSchema), keuBeasiswa.update);
 router.delete('/keu-beasiswa/:id', keuBeasiswa.delete);
 router.post('/keu-beasiswa/export', keuBeasiswa.export);
 router.post('/keu-beasiswa/import', keuBeasiswa.import);

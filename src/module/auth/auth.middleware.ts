@@ -23,7 +23,7 @@ interface UserBody {
   password: string;
 }
 
-const checkAccess = async (
+export const checkAccess = async (
   req: Request,
   role_name: string = '',
   prefix: string = ''
@@ -69,8 +69,15 @@ const checkAccess = async (
       if (!moduleName.includes(prefix)) return false;
       if (rm.view != '1') return false;
 
-      if (method === 'POST' && url.includes('import')) return rm.import == '1';
-      if (method === 'POST' && url.includes('export')) return rm.export == '1';
+      if (
+        method === 'POST' &&
+        ['/import', '/insert'].some((suffix) =>
+          url.split('?')[0].endsWith(suffix)
+        )
+      )
+        return rm.import == '1';
+      if (method === 'POST' && url.split('?')[0].endsWith('/export'))
+        return rm.export == '1';
       if (method === 'POST') return rm.create == '1';
       if (method === 'PUT') return rm.edit == '1';
       if (method === 'DELETE') return rm.delete == '1';

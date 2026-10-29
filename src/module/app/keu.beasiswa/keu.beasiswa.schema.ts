@@ -51,7 +51,7 @@ const fields = z.object({
     )
     .nullable()
     .optional(),
-  id_batch: reference('Batch'),
+  id_batch: reference('Batch').optional(),
   is_current: z.boolean(),
   keterangan: z.string().nullable().optional(),
 });

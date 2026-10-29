@@ -1,4 +1,6 @@
-'use strict';
+import { saveMaster, validateAccountChange } from '../keu.shared/master';
+import { OperationalError } from '../keu.shared/operasional';
+('use strict');
 
 import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
@@ -87,6 +89,10 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(`kelompok kas list: ${err?.message}`, 500, res);
     }
   }
@@ -108,6 +114,10 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(`kelompok kas index: ${err?.message}`, 500, res);
     }
   }
@@ -121,6 +131,10 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(
         `kelompok kas detail: ${err?.message}`,
         500,
@@ -150,6 +164,10 @@ export default class Controller {
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(ALREADY_EXIST, 400, res);
       return helper.catchError(
@@ -167,6 +185,11 @@ export default class Controller {
 
       const check = await repository.detail({ id_kelompok_kas: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
+      if (
+        req.body.kode_kelompok !== undefined &&
+        req.body.kode_kelompok !== check.kode_kelompok
+      )
+        throw new OperationalError('Kode kelompok kas tidak boleh diubah');
 
       if (
         kode_kelompok !== undefined &&
@@ -195,6 +218,10 @@ export default class Controller {
 
       return response.success(SUCCESS_UPDATED, null, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(ALREADY_EXIST, 400, res);
       return helper.catchError(
@@ -215,6 +242,10 @@ export default class Controller {
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeForeignKeyConstraintError')
         return response.failed('Kelompok Kas masih direferensikan', 400, res);
       return helper.catchError(
@@ -250,6 +281,10 @@ export default class Controller {
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel kelompok kas', urlExcel, res);
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(
         `export excel kelompok kas: ${err?.message}`,
         500,
@@ -295,9 +330,11 @@ export default class Controller {
       if (mode === 'commit') {
         await sequelize.transaction(async (transaction) => {
           for (const row of results.filter((item: any) => item.valid)) {
-            await KeuKelompokKas.upsert(
-              { ...row.payload, updated_at: new Date() },
-              { transaction, conflictFields: ['kode_kelompok'] }
+            await saveMaster(
+              KeuKelompokKas,
+              'kode_kelompok',
+              row.payload,
+              transaction
             );
           }
         });
@@ -316,6 +353,10 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(`import kelompok kas: ${err.message}`, 500, res);
     }
   }
@@ -335,9 +376,11 @@ export default class Controller {
     try {
       await sequelize.transaction(async (transaction) => {
         for (const payload of parsed.data) {
-          await KeuKelompokKas.upsert(
-            { ...payload, updated_at: new Date() },
-            { transaction, conflictFields: ['kode_kelompok'] }
+          await saveMaster(
+            KeuKelompokKas,
+            'kode_kelompok',
+            payload,
+            transaction
           );
         }
       });
@@ -347,6 +390,10 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err?.parent?.code === '23514')
+        return response.failed(err.parent.message, 400, res);
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       return helper.catchError(
         `Import batch kelompok kas: ${err.message}`,
         500,

@@ -32,10 +32,12 @@ const fields = z.object({
     .optional(),
   nilai_disetujui: nonnegativeNominal,
   nilai_realisasi: nonnegativeNominal.nullable().optional(),
-  id_batch: z.preprocess(
-    referenceValue,
-    z.string().trim().min(1, 'Batch wajib diisi').max(255)
-  ),
+  id_batch: z
+    .preprocess(
+      referenceValue,
+      z.string().trim().min(1, 'Batch wajib diisi').max(255)
+    )
+    .optional(),
   is_current: z.boolean(),
   keterangan: z.string().nullable().optional(),
 });

@@ -16,7 +16,11 @@ const options = (data: any = {}): FindOptions => {
     where.periode_mulai = {
       [Op.lte]: data.periode_selesai || data.tanggal_akhir,
     };
-  if ([true, 'true', '1', 'Ya'].includes(data.is_current))
+  if (
+    data.is_current === undefined ||
+    data.is_current === '' ||
+    [true, 'true', '1', 'Ya'].includes(data.is_current)
+  )
     where.is_current = true;
   else if ([false, 'false', '0', 'Tidak'].includes(data.is_current))
     where.is_current = false;

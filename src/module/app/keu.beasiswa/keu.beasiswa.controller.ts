@@ -1,6 +1,11 @@
-'use strict';
-
-import { validateOperational, identityKey } from '../keu.shared/operasional';
+import {
+  prepareCorrection,
+  saveFinancialVersion,
+  OperationalError,
+  validateOperational,
+  identityKey,
+} from '../keu.shared/operasional';
+import { automaticImportBatch } from '../keu.shared/import.batch';
 
 import ExcelJS from 'exceljs';
 import { Request, Response } from 'express';
@@ -31,7 +36,7 @@ const headers = [
   'ID Rekap Beasiswa',
   'Cakupan Data',
   'Tahun Ajaran',
-  'ID Santri',
+  'NIS',
   'Kode Jenis Beasiswa',
   'Jenis Bantuan',
   'Nama Program',
@@ -50,12 +55,20 @@ const generateDataExcel = (sheet: ExcelJS.Worksheet, details: any[]) => {
     width: header.startsWith('ID') ? 40 : 25,
   }));
   sheet.getRow(1).font = { bold: true };
+  headers.forEach((header, index) => {
+    if (
+      header.startsWith('Kode ') ||
+      header === 'NIS' ||
+      header === 'Tahun Ajaran'
+    )
+      sheet.getColumn(index + 1).numFmt = '@';
+  });
   details.forEach((row) =>
     sheet.addRow([
       row.id_rekap_beasiswa,
       row.cakupan_data,
       row.tahun_ajaran?.tahun_ajaran ?? '',
-      row.id_santri ?? '',
+      row.santri?.nis ?? '',
       row.jenis_beasiswa?.kode_beasiswa ?? '',
       row.jenis_bantuan,
       row.nama_program ?? '',
@@ -87,7 +100,11 @@ const parseCurrent = (value: any) => {
         : text;
 };
 
-const validateReferences = async (payload: any, excludeId?: string) => {
+const validateReferences = async (
+  payload: any,
+  excludeId?: string,
+  automaticBatchId?: string
+) => {
   const errors: string[] = [];
   if (payload.cakupan_data === 'PerPenerima' && !payload.id_santri)
     errors.push('Santri wajib untuk data PerPenerima');
@@ -106,7 +123,7 @@ const validateReferences = async (payload: any, excludeId?: string) => {
   )
     errors.push('Jenis Beasiswa tidak ditemukan');
   if (!payload.id_batch) errors.push('Batch wajib diisi');
-  if (payload.id_batch) {
+  if (payload.id_batch && payload.id_batch !== automaticBatchId) {
     const batch = await KeuImportBatch.findByPk(payload.id_batch);
     if (!batch) errors.push('Batch impor tidak ditemukan');
     else if (batch.jenis_data !== 'Beasiswa')
@@ -126,6 +143,8 @@ export default class Controller {
         return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -152,6 +171,8 @@ export default class Controller {
         res
       );
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -171,6 +192,8 @@ export default class Controller {
       if (!result) return response.success(NOT_FOUND, null, res, false);
       return response.success(SUCCESS_RETRIEVED, result, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -183,22 +206,30 @@ export default class Controller {
 
   public async create(req: Request, res: Response) {
     try {
-      const errors = await validateReferences(req.body);
+      const batch = automaticImportBatch('Beasiswa');
+      req.body.id_batch ||= batch.id;
+      const errors = await validateReferences(req.body, undefined, batch.id);
       if (errors.length) return response.failed(errors.join(', '), 400, res);
-      const data: Object = Object.fromEntries(
+      const data = Object.fromEntries(
         variable
           .fillable()
           .filter((key) => req.body[key] !== undefined)
           .map((key) => [key, req.body[key]])
       );
-      await repository.create({
-        payload: {
-          ...data,
-        },
+      await sequelize.transaction(async (transaction) => {
+        await batch.save(
+          [{ valid: true, payload: req.body }],
+          transaction,
+          undefined,
+          'InputManual'
+        );
+        await KeuBeasiswa.create(data, { transaction });
       });
 
       return response.success(SUCCESS_SAVED, null, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -225,22 +256,26 @@ export default class Controller {
       );
       if (errors.length) return response.failed(errors.join(', '), 400, res);
 
-      const data: Object = Object.fromEntries(
+      const data = Object.fromEntries(
         variable
           .fillable()
           .filter((key) => req.body[key] !== undefined)
           .map((key) => [key, req.body[key]])
       );
 
-      await repository.update({
-        payload: {
-          ...data,
-        },
-        condition: { id_rekap_beasiswa: id },
-      });
+      const value = await sequelize.transaction((transaction) =>
+        saveFinancialVersion(
+          KeuBeasiswa,
+          'id_rekap_beasiswa',
+          { ...check.get({ plain: true }), ...data, id_rekap_beasiswa: id },
+          transaction
+        )
+      );
 
-      return response.success(SUCCESS_UPDATED, null, res);
+      return response.success(SUCCESS_UPDATED, { value }, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -258,11 +293,14 @@ export default class Controller {
       const id: string = req?.params?.id || '';
       const check = await repository.detail({ id_rekap_beasiswa: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-      await repository.delete({
+      await repository.update({
+        payload: { is_current: false },
         condition: { id_rekap_beasiswa: id },
       });
       return response.success(SUCCESS_DELETED, null, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -297,9 +335,16 @@ export default class Controller {
       const sheet = workbook.addWorksheet(title.slice(0, 31));
 
       generateDataExcel(sheet, result);
+      if (isTemplate) {
+        for (let column = headers.length; column >= 1; column--)
+          if (headers[column - 1].startsWith('ID '))
+            sheet.spliceColumns(column, 1);
+      }
       await workbook.xlsx.writeFile(`${path}/${filename}`);
       return response.success('export excel beasiswa', urlExcel, res);
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -315,6 +360,7 @@ export default class Controller {
   }
 
   public async import(req: Request, res: Response) {
+    const batch = automaticImportBatch('Beasiswa');
     const mode = req.body?.mode ?? 'preview';
     if (!['preview', 'commit'].includes(mode))
       return response.failed('Mode harus preview atau commit', 400, res);
@@ -326,6 +372,7 @@ export default class Controller {
       const buffer = file.tempFilePath
         ? await fs.readFile(file.tempFilePath)
         : file.data;
+      await batch.checkFile(buffer);
       const rows = await helper.parseImportFile({
         name: file.name,
         data: buffer,
@@ -342,6 +389,12 @@ export default class Controller {
         const jenis = kodeJenis
           ? await JenisBeasiswa.findOne({ where: { kode_beasiswa: kodeJenis } })
           : null;
+        const nis = String(raw['NIS'] ?? '').trim();
+        const recipients = nis
+          ? await AppSantri.findAll({ where: { nis }, limit: 2 })
+          : [];
+        const recipient = recipients.length === 1 ? recipients[0] : null;
+        const legacySantriId = String(raw['ID Santri'] ?? '').trim();
         const id = String(raw['ID Rekap Beasiswa'] ?? '').trim();
         const optionalNominal = (value: any) =>
           value === '' || value === undefined || value === null ? null : value;
@@ -350,7 +403,7 @@ export default class Controller {
           cakupan_data:
             String(raw['Cakupan Data'] ?? '').trim() || 'PerPenerima',
           id_tahunajaran: tahunAjaran?.id_tahunajaran ?? '',
-          id_santri: String(raw['ID Santri'] ?? '').trim() || null,
+          id_santri: recipient?.id_santri || legacySantriId || null,
           id_jenis_beasiswa: jenis?.id_beasiswa ?? '',
           jenis_bantuan: String(raw['Jenis Bantuan'] ?? '').trim(),
           nama_program: String(raw['Nama Program'] ?? '').trim() || null,
@@ -362,20 +415,40 @@ export default class Controller {
           nilai_diajukan: optionalNominal(raw['Nilai Diajukan']),
           nilai_ditetapkan: raw['Nilai Ditetapkan'],
           nilai_realisasi: optionalNominal(raw['Nilai Realisasi']),
-          id_batch:
-            String(raw['ID Batch'] ?? '').trim() ||
-            String(req.body?.id_batch ?? '').trim(),
+          id_batch: batch.id,
           is_current: parseCurrent(raw['Current']),
           keterangan: String(raw['Keterangan'] ?? '').trim() || null,
         };
-        const parsed = importItemSchema.safeParse(rawPayload);
+        let correctedPayload: any = rawPayload;
+        const correctionErrors: string[] = [];
+        try {
+          correctedPayload = await prepareCorrection(
+            'beasiswa',
+            rawPayload,
+            req.body?.aksi
+          );
+        } catch (error: any) {
+          correctionErrors.push(error.message);
+        }
+        const parsed = importItemSchema.safeParse(correctedPayload);
         const errors = parsed.success
           ? []
           : parsed.error.issues.map((issue) => issue.message);
+        if (nis && !recipient)
+          errors.push('NIS tidak ditemukan atau tidak unik');
+        if (
+          recipient &&
+          legacySantriId &&
+          recipient.id_santri !== legacySantriId
+        )
+          errors.push('NIS tidak cocok dengan ID Santri');
         if (!tahunAjaran) errors.push('Tahun Ajaran tidak ditemukan');
         if (!jenis) errors.push('Kode Jenis Beasiswa tidak ditemukan');
+        errors.push(...correctionErrors);
         if (parsed.success)
-          errors.push(...(await validateReferences(parsed.data)));
+          errors.push(
+            ...(await validateReferences(parsed.data, undefined, batch.id))
+          );
         if (id && seen.has(id))
           errors.push('ID Rekap Beasiswa duplikat dalam file');
         if (id) seen.add(id);
@@ -392,15 +465,14 @@ export default class Controller {
       }
       if (mode === 'commit') {
         await sequelize.transaction(async (transaction) => {
+          await batch.save(results, transaction, file.name);
           for (const row of results.filter((item) => item.valid)) {
-            if (row.payload.id_rekap_beasiswa) {
-              await KeuBeasiswa.upsert(
-                { ...row.payload, updated_at: new Date() },
-                { transaction, conflictFields: ['id_rekap_beasiswa'] }
-              );
-            } else {
-              await KeuBeasiswa.create(row.payload, { transaction });
-            }
+            await saveFinancialVersion(
+              KeuBeasiswa,
+              'id_rekap_beasiswa',
+              row.payload,
+              transaction
+            );
           }
         });
       }
@@ -413,11 +485,14 @@ export default class Controller {
           total: results.length,
           valid: results.filter((row) => row.valid).length,
           invalid: results.filter((row) => !row.valid).length,
-          ...(mode === 'preview' ? { data: results } : {}),
+          id_batch: mode === 'commit' && batch.created ? batch.id : null,
+          ...(mode === 'preview' ? { data: batch.preview(results) } : {}),
         },
         res
       );
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',
@@ -431,12 +506,29 @@ export default class Controller {
   }
 
   public async insert(req: Request, res: Response) {
-    const payloads = req.body?.data;
+    const batch = automaticImportBatch('Beasiswa');
+    const payloads = Array.isArray(req.body?.data)
+      ? req.body.data.map((row: any) => ({
+          ...row,
+          id_batch: row?.id_batch || req.body?.id_batch || batch.id,
+        }))
+      : req.body?.data;
     if (!Array.isArray(payloads) || !payloads.length)
       return response.success('Data import kosong', null, res, false);
     const parsed = importItemSchema.array().safeParse(payloads);
     if (!parsed.success)
       return response.failed(parsed.error.issues[0].message, 400, res);
+    try {
+      for (let index = 0; index < parsed.data.length; index++) {
+        parsed.data[index] = await prepareCorrection(
+          'beasiswa',
+          parsed.data[index],
+          req.body?.aksi
+        );
+      }
+    } catch (error: any) {
+      return response.failed(error.message, 400, res);
+    }
     const ids = parsed.data.flatMap((row) =>
       row.id_rekap_beasiswa ? [row.id_rekap_beasiswa] : []
     );
@@ -453,27 +545,34 @@ export default class Controller {
       return response.failed('Identitas data duplikat dalam batch', 400, res);
     try {
       for (const payload of parsed.data) {
-        const errors = await validateReferences(payload);
+        const errors = await validateReferences(payload, undefined, batch.id);
         if (errors.length) return response.failed(errors.join(', '), 400, res);
       }
       await sequelize.transaction(async (transaction) => {
+        await batch.save(
+          parsed.data.map((payload) => ({ valid: true, payload })),
+          transaction
+        );
         for (const payload of parsed.data) {
-          if (payload.id_rekap_beasiswa) {
-            await KeuBeasiswa.upsert(
-              { ...payload, updated_at: new Date() },
-              { transaction, conflictFields: ['id_rekap_beasiswa'] }
-            );
-          } else {
-            await KeuBeasiswa.create(payload, { transaction });
-          }
+          await saveFinancialVersion(
+            KeuBeasiswa,
+            'id_rekap_beasiswa',
+            payload,
+            transaction
+          );
         }
       });
       return response.success(
         'Import batch beasiswa berhasil',
-        { total: parsed.data.length },
+        {
+          total: parsed.data.length,
+          id_batch: batch.created ? batch.id : null,
+        },
         res
       );
     } catch (err: any) {
+      if (err instanceof OperationalError)
+        return response.failed(err.message, 400, res);
       if (err?.name === 'SequelizeUniqueConstraintError')
         return response.failed(
           'Data aktif dengan identitas yang sama sudah ada',

@@ -26,6 +26,7 @@ export function initKeuImportBatch(sequelize: Sequelize) {
       },
       nama_file: { type: DataTypes.STRING(255) },
       hash_file: { type: DataTypes.STRING(128) },
+      hash_payload: { type: DataTypes.STRING(64) },
       periode_awal: { type: DataTypes.DATEONLY },
       periode_akhir: { type: DataTypes.DATEONLY },
       sumber_data: { type: DataTypes.STRING(200) },

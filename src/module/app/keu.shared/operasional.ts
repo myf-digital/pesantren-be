@@ -1,11 +1,20 @@
 import { Op, Transaction, Model, ModelStatic } from 'sequelize';
+import Kelompok from '../keu.kelompok.kas/keu.kelompok.kas.model';
 import KeuAkun from '../keu.akun/keu.akun.model';
 import Rekap from '../keu.rekap.harian/keu.rekap.harian.model';
+import Anggaran from '../keu.anggaran/keu.anggaran.model';
 import Target from '../keu.target/keu.target.model';
 import Beasiswa from '../keu.beasiswa/keu.beasiswa.model';
 
-export type JenisRekap = 'harian' | 'target' | 'beasiswa';
+export type JenisRekap = 'harian' | 'target' | 'beasiswa' | 'anggaran';
 export const identity = (jenis: JenisRekap, data: any) => {
+  if (jenis === 'anggaran')
+    return {
+      kode_referensi_sumber: data.kode_referensi_sumber,
+      periode_mulai: data.periode_mulai,
+      periode_selesai: data.periode_selesai,
+      id_akun: data.id_akun || null,
+    };
   if (jenis === 'harian')
     return {
       tanggal: data.tanggal,
@@ -38,20 +47,41 @@ export async function validateOperational(
   excludeId?: string
 ) {
   const errors: string[] = [];
-  if (jenis === 'harian' || jenis === 'target') {
+  if (jenis === 'harian' || jenis === 'target' || jenis === 'anggaran') {
     const akun = await KeuAkun.findByPk(data.id_akun);
-    if (akun?.is_periodik_tahun_ajaran && !data.id_tahunajaran)
+    if (akun?.is_active === false) errors.push('Akun tidak aktif');
+    if (akun?.id_kelompok_kas) {
+      const kelompok = await Kelompok.findByPk(akun.id_kelompok_kas);
+      if (kelompok?.is_active === false)
+        errors.push('Kelompok kas tidak aktif');
+    }
+    if (
+      jenis !== 'anggaran' &&
+      akun?.is_periodik_tahun_ajaran &&
+      !data.id_tahunajaran
+    )
       errors.push('Tahun Ajaran wajib untuk akun periodik');
   }
-  if (data.is_current !== false) {
+  if (
+    data.is_current !== false &&
+    (jenis !== 'anggaran' || data.kode_referensi_sumber)
+  ) {
     const model: ModelStatic<Model> =
-      jenis === 'harian' ? Rekap : jenis === 'target' ? Target : Beasiswa;
+      jenis === 'harian'
+        ? Rekap
+        : jenis === 'target'
+          ? Target
+          : jenis === 'anggaran'
+            ? Anggaran
+            : Beasiswa;
     const pk =
       jenis === 'harian'
         ? 'id_rekap'
         : jenis === 'target'
           ? 'id_target'
-          : 'id_rekap_beasiswa';
+          : jenis === 'anggaran'
+            ? 'id_anggaran'
+            : 'id_rekap_beasiswa';
     const id = excludeId || data[pk];
     const duplicate = await model.findOne({
       where: {
@@ -120,7 +150,7 @@ export async function saveDailyVersion(
   );
 }
 
-const cents = (value: string): bigint => {
+export const cents = (value: string): bigint => {
   const negative = String(value).startsWith('-');
   const [whole, fraction = ''] = String(value).replace(/^-/, '').split('.');
   return (
@@ -128,7 +158,7 @@ const cents = (value: string): bigint => {
     (BigInt(whole) * BigInt(100) + BigInt(fraction.padEnd(2, '0')))
   );
 };
-const decimal = (value: bigint) => {
+export const decimal = (value: bigint) => {
   const amount = value < BigInt(0) ? -value : value;
   return `${value < BigInt(0) ? '-' : ''}${amount / BigInt(100)}.${String(amount % BigInt(100)).padStart(2, '0')}`;
 };
@@ -141,4 +171,67 @@ export function reconcileDaily(data: any) {
     : [
         `Saldo akhir sumber ${data.saldo_akhir} berbeda dari perhitungan ${decimal(expected)}; selisih ${decimal(difference)}`,
       ];
+}
+
+// Every correction locks its predecessor and creates a separate version.
+export async function saveFinancialVersion(
+  model: ModelStatic<Model>,
+  pk: string,
+  payload: any,
+  transaction: Transaction
+) {
+  const id = payload[pk];
+  if (id) {
+    const previous: any = await model.findByPk(id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!previous || !previous.is_current)
+      throw new OperationalError(
+        'Versi data tidak ditemukan atau sudah menjadi histori'
+      );
+    await previous.update({ is_current: false }, { transaction });
+  }
+  const data = { ...payload };
+  for (const key of [pk, 'created_at', 'updated_at', 'per_akun'])
+    delete data[key];
+  return model.create(data, { transaction });
+}
+
+// Corrections can identify a source row by business identity, without exposing UUIDs in templates.
+export async function prepareCorrection(
+  jenis: JenisRekap,
+  payload: any,
+  action: string = 'tambah'
+) {
+  if (!['tambah', 'koreksi'].includes(action))
+    throw new OperationalError('Aksi harus tambah atau koreksi');
+  if (action !== 'koreksi') return payload;
+  const model: ModelStatic<Model> =
+    jenis === 'harian'
+      ? Rekap
+      : jenis === 'target'
+        ? Target
+        : jenis === 'anggaran'
+          ? Anggaran
+          : Beasiswa;
+  const pk =
+    jenis === 'harian'
+      ? 'id_rekap'
+      : jenis === 'target'
+        ? 'id_target'
+        : jenis === 'anggaran'
+          ? 'id_anggaran'
+          : 'id_rekap_beasiswa';
+  if (payload[pk]) return payload;
+  if (jenis === 'anggaran' && !payload.kode_referensi_sumber)
+    throw new OperationalError(
+      'Koreksi anggaran memerlukan kode referensi sumber'
+    );
+  const previous = await model.findOne({
+    where: { ...identity(jenis, payload), is_current: true },
+  });
+  if (!previous)
+    throw new OperationalError('Data current untuk koreksi tidak ditemukan');
+  return { ...payload, [pk]: previous.get(pk) };
 }
