@@ -91,11 +91,7 @@ const generateToken = async (user: any) => {
       ...getUser,
       total_login: totalLogin,
       active_role: activeRole,
-      pegawai:
-        (Array.isArray(activeRole)
-          ? activeRole.find((ar: any) => ar?.is_default == 1 && ar?.pegawai)
-              ?.pegawai
-          : (activeRole?.pegawai) || user?.getDataValue('pegawai')),
+      pegawai: activeRole?.pegawai || user?.getDataValue('pegawai'),
       allowed_dashboard_khodimul: await getAllowedDashboardKhodimul(),
     },
     access_token: token,
