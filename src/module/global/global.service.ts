@@ -2665,98 +2665,76 @@ export default class Service {
     tanggal_mulai?: string,
     tanggal_selesai?: string
   ) {
-    let dateFilter: any;
-    let dateTimeFilter: any;
-    let startD: string;
-    let endD: string;
-
-    if (tanggal_mulai && tanggal_selesai) {
-      dateFilter = { [Op.between]: [tanggal_mulai, tanggal_selesai] };
-      dateTimeFilter = {
-        [Op.between]: [
-          `${tanggal_mulai} 00:00:00`,
-          `${tanggal_selesai} 23:59:59`,
-        ],
-      };
-      startD = tanggal_mulai;
-      endD = tanggal_selesai;
-    } else {
-      const targetDate = tanggal || moment().tz(TIMEZONE).format('YYYY-MM-DD');
-      dateFilter = targetDate;
-      dateTimeFilter = {
-        [Op.between]: [`${targetDate} 00:00:00`, `${targetDate} 23:59:59`],
-      };
-      startD = targetDate;
-      endD = targetDate;
-    }
-
-    // const [executiveStats] = (await Promise.all([
-    //   (async () => {
-    //     const conn = await rawQuery.getConnection();
-
-    //     const summaryQuery = `SELECT tanggal, nama_pilar, score, kode_pilar 
-    //     FROM vw_executive_scorecard WHERE tanggal = :tanggal`;
-
-    //     const rows: any = await conn.query(summaryQuery, {
-    //       type: QueryTypes.SELECT,
-    //       replacements: {
-    //         tanggal,
-    //       },
-    //     });
-    //     return rows;
-    //   })(),
-    // ])) as any;
-
-    const summaryQuery = `
-      SELECT
-          :tanggal AS tanggal,
-          'Kepesantrenan' AS nama_pilar,
-          94.50 AS score,
-          'KEPESANTRENAN' AS kode_pilar
-
-      UNION ALL
-
-      SELECT
-          :tanggal,
-          'Pendidikan Formal',
-          91.20,
-          'PENDIDIKAN_FORMAL'
-
-      UNION ALL
-
-      SELECT
-          :tanggal,
-          'Pend. Non-Formal',
-          88.40,
-          'PENDIDIKAN_NON_FORMAL'
-
-      UNION ALL
-
-      SELECT
-          :tanggal,
-          'Kerumahtanggaan',
-          78.00,
-          'KERUMAHTANGGAAN'
-
-      UNION ALL
-
-      SELECT
-          :tanggal,
-          'Keuangan',
-          68.50,
-          'KEUANGAN'
-    `;
-
+    // Use the same SQL and dashboard date as the level-two endpoints.
+    // Their queries currently use D-1 and do not apply request date filters.
+    const pillars = [
+      {
+        file: 'kepesantrenan-level-two.sql',
+        performance: 'performa_kepesantrenan',
+        name: 'Kepesantrenan',
+        code: 'KEPESANTRENAN',
+      },
+      {
+        file: 'formal-level-two.sql',
+        performance: 'performa_pendidikan_formal',
+        name: 'Pendidikan Formal',
+        code: 'PENDIDIKAN_FORMAL',
+      },
+      {
+        file: 'non-formal-level-two.sql',
+        performance: 'performa_pendidikan_mda',
+        name: 'Pend. Non-Formal',
+        code: 'PENDIDIKAN_NON_FORMAL',
+      },
+    ];
     const conn = await rawQuery.getConnection();
 
-    const executiveStats: any = await conn.query(summaryQuery, {
-        type: QueryTypes.SELECT,
-        replacements: {
-          tanggal,
-        },
-    });
+    const results = await Promise.all(
+      pillars.map(async (pillar) => {
+        const levelTwoQuery = fs
+          .readFileSync(
+            path.join(process.cwd(), 'src/database/sql', pillar.file),
+            'utf8'
+          )
+          .trim()
+          .replace(/;$/, '');
 
-    return executiveStats;
+        return conn.query(
+          `SELECT
+              dashboard.tanggal_dashboard AS tanggal,
+              :nama_pilar AS nama_pilar,
+              COALESCE((dashboard.${pillar.performance}->>'performa_total')::numeric, 0.0) AS score,
+              :kode_pilar AS kode_pilar
+           FROM (${levelTwoQuery}) AS dashboard`,
+          {
+            type: QueryTypes.SELECT,
+            replacements: {
+              nama_pilar: pillar.name,
+              kode_pilar: pillar.code,
+            },
+          }
+        );
+      })
+    );
+
+    const executiveStats = results.flat();
+    const dashboardDate = (executiveStats[0] as { tanggal: string }).tanggal;
+
+    return [
+      ...executiveStats,
+      {
+        tanggal: dashboardDate,
+        nama_pilar: 'Kerumahtanggaan',
+        score: 0.0,
+        kode_pilar: 'KERUMAHTANGGAAN',
+      },
+      {
+        tanggal: dashboardDate,
+        nama_pilar: 'Keuangan',
+        score: 0.0,
+        kode_pilar: 'KEUANGAN',
+      },
+    ];
   }
 
   public async rekonsiliasiJurnalKelas(limit?: number) {
