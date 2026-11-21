@@ -36,7 +36,7 @@ export function initNotification(sequelize: Sequelize) {
         type: DataTypes.STRING,
       },
       url: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
       },
       message: {
         type: DataTypes.TEXT,

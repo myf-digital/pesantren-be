@@ -43,7 +43,7 @@ export const up = async (queryInterface: QueryInterface) => {
           allowNull: true,
         },
         url: {
-          type: DataTypes.STRING,
+          type: DataTypes.TEXT,
           allowNull: true,
         },
         message: {
