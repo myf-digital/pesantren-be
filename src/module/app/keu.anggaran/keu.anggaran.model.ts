@@ -3,14 +3,15 @@ import KeuImportBatch from '../keu.import.batch/keu.import.batch.model';
 import KeuAkun from '../keu.akun/keu.akun.model';
 
 export class KeuAnggaran extends Model {
-  declare status_sumber: string | null;
+  declare status_sumber: string;
   declare id_anggaran: string;
   declare nama_anggaran: string;
   declare kode_referensi_sumber: string | null;
   declare periode_mulai: string;
   declare periode_selesai: string;
   declare id_akun: string | null;
-  declare nilai_disetujui: string;
+  declare nilai_diajukan: string;
+  declare nilai_disetujui: string | null;
   declare nilai_realisasi: string | null;
   declare id_batch: string;
   declare keterangan: string | null;
@@ -29,7 +30,7 @@ export function initKeuAnggaran(sequelize: Sequelize) {
         defaultValue: DataTypes.UUIDV4,
       },
       nama_anggaran: { type: DataTypes.STRING(200), allowNull: false },
-      status_sumber: { type: DataTypes.STRING(100), allowNull: true },
+      status_sumber: { type: DataTypes.STRING(100), allowNull: false },
       kode_referensi_sumber: { type: DataTypes.STRING(150), allowNull: true },
       periode_mulai: { type: DataTypes.DATEONLY, allowNull: false },
       periode_selesai: { type: DataTypes.DATEONLY, allowNull: false },
@@ -40,9 +41,10 @@ export function initKeuAnggaran(sequelize: Sequelize) {
         onUpdate: 'CASCADE',
         onDelete: 'RESTRICT',
       },
+      nilai_diajukan: { type: DataTypes.DECIMAL(18, 2), allowNull: false },
       nilai_disetujui: {
         type: DataTypes.DECIMAL(18, 2),
-        allowNull: false,
+        allowNull: true,
         validate: { min: 0 },
       },
       nilai_realisasi: {

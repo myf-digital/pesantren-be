@@ -7,6 +7,7 @@ export default class Variable {
       'periode_mulai',
       'periode_selesai',
       'id_akun',
+      'nilai_diajukan',
       'nilai_disetujui',
       'nilai_realisasi',
       'id_batch',

@@ -2665,8 +2665,7 @@ export default class Service {
     tanggal_mulai?: string,
     tanggal_selesai?: string
   ) {
-    // Use the same SQL and dashboard date as the level-two endpoints.
-    // Their queries currently use D-1 and do not apply request date filters.
+    // Each pillar uses the snapshot defined by its level-two query.
     const pillars = [
       {
         file: 'kepesantrenan-level-two.sql',
@@ -2686,10 +2685,15 @@ export default class Service {
         name: 'Pend. Non-Formal',
         code: 'PENDIDIKAN_NON_FORMAL',
       },
+      {
+        file: 'keuangan-level-two.sql',
+        name: 'Keuangan',
+        code: 'KEUANGAN',
+      },
     ];
     const conn = await rawQuery.getConnection();
 
-    const results = await Promise.all(
+    const [pesantren, formal, nonFormal, keuangan] = await Promise.all(
       pillars.map(async (pillar) => {
         const levelTwoQuery = fs
           .readFileSync(
@@ -2699,12 +2703,20 @@ export default class Service {
           .trim()
           .replace(/;$/, '');
 
-        return conn.query(
+        const metrics = pillar.performance
+          ? `COALESCE((dashboard.${pillar.performance}->>'performa_total')::numeric, 0.0) AS score`
+          : `LEAST(100, GREATEST(0, COALESCE((
+               dashboard.session_1_target_pencapaian #>>
+               '{komponen_2_pencapaian_akun_bert_target,pencapaian_target_penuh_persen}'
+             )::numeric, 0))) AS score,
+             dashboard.session_4_anggaran::jsonb - 'detail' AS ringkasan_anggaran`;
+
+        return conn.query<{ tanggal: string | null }>(
           `SELECT
               dashboard.tanggal_dashboard AS tanggal,
               :nama_pilar AS nama_pilar,
-              COALESCE((dashboard.${pillar.performance}->>'performa_total')::numeric, 0.0) AS score,
-              :kode_pilar AS kode_pilar
+              :kode_pilar AS kode_pilar,
+              ${metrics}
            FROM (${levelTwoQuery}) AS dashboard`,
           {
             type: QueryTypes.SELECT,
@@ -2717,8 +2729,8 @@ export default class Service {
       })
     );
 
-    const executiveStats = results.flat();
-    const dashboardDate = (executiveStats[0] as { tanggal: string }).tanggal;
+    const executiveStats = [...pesantren, ...formal, ...nonFormal];
+    const dashboardDate = executiveStats[0]?.tanggal ?? null;
 
     return [
       ...executiveStats,
@@ -2728,12 +2740,7 @@ export default class Service {
         score: 0.0,
         kode_pilar: 'KERUMAHTANGGAAN',
       },
-      {
-        tanggal: dashboardDate,
-        nama_pilar: 'Keuangan',
-        score: 0.0,
-        kode_pilar: 'KEUANGAN',
-      },
+      ...keuangan,
     ];
   }
 
@@ -3133,6 +3140,51 @@ export default class Service {
 
     return levelTwoStats[0];
   }
+
+  public async getKeuanganLevelTwo(
+    tanggal?: string,
+    tanggal_mulai?: string,
+    tanggal_selesai?: string
+  ) {
+    let dateFilter: any;
+    let dateTimeFilter: any;
+    let startD: string;
+    let endD: string;
+
+    if (tanggal_mulai && tanggal_selesai) {
+      dateFilter = { [Op.between]: [tanggal_mulai, tanggal_selesai] };
+      dateTimeFilter = {
+        [Op.between]: [
+          `${tanggal_mulai} 00:00:00`,
+          `${tanggal_selesai} 23:59:59`,
+        ],
+      };
+      startD = tanggal_mulai;
+      endD = tanggal_selesai;
+    } else {
+      const targetDate = tanggal || moment().tz(TIMEZONE).format('YYYY-MM-DD');
+      dateFilter = targetDate;
+      dateTimeFilter = {
+        [Op.between]: [`${targetDate} 00:00:00`, `${targetDate} 23:59:59`],
+      };
+      startD = targetDate;
+      endD = targetDate;
+    }
+
+    const conn = await rawQuery.getConnection();
+
+    const summaryQuery = fs.readFileSync(
+      path.join(process.cwd(), 'src/database/sql/keuangan-level-two.sql'),
+      'utf8'
+    );
+
+    const levelTwoStats = await conn.query(summaryQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    return levelTwoStats[0];
+  }
 }
+
 
 export const service = new Service();

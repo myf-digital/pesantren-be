@@ -1,6 +1,6 @@
 # Aturan operasional keuangan
 
-Backend menangani Rekap Harian, Target per akun, Anggaran Final, dan Beasiswa/Keringanan (per penerima atau agregat). Saldo awal disimpan langsung pada rekap harian, bukan tabel atau jenis impor baru. `jenis_data` batch baru hanya menerima `RekapHarian`, `Target`, `Anggaran`, dan `Beasiswa`; nilai lama `SaldoAwal` tetap dapat dibaca dari database untuk kompatibilitas histori.
+Backend menangani Rekap Harian, Target per akun, Anggaran, dan Beasiswa/Keringanan (per penerima atau agregat). Saldo awal disimpan langsung pada rekap harian, bukan tabel atau jenis impor baru. `jenis_data` batch baru hanya menerima `RekapHarian`, `Target`, `Anggaran`, dan `Beasiswa`; nilai lama `SaldoAwal` tetap dapat dibaca dari database untuk kompatibilitas histori.
 
 ## Instalasi dan verifikasi
 
@@ -63,11 +63,15 @@ Koreksi mengunci versi lama, menandainya `is_current=false`, lalu membuat UUID b
 
 Masuk/keluar tidak negatif. Saldo awal/akhir sumber dipertahankan, termasuk saldo bertanda negatif. Rekonsiliasi memakai aritmetika sen dengan BigInt untuk menjaga presisi NUMERIC(18,2); selisih menjadi warnings dan dicatat dalam keterangan, tanpa mengganti angka sumber. Identitas current adalah tanggal + akun + tahun ajaran, dengan penanganan NULL konsisten. Setiap baris terhubung ke batch. `created_at`/`updated_at` mencatat waktu versi; waktu arsip dicatat pada updated_at versi lama.
 
-## Target dan anggaran final
+## Target dan anggaran
 
 Target hanya mendukung akun (id_akun NOT NULL); kelompok diperoleh dari akun. Jenis: Penerimaan/Pengeluaran/Anggaran/Lainnya. Periode valid dan nilai tidak negatif. Identitas current: akun + jenis target + periode mulai + periode selesai.
 
-Anggaran final sudah disetujui di luar SADA. Nilai disetujui tidak negatif; realisasi boleh NULL. `status_sumber` merupakan informasi sumber dan tidak menjalankan workflow. Akun opsional; `per_akun=true` mewajibkan akun. Identitas deduplikasi jika kode referensi tersedia: kode referensi sumber + periode mulai + periode selesai + akun (NULL ditangani konsisten). Kode referensi harus mengidentifikasi sumber secara stabil. Koreksi tanpa UUID memerlukan kode referensi sumber. Anggaran tanpa referensi masih dilindungi hash isi batch; kode referensi direkomendasikan untuk pelacakan lintas file.
+Anggaran mewajibkan `status_sumber` dan `nilai_diajukan` positif. Impor dan ekspor anggaran menggunakan kolom `Status Sumber`, `Nilai Diajukan`, `Nilai Disetujui`, dan `Nilai Realisasi`. Status Diajukan dan Ditolak menerima persetujuan dan realisasi sebesar 0 atau NULL. Disetujui mewajibkan persetujuan positif dengan realisasi 0 atau NULL. Realisasi mewajibkan kedua nominal positif, dengan nilai realisasi kumulatif maksimal sebesar nilai disetujui. Nilai disetujui maksimal sebesar nilai diajukan.
+
+Migration `20261029000002-keu-anggaran-status-and-nominals.ts` memakai nilai disetujui positif sebagai estimasi pengajuan historis. Migrasi menyeragamkan ejaan empat status baku. Status lama lain diturunkan dari nominal, dengan prioritas realisasi positif lalu persetujuan positif. Baris tanpa persetujuan positif atau dengan status dan nominal yang bertentangan memerlukan koreksi berbasis sumber. Jika ada baris yang gagal memenuhi aturan baru, seluruh migrasi dibatalkan. Rollback skema menghapus kolom pengajuan dan mengubah persetujuan NULL menjadi 0. Nilai status hasil normalisasi tetap tersimpan.
+
+Akun opsional; `per_akun=true` mewajibkan akun. Identitas deduplikasi jika kode referensi tersedia: kode referensi sumber + periode mulai + periode selesai + akun (NULL ditangani konsisten). Kode referensi harus mengidentifikasi sumber secara stabil. Koreksi tanpa UUID memerlukan kode referensi sumber. Anggaran tanpa referensi masih dilindungi hash isi batch; kode referensi direkomendasikan untuk pelacakan lintas file.
 
 ## Beasiswa dan keringanan
 
@@ -81,6 +85,10 @@ Semua endpoint `keu-*` memakai bearer token dan hak menu berdasarkan `module_nam
 
 - Rekap: total masuk/keluar, posisi saldo akhir terakhir per akun/tahun ajaran beserta tanggalnya, dan periode sumber yang tersedia. Saldo antar tanggal tidak dijumlahkan. `histori_lengkap=null` menyatakan kelengkapan belum diketahui.
 - Target: realisasi Penerimaan = total masuk, Pengeluaran = total keluar dalam periode target. Anggaran/Lainnya mengembalikan NULL sampai indikator bisnis disepakati. Tidak memakai saldo akhir sebagai realisasi universal. Tidak ada sumber rekap menghasilkan NULL, bukan realisasi nol yang diasumsikan.
+- Ringkasan anggaran juga memuat total nilai diajukan dan sisa anggaran, dihitung dari nilai disetujui dikurangi realisasi. Realisasi NULL dihitung 0 untuk rumus sisa. Sisa bernilai NULL bila belum ada persetujuan positif.
 - Anggaran dan beasiswa: nilai final dan realisasi ditampilkan terpisah, dengan jumlah baris yang realisasinya belum diketahui. Nilai final tidak ditambahkan ke realisasi sebagai total pengeluaran.
 
 Repo ini menyediakan API backend; tampilan form/dashboard frontend perlu memakai kontrak endpoint di atas.
+
+
+`GET /summary-executive` mengembalikan pilar `KEUANGAN` dengan tanggal snapshot rekap keuangan. Skornya memakai persentase pencapaian target penuh pada akun yang memiliki target, dibatasi 0–100. Nilai skor 0 digunakan jika persentase belum tersedia. Properti `ringkasan_anggaran` memakai agregat anggaran current dari `GET /keuangan-level-two`. Total disetujui mencakup status Disetujui dan Realisasi. Sisa anggaran dihitung dari total disetujui dikurangi total realisasi. Tanggal rekap berfungsi sebagai metadata, sementara status anggaran mencerminkan versi current.

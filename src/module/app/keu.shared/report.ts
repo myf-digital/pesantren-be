@@ -150,6 +150,21 @@ export const financialSummary =
         'Ringkasan keuangan',
         {
           jumlah_baris: rows.length,
+          ...(jenis === 'anggaran'
+            ? {
+                nilai_diajukan: rows.length
+                  ? total(rows, 'nilai_diajukan')
+                  : null,
+                sisa_anggaran: rows.some(
+                  (row) => cents(row.nilai_disetujui ?? '0.00') > 0n
+                )
+                  ? decimal(
+                      cents(total(rows, 'nilai_disetujui')) -
+                        cents(total(rows, 'nilai_realisasi'))
+                    )
+                  : null,
+              }
+            : {}),
           [finalField]: rows.length ? total(rows, finalField) : null,
           nilai_realisasi: rows.some((row) => row.nilai_realisasi != null)
             ? total(rows, 'nilai_realisasi')

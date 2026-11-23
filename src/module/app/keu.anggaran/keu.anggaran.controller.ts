@@ -23,7 +23,10 @@ import {
   TIMEZONE,
 } from '../../../utils/constant';
 import moment from 'moment';
-import { keuAnggaranSchema } from './keu.anggaran.schema';
+import {
+  keuAnggaranNominalSchema,
+  keuAnggaranSchema,
+} from './keu.anggaran.schema';
 import { sequelize } from '../../../database/connection';
 import fs from 'fs/promises';
 import KeuAnggaran from './keu.anggaran.model';
@@ -40,6 +43,7 @@ const headers = [
   'Kode Akun',
   'Nilai Realisasi',
   'Nilai Disetujui',
+  'Nilai Diajukan',
   'ID Batch',
   'Current',
   'Status Sumber',
@@ -68,7 +72,8 @@ const generateDataExcel = (sheet: ExcelJS.Worksheet, details: any[]) => {
       row.periode_selesai,
       row.akun?.kode_akun ?? '',
       row.nilai_realisasi ?? '',
-      row.nilai_disetujui,
+      row.nilai_disetujui ?? '',
+      row.nilai_diajukan,
       row.id_batch ?? '',
       row.is_current ? 'Ya' : 'Tidak',
       row.status_sumber ?? '',
@@ -77,6 +82,7 @@ const generateDataExcel = (sheet: ExcelJS.Worksheet, details: any[]) => {
   );
   sheet.getColumn(7).numFmt = '@';
   sheet.getColumn(8).numFmt = '@';
+  sheet.getColumn(9).numFmt = '@';
 };
 const importItemSchema = keuAnggaranSchema.safeExtend({
   id_anggaran: z.string().uuid().optional(),
@@ -212,11 +218,16 @@ export default class Controller {
       const id: string = req?.params?.id || '';
       const check = await repository.detail({ id_anggaran: id });
       if (!check) return response.success(NOT_FOUND, null, res, false);
-      const errors = await validateReferences({
-        ...check.get({ plain: true }),
-        ...req.body,
-        id_anggaran: id,
-      });
+      const current = check.get({ plain: true });
+      const candidate = { ...current, ...req.body, id_anggaran: id };
+      const nominal = keuAnggaranNominalSchema.safeParse(candidate);
+      if (!nominal.success)
+        return response.failed(
+          nominal.error.issues.map((issue) => issue.message).join(', '),
+          400,
+          res
+        );
+      const errors = await validateReferences(candidate);
       if (errors.length) return response.failed(errors.join(', '), 400, res);
 
       const data = Object.fromEntries(
@@ -230,7 +241,7 @@ export default class Controller {
         saveFinancialVersion(
           KeuAnggaran,
           'id_anggaran',
-          { ...check.get({ plain: true }), ...data, id_anggaran: id },
+          { ...current, ...data, id_anggaran: id },
           transaction
         )
       );
@@ -346,13 +357,11 @@ export default class Controller {
           periode_mulai: dateValue(raw['Periode Mulai']),
           periode_selesai: dateValue(raw['Periode Selesai']),
           id_akun: akun?.id_akun ?? null,
-          nilai_disetujui: raw['Nilai Disetujui'],
+          nilai_diajukan: raw['Nilai Diajukan'],
+          nilai_disetujui:
+            raw['Nilai Disetujui'] === '' ? null : raw['Nilai Disetujui'],
           nilai_realisasi:
-            raw['Nilai Realisasi'] === null ||
-            raw['Nilai Realisasi'] === undefined ||
-            raw['Nilai Realisasi'] === ''
-              ? null
-              : raw['Nilai Realisasi'],
+            raw['Nilai Realisasi'] === '' ? null : raw['Nilai Realisasi'],
           id_batch: batch.id,
           keterangan: String(raw['Keterangan'] ?? '').trim() || null,
           is_current: parseCurrent(raw['Current']),

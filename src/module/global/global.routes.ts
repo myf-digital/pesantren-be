@@ -23,6 +23,7 @@ router.get('/summary-executive', auth.checkBearerToken, global.summaryExecutive)
 router.get('/kepesantrenan-level-two', auth.checkBearerToken, global.kepesantrenanLevelTwo);
 router.get('/formal-level-two', auth.checkBearerToken, global.formalLevelTwo);
 router.get('/non-formal-level-two', auth.checkBearerToken, global.nonFormalLevelTwo);
+router.get('/keuangan-level-two', auth.checkBearerToken, global.keuanganLevelTwo);
 router.get('/rekonsiliasi-jurnal-kelas', global.rekonsiliasiJurnalKelas);
 
 export default router;

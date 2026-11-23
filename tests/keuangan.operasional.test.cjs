@@ -395,11 +395,12 @@ test('budget per-account form requires account and retains source status', () =>
   } = require('../dist/module/app/keu.anggaran/keu.anggaran.schema');
   const value = {
     nama_anggaran: 'Anggaran',
+    status_sumber: 'Disetujui',
+    nilai_diajukan: '100.00',
     periode_mulai: '2026-01-01',
     periode_selesai: '2026-12-31',
     nilai_disetujui: '100.00',
     id_batch: 'batch',
-    status_sumber: 'Final sumber',
   };
   assert.equal(
     keuAnggaranSchema.safeParse({ ...value, per_akun: true }).success,
@@ -408,11 +409,60 @@ test('budget per-account form requires account and retains source status', () =>
   assert.equal(
     keuAnggaranSchema.parse({ ...value, per_akun: true, id_akun: 'akun' })
       .status_sumber,
-    'Final sumber'
+    'Disetujui'
   );
   assert.equal(
     keuAnggaranSchema.safeParse({ ...value, per_akun: false }).success,
     true
+  );
+});
+test('budget status constrains all three nominals with exact decimal precision', () => {
+  const {
+    keuAnggaranNominalSchema,
+  } = require('../dist/module/app/keu.anggaran/keu.anggaran.schema');
+  const proposed = { nilai_diajukan: '5000000.00' };
+  for (const [status, approved, realized, valid] of [
+    ['Diajukan', null, '0', true],
+    ['Diajukan', '1', null, false],
+    ['Disetujui', '4150000', null, true],
+    ['Disetujui', null, null, false],
+    ['Disetujui', '5000000.01', null, false],
+    ['Realisasi', '4150000', '2000000', true],
+    ['Realisasi', '4150000', '4150000', true],
+    ['Realisasi', '4150000', '4150000.01', false],
+    ['Realisasi', '4150000', null, false],
+    ['Realisasi', null, '1', false],
+    ['Ditolak', '0', null, true],
+    ['Ditolak', null, '1', false],
+    ['Final sumber', '0', '0', false],
+  ]) {
+    assert.equal(
+      keuAnggaranNominalSchema.safeParse({
+        ...proposed,
+        status_sumber: status,
+        nilai_disetujui: approved,
+        nilai_realisasi: realized,
+      }).success,
+      valid,
+      JSON.stringify([status, approved, realized])
+    );
+  }
+  for (const nominal of [undefined, null, 'abc', '-1', '0']) {
+    assert.equal(
+      keuAnggaranNominalSchema.safeParse({
+        status_sumber: 'Diajukan',
+        nilai_diajukan: nominal,
+      }).success,
+      false
+    );
+  }
+  assert.equal(
+    keuAnggaranNominalSchema.safeParse({
+      status_sumber: 'Disetujui',
+      nilai_diajukan: '9999999999999999.98',
+      nilai_disetujui: '9999999999999999.99',
+    }).success,
+    false
   );
 });
 test('scholarship aggregate Excel export round-trips scope and precise amounts', async () => {
@@ -721,6 +771,8 @@ test('all four financial insert endpoints create and link automatic batches atom
       Budget,
       {
         nama_anggaran: 'Final',
+        status_sumber: 'Disetujui',
+        nilai_diajukan: '100.00',
         periode_mulai: '2026-01-01',
         periode_selesai: '2026-12-31',
         nilai_disetujui: '100.00',
